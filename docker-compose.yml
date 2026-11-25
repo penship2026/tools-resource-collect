@@ -1,0 +1,19 @@
+services:
+  video-collect:
+    build: .
+    container_name: video-collect
+    ports:
+      - "8765:8765"
+    volumes:
+      # 采集只写 assets/data(索引 + collections 各单元),挂载到宿主机,容器重建后数据不丢
+      # 采集端与展示端分离部署时,让两个容器挂载同一份宿主机目录即可共享数据
+      - ./assets/data:/app/assets/data
+      - ./backups:/app/backups
+    environment:
+      - TZ=Asia/Shanghai
+      - PYTHONUNBUFFERED=1
+      # 仅跑采集端(不托管静态页面)时,取消下一行注释:
+      # - SERVER_ROLE=api
+      # 自定义数据目录时,两端设置相同的值(相对路径按 /app 解析):
+      # - VIDEO_DATA_DIR=/app/assets/data
+    restart: unless-stopped

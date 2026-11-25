@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>采集入口 · 神奇网站挖掘机</title>
+  <link rel="stylesheet" href="assets/style.css">
+  <style>
+    .layout { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 28px; align-items: start; }
+    @media (max-width: 860px) { .layout { grid-template-columns: 1fr; } }
+    .panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; box-shadow: var(--shadow); }
+    .panel h2 { font-size: 15px; font-weight: 600; margin-bottom: 18px; }
+    .field { margin-bottom: 16px; }
+    .field label { display: block; font-size: 13px; color: var(--text-sub); margin-bottom: 7px; }
+    .field input[type=text], .field input[type=number] {
+      width: 100%; background: var(--bg); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 10px 12px; color: var(--text); font-size: 14px; outline: none;
+    }
+    .field input:focus { border-color: var(--brand); }
+    .field .tip { font-size: 12px; color: var(--text-mute); margin-top: 5px; }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .check { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-sub); }
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      background: var(--brand); color: #fff; border: none; border-radius: var(--radius-sm);
+      padding: 11px 20px; font-size: 14px; cursor: pointer; margin-top: 6px;
+    }
+    .btn:disabled { opacity: .55; cursor: not-allowed; }
+    .btn.ghost { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+    .logbox {
+      background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm);
+      padding: 14px; margin-top: 20px; font-family: var(--font-mono); font-size: 12px;
+      line-height: 1.8; color: var(--text-sub); max-height: 320px; overflow: auto; white-space: pre-wrap;
+    }
+    .logbox:empty { display: none; }
+    .report { margin-top: 18px; display: none; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+    .report.show { display: grid; }
+    .report div { background: var(--bg); border-radius: var(--radius-sm); padding: 12px; text-align: center; }
+    .report b { display: block; font-size: 20px; font-weight: 600; }
+    .report span { font-size: 11px; color: var(--text-mute); }
+    .topic-item {
+      display: flex; justify-content: space-between; align-items: center; gap: 10px;
+      padding: 12px 0; border-bottom: 1px solid var(--border); font-size: 13px;
+    }
+    .topic-item:last-child { border-bottom: none; }
+    .topic-item a { color: var(--brand); }
+    .topic-item small { color: var(--text-mute); display: block; margin-top: 3px; }
+    .topic-item.off { opacity: .55; }
+    .topic-type { font-size: 10px; padding: 2px 6px; border-radius: 5px; background: #eef3fb; color: #2d7ff9; margin-right: 6px; }
+    .topic-type.single { background: #f0ebfa; color: #7a5cd6; }
+    .toggle-btn { font-size: 11px; padding: 4px 9px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); color: var(--text-sub); cursor: pointer; white-space: nowrap; }
+    .toggle-btn.off { color: #c0392b; }
+    .topic-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
+    .status { font-size: 13px; margin-top: 12px; min-height: 20px; }
+    .status.err { color: #c0392b; }
+    .status.ok { color: #1d9e75; }
+    .backend-badge { display: inline-block; font-size: 12px; padding: 5px 12px; border-radius: 20px; margin-top: 10px; }
+    .backend-badge.ok { background: #e6f7f0; color: #1d9e75; }
+    .backend-badge.err { background: #fdecea; color: #c0392b; }
+    .tabs { display: flex; gap: 6px; margin-bottom: 18px; border-bottom: 1px solid var(--border); }
+    .tab { background: none; border: none; border-bottom: 2px solid transparent; padding: 9px 14px; font-size: 14px; color: var(--text-mute); cursor: pointer; }
+    .tab.active { color: var(--brand); border-bottom-color: var(--brand); font-weight: 600; }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <div class="brand">
+        <a href="index.html">
+          <span class="brand-mark">◈</span>
+          <span>神奇网站挖掘机</span>
+        </a>
+      </div>
+      <div class="header-meta">采集入口</div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="hero" style="padding: 40px 0 20px">
+      <h1>采集入口</h1>
+      <p class="sub">输入一个主题,程序自动到 B站 搜索同类视频、聚类同系列、去重后生成子页。全程为固定规则处理,不使用 AI。</p>
+      <div id="backend-badge" class="tip" style="margin-top:8px">后端状态检测中…</div>
+    </section>
+
+    <div class="layout">
+      <div class="panel">
+        <h2>新建采集任务</h2>
+        <div class="tabs">
+          <button class="tab active" id="tab-keyword" type="button">按主题采集</button>
+          <button class="tab" id="tab-url" type="button">按链接采集单片</button>
+        </div>
+        <form id="form">
+          <div class="field" id="field-keyword">
+            <label for="keyword">主题关键词 *</label>
+            <input type="text" id="keyword" placeholder="例如:每天挖掘一个神奇网站">
+            <div class="tip">需完整出现在视频标题中(可多字,但不拆分)。例如「每天挖掘一个神奇网站」。</div>
+          </div>
+          <div class="field hidden" id="field-url">
+            <label for="video_url">B站 分享文案 / 链接 / BV 号 *</label>
+            <input type="text" id="video_url" placeholder="粘贴分享文案,或 https://b23.tv/xxx、BV15esS68EoG">
+            <div class="tip">可直接粘贴 B站 分享文案(【标题】+ 链接),会自动解析短链并用文案里的标题;也支持视频页链接、b23.tv 短链、BV 号。</div>
+          </div>
+          <div class="grid2">
+            <div class="field">
+              <label for="title">显示标题</label>
+              <input type="text" id="title" placeholder="留空则同关键词/视频标题">
+            </div>
+            <div class="field">
+              <label for="slug">单元 ID(可选)</label>
+              <input type="text" id="slug" placeholder="留空自动生成">
+              <div class="tip">填写已有单元 ID 即重新采集、只更新该单元的数据;留空则按标题匹配或新建。</div>
+            </div>
+          </div>
+          <div class="field" id="field-up">
+            <label for="up">指定 UP 主(可选)</label>
+            <input type="text" id="up" placeholder="例如:草根的异世界">
+            <div class="tip">指定后只采该作者,结果更纯粹。</div>
+          </div>
+          <div class="field" id="field-pages">
+            <label for="pages">搜索页数</label>
+            <input type="number" id="pages" value="30" min="1" max="50">
+            <div class="tip">每页 20 条,上限约 50 页</div>
+          </div>
+          <div class="field check">
+            <input type="checkbox" id="dry_run">
+            <label for="dry_run" style="margin:0">预览模式(只看结果,不写文件)</label>
+          </div>
+          <button class="btn" id="submit" type="submit">开始采集</button>
+          <button class="btn ghost" id="reset" type="button">清空</button>
+        </form>
+
+        <div class="status" id="status"></div>
+        <div class="report" id="report">
+          <div><b id="r-added">0</b><span>新增</span></div>
+          <div><b id="r-updated">0</b><span>更新</span></div>
+          <div><b id="r-kept">0</b><span>未变</span></div>
+          <div><b id="r-total">0</b><span>合计</span></div>
+        </div>
+        <div class="logbox" id="log"></div>
+      </div>
+
+      <div class="panel">
+        <h2>已有采集单元</h2>
+        <div id="topics"><div class="tip">加载中…</div></div>
+        <p class="tip" style="margin-top:18px">
+          每次采集是独立单元,可单独开启/关闭首页显示(关闭后数据保留,只是不展示)。
+          填写单元 ID 重新采集时,只更新该单元,不影响其他单元;按 BV 号自动去重。
+        </p>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <div>采集程序为纯规则实现,仅读取 B站 公开搜索接口。视频版权归原作者所有。</div>
+      <div><a href="index.html">← 返回聚合站首页</a></div>
+    </div>
+  </footer>
+
+  <script>
+    const $ = id => document.getElementById(id);
+    const form = $('form');
+    const statusBox = $('status');
+    const logBox = $('log');
+    const reportBox = $('report');
+    const badgeBox = $('backend-badge');
+    let mode = 'keyword'; // keyword | url
+
+    function setMode(m) {
+      mode = m;
+      const isUrl = m === 'url';
+      $('tab-keyword').classList.toggle('active', !isUrl);
+      $('tab-url').classList.toggle('active', isUrl);
+      $('field-keyword').classList.toggle('hidden', isUrl);
+      $('field-url').classList.toggle('hidden', !isUrl);
+      $('field-up').classList.toggle('hidden', isUrl);
+      $('field-pages').classList.toggle('hidden', isUrl);
+      $('keyword').required = !isUrl;
+      $('video_url').required = isUrl;
+      $('submit').textContent = isUrl ? '采集这条视频' : '开始采集';
+      statusBox.textContent = '';
+      logBox.textContent = '';
+      reportBox.classList.remove('show');
+    }
+    $('tab-keyword').addEventListener('click', () => setMode('keyword'));
+    $('tab-url').addEventListener('click', () => setMode('url'));
+
+    // 用相对路径调用接口,兼容站点部署在子目录下(根路径下也正常)
+    const API_COLLECT = 'api/collect';
+    const API_TOPICS  = 'api/topics';
+    const API_TOGGLE  = 'api/toggle';
+
+    // 统一读取响应:若返回的不是 JSON(例如被静态托管接管、或服务端为旧版本),给出明确诊断
+    async function readJSON(resp) {
+      const ct = (resp.headers.get('content-type') || '').toLowerCase();
+      const text = await resp.text();
+      if (ct.indexOf('json') < 0) {
+        const head = text.replace(/\s+/g, ' ').slice(0, 160);
+        throw new Error('接口返回的不是 JSON(HTTP ' + resp.status + '),内容开头: ' + head +
+          '。请确认 /api/ 请求转发到了 server.py,且服务端是最新版本(旧进程需重启)。');
+      }
+      try { return JSON.parse(text); }
+      catch (e) { throw new Error('响应不是合法 JSON: ' + text.replace(/\s+/g, ' ').slice(0, 160)); }
+    }
+
+    async function checkBackend() {
+      // 用最基础的 /api/topics 探测:任何版本的 server.py 都有该接口,
+      // 不依赖后来新增的 /api/health,避免旧版服务返回 404 HTML 导致误判。
+      try {
+        const d = await readJSON(await fetch(API_TOPICS, { cache: 'no-store' }));
+        if (d.ok) {
+          badgeBox.textContent = '● 后端已连接';
+          badgeBox.style.color = '#1d9e75';
+          return true;
+        }
+        badgeBox.textContent = '● 后端异常: ' + (d.error || '未知');
+        badgeBox.style.color = '#c0392b';
+      } catch (err) {
+        badgeBox.textContent = '● 后端不可达: ' + err.message;
+        badgeBox.style.color = '#c0392b';
+      }
+      return false;
+    }
+
+    function loadTopics() {
+      fetch(API_TOPICS, { cache: 'no-store' }).then(readJSON).then(d => {
+        const box = $('topics');
+        if (!d.ok || !d.topics.length) { box.innerHTML = '<div class="tip">暂无采集单元</div>'; return; }
+        box.innerHTML = d.topics.map(t => {
+          const type = t.type || 'series';
+          const typeTag = type === 'single'
+            ? '<span class="topic-type single">单条</span>'
+            : '<span class="topic-type">合集</span>';
+          const enabled = t.enabled !== false;
+          return `
+          <div class="topic-item ${enabled ? '' : 'off'}">
+            <div>
+              ${typeTag}<a href="${t.page}" target="_blank">${t.title}</a>
+              <small>${t.count} 期 · ${t.author || 'B站'} · id: ${t.id}</small>
+            </div>
+            <div class="topic-actions">
+              <button class="toggle-btn ${enabled ? '' : 'off'}" data-id="${t.id}" data-enabled="${enabled}">
+                ${enabled ? '显示中' : '已关闭'}
+              </button>
+              <button class="toggle-btn" data-fill-id="${t.id}">重采此单元</button>
+            </div>
+          </div>`;
+        }).join('');
+
+        // 开关显示
+        box.querySelectorAll('.toggle-btn[data-id]').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            const id = btn.getAttribute('data-id');
+            const next = btn.getAttribute('data-enabled') !== 'true';
+            btn.disabled = true;
+            try {
+              const resp = await fetch(API_TOGGLE, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: id, enabled: next })
+              });
+              const r = await readJSON(resp);
+              if (r.ok) {
+                statusBox.className = 'status ok';
+                statusBox.textContent = '「' + (r.title || id) + '」显示已' + (next ? '开启' : '关闭');
+                loadTopics();
+              } else {
+                statusBox.className = 'status err';
+                statusBox.textContent = r.error || '切换失败';
+              }
+            } catch (err) {
+              statusBox.className = 'status err';
+              statusBox.textContent = '切换失败: ' + err.message;
+            } finally { btn.disabled = false; }
+          });
+        });
+        // 点击「重采此单元」回填 id
+        box.querySelectorAll('[data-fill-id]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            $('slug').value = btn.getAttribute('data-fill-id');
+            statusBox.className = 'status';
+            statusBox.textContent = '已填入单元 ID「' + $('slug').value + '」,填写关键词后采集即只更新该单元';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          });
+        });
+      }).catch(err => { $('topics').innerHTML = '<div class="tip">加载失败: ' + err.message + '</div>'; });
+    }
+
+    form.addEventListener('submit', async e => {
+      e.preventDefault();
+      const payload = {
+        mode: mode,
+        keyword: (mode === 'url' ? $('video_url').value.trim() : $('keyword').value.trim()),
+        title: $('title').value.trim(),
+        unit_id: $('slug').value.trim(),
+        up: $('up').value.trim(),
+        pages: parseInt($('pages').value) || 30,
+        dry_run: $('dry_run').checked,
+      };
+      $('submit').disabled = true;
+      $('submit').textContent = '采集中…';
+      statusBox.className = 'status';
+      statusBox.textContent = '正在搜索 B站,请稍候(约需十几秒)…';
+      logBox.textContent = '';
+      reportBox.classList.remove('show');
+
+      try {
+        const resp = await fetch(API_COLLECT, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const d = await readJSON(resp);
+        logBox.textContent = (d.logs || []).join('\n');
+        if (d.ok) {
+          statusBox.className = 'status ok';
+          statusBox.textContent = d.dry_run
+            ? '预览完成,未写入文件'
+            : '完成!新增 ' + d.added + ' / 更新 ' + d.updated + ' / 合计 ' + d.total + ' 期';
+          $('r-added').textContent = d.added;
+          $('r-updated').textContent = d.updated;
+          $('r-kept').textContent = d.kept;
+          $('r-total').textContent = d.total;
+          reportBox.classList.add('show');
+          if (!d.dry_run) loadTopics();
+        } else {
+          statusBox.className = 'status err';
+          statusBox.textContent = '失败: ' + (d.error || '未知错误');
+        }
+      } catch (err) {
+        statusBox.className = 'status err';
+        statusBox.textContent = '请求失败: ' + err.message;
+      } finally {
+        $('submit').disabled = false;
+        $('submit').textContent = (mode === 'url' ? '采集这条视频' : '开始采集');
+      }
+    });
+
+    $('reset').addEventListener('click', () => {
+      form.reset();
+      $('pages').value = 30;
+      setMode(mode); // 恢复当前模式的按钮文字与必填状态
+      statusBox.textContent = '';
+      logBox.textContent = '';
+      reportBox.classList.remove('show');
+    });
+
+    checkBackend();
+    loadTopics();
+  </script>
+</body>
+</html>

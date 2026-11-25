@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>单条精选 · 神奇网站挖掘机</title>
+  <link rel="stylesheet" href="assets/style.css">
+  <style>
+    /* ===== 单链接页专属布局样式(单独维护本页时只改这里) ===== */
+    .crumb { font-size: 13px; color: var(--text-mute); margin: 18px 0; }
+    .crumb a { color: var(--brand); text-decoration: none; }
+    .crumb span { margin: 0 8px; }
+
+    .single-layout { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(260px, 1fr); gap: 28px; align-items: start; }
+    @media (max-width: 860px) { .single-layout { grid-template-columns: 1fr; } }
+
+    .player {
+      display: block; position: relative; aspect-ratio: 16 / 9; border-radius: var(--radius);
+      overflow: hidden; background: var(--bg); box-shadow: var(--shadow);
+    }
+    .player img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .player .play {
+      position: absolute; inset: 0; display: grid; place-items: center;
+      background: rgba(0,0,0,.18); color: #fff; font-size: 56px;
+    }
+
+    .detail h1 { font-size: 22px; font-weight: 600; line-height: 1.4; margin: 0 0 12px; }
+    .detail .sub { color: var(--text-sub); font-size: 13px; margin: 0 0 18px; }
+    .detail-row { display: flex; gap: 10px; font-size: 13px; padding: 9px 0; border-bottom: 1px solid var(--border); }
+    .detail-row .label { flex: 0 0 68px; color: var(--text-mute); }
+    .detail-row .value { color: var(--text); line-height: 1.5; }
+    .desc-box { margin-top: 18px; }
+    .desc-box h3 { font-size: 14px; font-weight: 600; margin: 0 0 8px; }
+    .desc-box p { font-size: 13px; color: var(--text-sub); line-height: 1.7; margin: 0; }
+    .watch-btn {
+      display: inline-block; margin-top: 22px; background: var(--brand); color: #fff;
+      text-decoration: none; border-radius: var(--radius-sm); padding: 12px 22px; font-size: 14px;
+    }
+    .empty { padding: 40px 0; text-align: center; color: var(--text-mute); }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <div class="brand">
+        <a href="index.html"><span class="brand-mark">◈</span><span>神奇网站挖掘机</span></a>
+      </div>
+      <div class="header-meta">单条精选</div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <div class="crumb"><a href="index.html">全部主题</a><span>/</span><span id="crumb-title">—</span></div>
+    <div id="single-root"></div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <div>视频来自各平台公开投稿,版权归原作者所有;点击按钮将跳转至原平台观看。</div>
+      <div><a href="index.html">← 返回全部主题</a></div>
+    </div>
+  </footer>
+
+  <script src="assets/data-loader.js"></script>
+  <script>
+    var id = CollectionLoader.currentId();
+    var root = document.getElementById('single-root');
+
+    // ISO 日期(YYYY-MM-DD)统一格式化为 yyyy.mm.dd
+    function fmtDate(iso) {
+      if (!iso) return '—';
+      var m = /^(\d{4})-(\d{1,2})-(\d{1,2})/.exec(iso);
+      if (!m) return iso;
+      return m[1] + '.' + ('0' + Number(m[2])).slice(-2) + '.' + ('0' + Number(m[3])).slice(-2);
+    }
+
+    if (!id) {
+      root.innerHTML = '<div class="empty">未指定视频。请从 <a href="index.html">首页</a> 选择一个「单条精选」。</div>';
+    } else {
+      CollectionLoader.load(id, function (topic, err) {
+        if (err || !topic) {
+          root.innerHTML = '<div class="empty">未找到该视频数据(' + (err || '') + ')。请从 <a href="index.html">首页</a> 选择。</div>';
+          return;
+        }
+        var v = (topic.videos || [])[0];
+        if (!v) {
+          root.innerHTML = '<div class="empty">该单元没有视频数据。</div>';
+          return;
+        }
+        document.title = (topic.title || v.title) + ' · 单条精选';
+        document.getElementById('crumb-title').textContent = topic.title || v.title;
+        var author = v.author || (topic.source && topic.source.name) || '';
+        var sourceUrl = (topic.source && topic.source.url) || v.url;
+        var plat = (topic.source && topic.source.platform) || 'B站';
+        var unitTags = Array.isArray(topic.tags) ? topic.tags : [];
+        root.innerHTML =
+          '<div class="single-layout">' +
+            '<div>' +
+              '<a class="player" href="' + v.url + '" target="_blank" rel="noopener">' +
+                '<img src="' + v.cover + '" alt="' + v.title + '" referrerpolicy="no-referrer">' +
+                '<span class="play">▶</span>' +
+              '</a>' +
+              '<div class="desc-box"><h3>简介</h3><p>' + (v.desc || '该视频暂无简介。') + '</p></div>' +
+            '</div>' +
+            '<div class="detail">' +
+              '<h1>' + v.title + '</h1>' +
+              '<p class="sub">' + (topic.slogan || '') + '</p>' +
+              '<div class="detail-row"><span class="label">来源平台</span><span class="value">' + plat + '</span></div>' +
+              '<div class="detail-row"><span class="label">发布者</span><span class="value">' + author + '</span></div>' +
+              '<div class="detail-row"><span class="label">发布日期</span><span class="value">' + v.date + '</span></div>' +
+              '<div class="detail-row"><span class="label">最近采集</span><span class="value">' + fmtDate(topic.updated) + '</span></div>' +
+              (unitTags.length ? '<div class="detail-row"><span class="label">标签</span><span class="value">' + unitTags.join(' / ') + '</span></div>' : '') +
+              '<div class="detail-row"><span class="label">视频编号</span><span class="value">' + v.bv + '</span></div>' +
+              '<a class="watch-btn" href="' + v.url + '" target="_blank" rel="noopener">前往 ' + plat + '观看 →</a>' +
+              (sourceUrl ? '<div style="margin-top:14px"><a href="' + sourceUrl + '" target="_blank" rel="noopener" style="font-size:12px;color:var(--text-mute)">查看 UP 主主页 →</a></div>' : '') +
+            '</div>' +
+          '</div>';
+      });
+    }
+  </script>
+</body>
+</html>

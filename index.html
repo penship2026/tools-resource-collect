@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>神奇网站挖掘机 · 视频聚合站</title>
+  <meta name="description" content="按主题汇总 B站 的优质系列视频,持续更新">
+  <link rel="stylesheet" href="assets/style.css">
+  <style>
+    /* ===== 首页专属布局样式(单独维护本页时只改这里) ===== */
+    .facts { display: flex; gap: 40px; margin-top: 24px; }
+    .fact b { display: block; font-size: 26px; font-weight: 600; }
+    .fact span { font-size: 12px; color: var(--text-mute); }
+
+    .filter-bar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 18px; }
+    .chip {
+      border: 1px solid var(--border); background: var(--surface); color: var(--text-sub);
+      border-radius: 20px; padding: 6px 14px; font-size: 13px; cursor: pointer;
+    }
+    .chip.active { background: var(--brand); color: #fff; border-color: var(--brand); }
+
+    .topic-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 18px; }
+    .topic-card {
+      display: block; background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); overflow: hidden; text-decoration: none;
+      color: var(--text); box-shadow: var(--shadow); transition: transform .15s ease;
+    }
+    .topic-card:hover { transform: translateY(-3px); }
+    .topic-cover { position: relative; aspect-ratio: 16 / 9; background: var(--bg); overflow: hidden; }
+    .topic-cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .topic-cover .badge {
+      /* 显式覆盖公共样式(style.css)的 top:14px 与圆角,否则 top+bottom 同时生效会把徽标拉成竖条 */
+      position: absolute; left: 10px; bottom: 10px; top: auto;
+      background: rgba(0,0,0,.72); color: #fff;
+      font-size: 11px; padding: 4px 9px; border-radius: 6px;
+      white-space: nowrap; backdrop-filter: none;
+    }
+    .topic-cover .type-tag {
+      position: absolute; right: 10px; top: 10px; font-size: 11px; padding: 4px 9px;
+      border-radius: 6px; color: #fff; background: var(--brand);
+    }
+    .topic-cover .type-tag.single { background: #7a5cd6; }
+    .topic-body { padding: 14px 16px 16px; }
+    .topic-body h3 { font-size: 15px; font-weight: 600; margin: 0 0 6px; }
+    .topic-body .slogan { font-size: 12px; color: var(--text-sub); margin: 0 0 12px; line-height: 1.5; }
+    .topic-body .foot { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-mute); }
+    .topic-body .count { color: var(--brand); }
+    /* 标签独立成行:超出两行自动截断 */
+    .topic-body .tag-line {
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+      overflow: hidden; margin: 0 0 10px; line-height: 1.9;
+    }
+    .mini-tag {
+      display: inline-block; margin-right: 4px; padding: 1px 6px; font-size: 10px;
+      border: 1px solid var(--border); border-radius: 8px; color: var(--text-mute);
+      max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: middle;
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <div class="brand">
+        <a href="index.html">
+          <span class="brand-mark">◈</span>
+          <span>神奇网站挖掘机</span>
+        </a>
+      </div>
+      <div class="header-meta"><a href="collect.html" style="color:var(--brand)">采集入口 →</a></div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="hero">
+      <h1>每个值得收藏的宝藏主题<br>都有一页完整清单</h1>
+      <p class="sub">按主题收录 B站 等各平台的优质系列视频,点开卡片就能直接看。<br>新主题由采集程序自动整理,清单会持续更新。</p>
+      <div class="facts">
+        <div class="fact"><b id="stat-topics">0</b><span>主题系列</span></div>
+        <div class="fact"><b id="stat-platforms">0</b><span>来源渠道</span></div>
+        <div class="fact"><b id="stat-updated">—</b><span>最近更新</span></div>
+      </div>
+    </section>
+
+    <div class="section-title">
+      <h2>全部主题</h2>
+      <span class="hint">点击卡片进入合集 / 单视频页面</span>
+    </div>
+
+    <div class="filter-bar" id="filter-bar">
+      <button class="chip active" data-filter="all">全部</button>
+      <button class="chip" data-filter="series">系列合集</button>
+      <button class="chip" data-filter="single">单条精选</button>
+      <!-- 平台筛选:动态生成;仅一个渠道时隐藏,接入更多采集渠道后自动出现 -->
+      <span id="platform-chips" style="display:none"></span>
+      <!-- 标签筛选:动态生成,取所有单元标签的并集(按出现次数取前 8 个) -->
+      <span id="tag-chips"></span>
+      <input type="text" id="topic-search" placeholder="搜索主题名称或发布者…" style="margin-left:auto">
+    </div>
+
+    <div class="topic-grid" id="topic-grid"></div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <div>数据来源:B站公开搜索接口。视频版权归各创作者所有,本站仅做链接聚合与导航。</div>
+      <div>页面为固定模板,采集只更新数据;新增主题请在「采集入口」操作。</div>
+    </div>
+  </footer>
+
+  <script src="assets/data/index.js"></script>
+  <script src="assets/data-loader.js"></script>
+  <script>
+    var all = (window.COLLECTION_INDEX || window.TOPIC_INDEX || [])
+      .filter(function (t) { return t.enabled !== false; }); // 关闭显示的单元不展示
+    var currentFilter = 'all';
+    var currentPlatform = 'all';
+    var currentTag = '';
+    var keyword = '';
+
+    function platformOf(t) {
+      return (t.source && t.source.platform) || 'B站';
+    }
+    function tagsOf(t) {
+      return Array.isArray(t.tags) ? t.tags : [];
+    }
+
+    document.getElementById('stat-topics').textContent = all.length;
+    var updated = (window.SITE && window.SITE.updated) || '';
+    // 站点日期统一 yyyy.mm.dd 格式
+    document.getElementById('stat-updated').textContent = updated.replace(/-/g, '.');
+
+    // 来源渠道统计与动态筛选:当前仅一个渠道时不显示筛选,新增渠道后自动出现
+    var platforms = [];
+    all.forEach(function (t) {
+      var p = platformOf(t);
+      if (platforms.indexOf(p) < 0) platforms.push(p);
+    });
+    document.getElementById('stat-platforms').textContent = platforms.length;
+
+    var pWrap = document.getElementById('platform-chips');
+    if (platforms.length > 1) {
+      pWrap.style.display = '';
+      var chipsHtml = '<button class="chip active" data-platform="all">全平台</button>';
+      platforms.forEach(function (p) {
+        chipsHtml += '<button class="chip" data-platform="' + p + '">' + p + '</button>';
+      });
+      pWrap.innerHTML = chipsHtml;
+      pWrap.querySelectorAll('.chip').forEach(function (chip) {
+        chip.addEventListener('click', function () {
+          pWrap.querySelectorAll('.chip').forEach(function (c) { c.classList.remove('active'); });
+          chip.classList.add('active');
+          currentPlatform = chip.getAttribute('data-platform');
+          render();
+        });
+      });
+    }
+
+    var grid = document.getElementById('topic-grid');
+
+    // 标签筛选:统计所有单元标签出现次数,取前 8 个生成 chips
+    var currentTag = '';
+    (function () {
+      var counts = {};
+      all.forEach(function (t) {
+        tagsOf(t).forEach(function (tag) {
+          counts[tag] = (counts[tag] || 0) + 1;
+        });
+      });
+      var top = Object.keys(counts).sort(function (a, b) { return counts[b] - counts[a]; }).slice(0, 8);
+      if (!top.length) return;
+      var wrap = document.getElementById('tag-chips');
+      var html = '<button class="chip active" data-tag="">全部标签</button>';
+      top.forEach(function (tag) {
+        html += '<button class="chip" data-tag="' + tag + '">' + tag + ' (' + counts[tag] + ')</button>';
+      });
+      wrap.innerHTML = html;
+      wrap.querySelectorAll('.chip').forEach(function (chip) {
+        chip.addEventListener('click', function () {
+          wrap.querySelectorAll('.chip').forEach(function (c) { c.classList.remove('active'); });
+          chip.classList.add('active');
+          currentTag = chip.getAttribute('data-tag');
+          render();
+        });
+      });
+    })();
+
+    function render() {
+      var list = all.filter(function (t) {
+        if (currentFilter !== 'all' && (t.type || 'series') !== currentFilter) return false;
+        if (currentPlatform !== 'all' && platformOf(t) !== currentPlatform) return false;
+        if (currentTag && tagsOf(t).indexOf(currentTag) < 0) return false;
+        if (keyword) {
+          var hay = [t.title, (t.source && t.source.name), t.slogan].join(' ').toLowerCase();
+          if (hay.indexOf(keyword) < 0) return false;
+        }
+        return true;
+      });
+      grid.innerHTML = list.length ? list.map(function (t) {
+        var type = t.type || 'series';
+        var href = t.page || (type === 'single' ? 'single.html?id=' : 'series.html?id=') + t.id;
+        var cover = t.cover
+          ? '<img src="' + t.cover + '" alt="' + t.title + '" loading="lazy" referrerpolicy="no-referrer">'
+          : '<div style="width:100%;height:100%;display:grid;place-items:center;background:linear-gradient(135deg,#1e3a5f,#2d7ff9);color:#fff;font-size:42px">' + t.title.charAt(0) + '</div>';
+        // 封面左下角显示来源平台徽标,为多渠道聚合预留(接入抖音/视频号等后自动区分来源)
+        var badgeHtml = '<span class="badge">' + platformOf(t) + '</span>';
+        var tag = type === 'single'
+          ? '<span class="type-tag single">单条</span>'
+          : '<span class="type-tag">合集</span>';
+        // 标签独立成行展示(实际采集的正式标签),超出两行自动截断
+        var showTags = tagsOf(t).slice(0, 6).map(function (x) {
+          return '<span class="mini-tag">' + x + '</span>';
+        }).join('');
+        return '<a class="topic-card" href="' + href + '">' +
+          '<div class="topic-cover">' + cover + tag + badgeHtml + '</div>' +
+          '<div class="topic-body"><h3>' + t.title + '</h3>' +
+          '<p class="slogan">' + (t.slogan || '') + '</p>' +
+          (showTags ? '<div class="tag-line">' + showTags + '</div>' : '') +
+          '<div class="foot"><span class="count">' + (t.count || 0) + ' 期视频 →</span>' +
+          '<span>' + (t.latest || updated) + '</span></div></div></a>';
+      }).join('') : '<div class="empty">没有匹配的主题</div>';
+    }
+
+    document.querySelectorAll('.chip').forEach(function (chip) {
+      chip.addEventListener('click', function () {
+        document.querySelectorAll('.chip').forEach(function (c) { c.classList.remove('active'); });
+        chip.classList.add('active');
+        currentFilter = chip.getAttribute('data-filter');
+        render();
+      });
+    });
+    document.getElementById('topic-search').addEventListener('input', function (e) {
+      keyword = e.target.value.trim().toLowerCase();
+      render();
+    });
+    render();
+  </script>
+</body>
+</html>

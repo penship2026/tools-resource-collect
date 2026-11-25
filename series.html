@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>系列合集 · 神奇网站挖掘机</title>
+  <link rel="stylesheet" href="assets/style.css">
+  <style>
+    /* ===== 子集合页专属布局样式(单独维护本页时只改这里) ===== */
+    .crumb { font-size: 13px; color: var(--text-mute); margin: 18px 0; }
+    .crumb a { color: var(--brand); text-decoration: none; }
+    .crumb span { margin: 0 8px; }
+
+    .hero { padding-top: 8px; }
+    .hero h1 { font-size: 26px; font-weight: 600; margin: 0 0 8px; }
+    .hero .sub { color: var(--text-sub); margin: 0 0 20px; }
+    .facts { display: flex; gap: 36px; margin: 0 0 14px; }
+    .fact b { display: block; font-size: 22px; font-weight: 600; }
+    .fact span { font-size: 12px; color: var(--text-mute); }
+
+    .topic-meta-row { display: flex; gap: 10px; font-size: 13px; line-height: 1.6; margin: 6px 0; }
+    .topic-meta-row .label { color: var(--text-mute); flex: 0 0 40px; }
+    .topic-meta-row .value { color: var(--text-sub); }
+
+    .toolbar { display: flex; gap: 14px; align-items: center; margin: 18px 0; }
+    .toolbar input {
+      flex: 1; max-width: 420px; background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 10px 12px; color: var(--text); font-size: 14px; outline: none;
+    }
+    .toolbar .stat { font-size: 12px; color: var(--text-mute); }
+
+    .author-section { margin: 22px 0; }
+    .author-heading { font-size: 15px; font-weight: 600; margin: 0 0 12px; }
+    .author-heading span { font-size: 11px; color: var(--text-mute); font-weight: 400; margin-left: 8px; }
+    .video-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+    .video-card {
+      display: block; background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); overflow: hidden; text-decoration: none; color: var(--text);
+    }
+    .video-thumb { position: relative; aspect-ratio: 16 / 9; background: var(--bg); overflow: hidden; }
+    .video-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .video-thumb .play {
+      position: absolute; inset: 0; display: grid; place-items: center;
+      color: #fff; font-size: 30px; opacity: .9;
+    }
+    .video-info { padding: 12px 14px 14px; }
+    .video-info h3 { font-size: 14px; font-weight: 500; line-height: 1.45; margin: 0 0 8px; }
+    .video-info .desc { font-size: 12px; color: var(--text-sub); margin: 0 0 8px; line-height: 1.5; }
+    .video-info .meta { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-mute); }
+    .empty { padding: 40px 0; text-align: center; color: var(--text-mute); }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <div class="brand">
+        <a href="index.html"><span class="brand-mark">◈</span><span>神奇网站挖掘机</span></a>
+      </div>
+      <div class="header-meta">系列合集</div>
+    </div>
+  </header>
+
+  <main class="wrap" data-default-id="">
+    <div class="crumb"><a href="index.html">全部主题</a><span>/</span><span id="crumb-title">—</span></div>
+
+    <section class="hero">
+      <h1 id="topic-title">—</h1>
+      <p class="sub" id="topic-slogan">—</p>
+      <div class="facts">
+        <div class="fact"><b id="stat-count">0</b><span>收录期数</span></div>
+        <div class="fact"><b id="stat-latest">—</b><span>最新发布</span></div>
+        <div class="fact"><b id="stat-collected">—</b><span>最近采集</span></div>
+        <div class="fact"><b id="stat-span">—</b><span>时间跨度</span></div>
+      </div>
+      <div class="topic-meta" id="topic-meta"></div>
+    </section>
+
+    <div class="section-title">
+      <h2>全部视频</h2>
+      <a class="hint" id="source-link" href="#" target="_blank" rel="noopener">查看 UP 主主页 →</a>
+    </div>
+
+    <div class="toolbar">
+      <input type="text" id="search" placeholder="搜索视频标题,输入关键词过滤…">
+      <span class="stat" id="result-stat"></span>
+    </div>
+
+    <div id="video-grid"></div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <div>视频来自各平台公开投稿,版权归原作者所有;点击卡片将跳转至原平台观看。</div>
+      <div><a href="index.html">← 返回全部主题</a></div>
+    </div>
+  </footer>
+
+  <script src="assets/data-loader.js"></script>
+  <script>
+    var id = CollectionLoader.currentId();
+    var grid = document.getElementById('video-grid');
+    var vids = [];
+
+    // ISO 日期(YYYY-MM-DD)统一格式化为 yyyy.mm.dd
+    function fmtDate(iso) {
+      if (!iso) return '—';
+      var m = /^(\d{4})-(\d{1,2})-(\d{1,2})/.exec(iso);
+      if (!m) return iso;
+      return m[1] + '.' + ('0' + Number(m[2])).slice(-2) + '.' + ('0' + Number(m[3])).slice(-2);
+    }
+
+    if (!id) {
+      document.querySelector('main').innerHTML =
+        '<div class="empty">未指定合集。请从 <a href="index.html">首页</a> 选择一个主题。</div>';
+    } else {
+      CollectionLoader.load(id, function (topic, err) {
+        if (err || !topic) {
+          document.querySelector('main').innerHTML =
+            '<div class="empty">未找到该合集数据(' + (err || '') + ')。请从 <a href="index.html">首页</a> 选择。</div>';
+          return;
+        }
+        document.title = topic.title + ' · 视频合集';
+        document.getElementById('crumb-title').textContent = topic.title;
+        document.getElementById('topic-title').textContent = topic.title;
+        document.getElementById('topic-slogan').textContent = topic.slogan || '';
+        if (topic.source && topic.source.url) {
+          document.getElementById('source-link').href = topic.source.url;
+        }
+        vids = topic.videos || [];
+        document.getElementById('stat-count').textContent = vids.length;
+        document.getElementById('stat-latest').textContent = vids.length ? vids[0].date : '—';
+        document.getElementById('stat-collected').textContent = fmtDate(topic.updated);
+        document.getElementById('stat-span').textContent = vids.length
+          ? vids[0].date + ' – ' + vids[vids.length - 1].date : '—';
+        // 来源平台信息(多渠道预留:接入抖音/视频号等后自动显示对应平台)
+        var plat = (topic.source && topic.source.platform) || 'B站';
+        var srcHtml = '<div class="topic-meta-row"><span class="label">来源</span>' +
+          '<span class="value">' + plat +
+          (topic.source && topic.source.name ? ' · <a href="' + (topic.source.url || '#') + '" target="_blank" rel="noopener" style="color:var(--brand)">' + topic.source.name + '</a>' : '') +
+          '</span></div>';
+        // 标签行(采集时获取,可用于首页筛选)
+        var unitTags = Array.isArray(topic.tags) ? topic.tags : [];
+        var tagsHtml = unitTags.length
+          ? '<div class="topic-meta-row"><span class="label">标签</span><span class="value">' + unitTags.join(' / ') + '</span></div>'
+          : '';
+        var brief = (vids.filter(function (v) { return v.desc; })[0] || {}).desc || '';
+        var briefHtml = brief
+          ? '<div class="topic-meta-row"><span class="label">简介</span><span class="value">' + brief.slice(0, 120) + '</span></div>'
+          : '';
+        document.getElementById('topic-meta').innerHTML = srcHtml + tagsHtml + briefHtml;
+        render(vids);
+      });
+    }
+
+    function cardHtml(v) {
+      return '<a class="video-card" href="' + v.url + '" target="_blank" rel="noopener">' +
+        '<div class="video-thumb"><img src="' + v.cover + '" alt="' + v.title + '" loading="lazy" referrerpolicy="no-referrer">' +
+        '<span class="play"><i>▶</i></span></div>' +
+        '<div class="video-info"><h3>' + v.title + '</h3>' +
+        (v.desc ? '<p class="desc">' + v.desc + '</p>' : '') +
+        '<div class="meta"><span>' + v.date + '</span><span>B站 · ' + v.bv + '</span></div></div></a>';
+    }
+
+    function render(list) {
+      if (!list.length) {
+        grid.innerHTML = '<div class="empty">没有匹配的视频,换个关键词试试</div>';
+        document.getElementById('result-stat').textContent = '显示 0 / ' + vids.length + ' 期';
+        return;
+      }
+      var groups = {}, order = [];
+      list.forEach(function (v) {
+        var a = v.author || '未标注作者';
+        if (!groups[a]) { groups[a] = []; order.push(a); }
+        groups[a].push(v);
+      });
+      if (order.length > 1) {
+        grid.innerHTML = order.map(function (a) {
+          return '<section class="author-section"><h3 class="author-heading">' + a +
+            '<span>' + groups[a].length + ' 期</span></h3><div class="video-grid">' +
+            groups[a].map(cardHtml).join('') + '</div></section>';
+        }).join('');
+      } else {
+        grid.innerHTML = '<div class="video-grid">' + list.map(cardHtml).join('') + '</div>';
+      }
+      document.getElementById('result-stat').textContent = '显示 ' + list.length + ' / ' + vids.length + ' 期';
+    }
+
+    document.getElementById('search').addEventListener('input', function (e) {
+      var q = e.target.value.trim().toLowerCase();
+      render(q ? vids.filter(function (v) {
+        return v.title.toLowerCase().indexOf(q) >= 0 ||
+          v.bv.toLowerCase().indexOf(q) >= 0 ||
+          (v.desc || '').toLowerCase().indexOf(q) >= 0;
+      }) : vids);
+    });
+  </script>
+</body>
+</html>

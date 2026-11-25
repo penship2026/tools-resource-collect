@@ -1,0 +1,11 @@
+# 系统与编辑器垃圾文件
+.DS_Store
+Thumbs.db
+*.swp
+
+# Python 缓存
+__pycache__/
+*.pyc
+
+# 本地数据备份(仅保留在本地,不进仓库)
+backups/*.zip

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>系列合集 · 神奇网站挖掘机</title>
+  <title>系列合集 · 集页</title>
   <link rel="stylesheet" href="assets/style.css">
   <style>
     /* ===== 子集合页专属布局样式(单独维护本页时只改这里) ===== */
@@ -54,7 +54,7 @@
   <header class="site-header">
     <div class="wrap">
       <div class="brand">
-        <a href="index.html"><span class="brand-mark">◈</span><span>神奇网站挖掘机</span></a>
+        <a href="index.html"><span class="brand-mark">◈</span><span>集页</span></a>
       </div>
       <div class="header-meta">系列合集</div>
     </div>
@@ -90,7 +90,7 @@
 
   <footer class="site-footer">
     <div class="wrap">
-      <div>视频来自各平台公开投稿,版权归原作者所有;点击卡片将跳转至原平台观看。</div>
+      <div>内容来自各平台公开投稿或发布,版权归原作者所有;点击卡片将跳转至原平台查看。</div>
       <div><a href="index.html">← 返回全部主题</a></div>
     </div>
   </footer>
@@ -119,7 +119,7 @@
             '<div class="empty">未找到该合集数据(' + (err || '') + ')。请从 <a href="index.html">首页</a> 选择。</div>';
           return;
         }
-        document.title = topic.title + ' · 视频合集';
+        document.title = topic.title + ' · 系列合集 · 集页';
         document.getElementById('crumb-title').textContent = topic.title;
         document.getElementById('topic-title').textContent = topic.title;
         document.getElementById('topic-slogan').textContent = topic.slogan || '';

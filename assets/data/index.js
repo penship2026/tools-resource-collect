@@ -1,8 +1,8 @@
 // 采集单元索引,由 generate.py 自动生成
 // 挂到 window 上,页面中用 window.COLLECTION_INDEX 读取(const 不会挂到 window)
 window.SITE = {
-  name: "神奇网站挖掘机 · 视频聚合站",
-  description: "按主题汇总各平台的神奇网站推荐视频,持续更新",
+  name: "集页",
+  description: "一集一页,把值得收藏的内容收成清单",
   updated: "2026-11-25",
 };
 window.COLLECTION_INDEX = [

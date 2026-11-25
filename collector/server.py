@@ -49,11 +49,6 @@ class Handler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=ROOT, **kwargs)
 
-
-# 允许端口复用:避免服务重启时因 TIME_WAIT/残留进程报 Address already in use
-class ReusableTCPServer(socketserver.TCPServer):
-    allow_reuse_address = True
-
     def translate_path(self, path):
         # 兼容旧访问路径:/collect.html 现在实际位于 collector/collect.html。
         # 同时保留 /collector/collect.html 的自然路径。
@@ -202,6 +197,11 @@ class ReusableTCPServer(socketserver.TCPServer):
 
         result["logs"] = logs
         self._json(result, 200 if result.get("ok") else 500)
+
+
+# 允许端口复用:避免服务重启时因 TIME_WAIT/残留进程报 Address already in use
+class ReusableTCPServer(socketserver.TCPServer):
+    allow_reuse_address = True
 
 
 def main():

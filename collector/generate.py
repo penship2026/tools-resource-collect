@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-神奇网站挖掘机 · 采集数据生成器
+集页 · 采集数据生成器
 
 纯规则程序,不调用任何 AI:
   输入主题关键词 → 调用 B站 公开搜索 API → 按规则聚类同系列视频 → 写入一个采集单元的数据
@@ -250,8 +250,8 @@ def write_index(items, updated):
         "// 采集单元索引,由 generate.py 自动生成",
         "// 挂到 window 上,页面中用 window.COLLECTION_INDEX 读取(const 不会挂到 window)",
         "window.SITE = {",
-        "  name: %s," % json.dumps("神奇网站挖掘机 · 视频聚合站", ensure_ascii=False),
-        "  description: %s," % json.dumps("按主题汇总各平台的神奇网站推荐视频,持续更新", ensure_ascii=False),
+        "  name: %s," % json.dumps("集页", ensure_ascii=False),
+        "  description: %s," % json.dumps("一集一页,把值得收藏的内容收成清单", ensure_ascii=False),
         "  updated: %s," % json.dumps(updated),
         "};",
         "window.COLLECTION_INDEX = %s;" % json.dumps(items, ensure_ascii=False, indent=2),

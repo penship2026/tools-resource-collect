@@ -1,6 +1,6 @@
 # 项目开发工作日志
 
-> 项目:tools-resource-collect —— 「神奇网站挖掘机 · 视频聚合站」
+> 项目:tools-resource-collect —— 「集页 · 主题内容清单」(原名「神奇网站挖掘机 · 视频聚合站」)
 > B站主题视频采集聚合站:三个固定展示页面(index/series/single),采集程序只写数据不生成页面。
 > 本文档由内部工作日志整理而来,按时间演进顺序记录关键决策、代码改动与验证结论。
 > 各阶段「处理时间」来自会话记录时间戳,精确到分钟,区间为「需求提出 → 本阶段完成(下一需求提出前)」。
@@ -164,8 +164,53 @@ Chrome 无头截图三页面全部正常:首页卡片标签独立行两行截断
 
 ---
 
-## 当前状态(2026-11-25 11:34)
+## 十、待办闭环:页内播放 + 网站更名(2026-11-26 00:05 – 00:12)
 
-- 9 个采集单元(7 series + 2 single),数据齐全;服务未常驻,采集时运行 `python3 collector/server.py 8765`。
+### 页内嵌入播放(00:08)
+- `single.html` 播放区按平台分支:B站且有 BV 号 → 官方 iframe
+  `player.bilibili.com/player.html?bvid=<BV>&autoplay=0&danmaku=0&high_quality=1&as_wide=1`;
+  其他渠道或缺少编号 → 保留封面跳转(图文类内容无播放器)。
+- 新增 `.player-frame`(16:9 自适应容器)与 `.player-fallback`;兜底链接「前往 B站 观看 →」,应对部分 UP 主关闭站外播放。
+- 合规说明:只用官方嵌入播放器,不解析视频流。
+
+### 网站更名 → 「集页」(00:11)
+- 需求变化:后续要接公众号、小红书图文(文案页),原名偏视频定位。
+- 候选:集页 / 拾集 / 集录 / 清单集,用户选定 **集页**(一集一页,「集」对应视频合集、「页」对应图文页面)。
+- 替换范围:generate.py 的 `window.SITE`、`assets/data/index.js` 的 SITE 块、三页面 title/品牌、collect.html、style.css 注释、README 标题简介。
+- 文案同步多渠道:首页副标题「视频与图文(公众号、小红书等)」;三页面页脚「内容来自各平台公开投稿或发布」;采集页「生成子页」→「写入采集单元」。
+- 遗留:`topics/*.html` 旧架构页面未改(不被引用,计划随旧数据一起清理)。
+
+### 新增待办
+- 接入公众号 / 小红书渠道采集(数据模型与页面层已就绪,需补各渠道采集适配)。
+
+---
+
+## 十一、开发进度与完整性审计(2026-11-26 00:23)
+
+### 检查范围与结果
+- **代码**:generate.py / server.py / backup_data.py 语法检查通过;三页面与采集页标题、品牌名均为「集页」,旧名无残留(除旧架构 topics/ 目录)。
+- **数据**:9 个单元全部通过一致性校验——索引与数据文件的 count / type / latest / tags 完全一致;日期均为 yyyy.mm.dd;播放地址均为干净 BV 链接;无缺封面、无空标签。
+- **页面逻辑**:single 页 iframe 分支、页脚文案、动态 title 已更新;series 动态 title 补站名。
+- **文档**:README、WORKLOG、TODO、DEPLOY、GITHUB-PAGES 齐全;TODO 两条历史待办已闭环。
+- **路由与接口**:index / series / single / collect / 样式 / 索引 / 单元数据 / api/health / api/topics 全部 200。
+
+### 发现并修复的问题
+1. **采集页与接口全部 404(严重)**:`server.py` 重构时把 `translate_path / log_message / end_headers / do_GET / do_POST` 等请求处理方法误放进 `ReusableTCPServer`(服务器类),`Handler` 只剩 `__init__`,实际请求走的是 `SimpleHTTPRequestHandler` 默认行为 → `/collect.html`、`/api/health`、`/api/topics`、`/api/collect` 全部 404,采集页不可用。
+   - 修复:把全部处理方法移回 `Handler`,`ReusableTCPServer` 只保留 `allow_reuse_address = True`。
+   - 验证:8 条路由全部 200,`/api/health` 返回 `writable:true`、`role:full`,`/api/topics` 正常返回 9 个单元。
+2. **`.gitignore` 缺失**,导致 `__pycache__/*.pyc`、`.DS_Store`、`backups/*.zip` 共 11 个文件被仓库跟踪 → 重建 `.gitignore` 并 `git rm --cached`(本地文件保留)。
+3. **动态 title 不带站名**:series 为「· 视频合集」、single 为「· 单条精选」→ 统一为「系列合集 · 集页」「单条精选 · 集页」。
+4. **远程多出 1 个提交**:`Create CNAME`(自定义域名 `resource-collect.ximyan.com`),已 `pull --ff-only` 快进合并;CNAME 文件保留在仓库根目录,勿删。
+
+### 遗留(未处理,已记入 TODO)
+- `topics/*.html`(9 个旧架构页面)与 `assets/data/*.js`(9 个旧根数据文件)已不被引用,建议后续清理。
+
+---
+
+## 当前状态(2026-11-26 00:24)
+
+- 站点名:**集页**;9 个采集单元(7 series + 2 single),数据齐全;服务未常驻,采集时运行 `python3 collector/server.py 8765`。
+- single 页支持 B站官方 iframe 页内播放,附跳转兜底。
+- 远程仓库:`github.com/penship2026/tools-resource-collect`(main),Pages 自定义域名 `resource-collect.ximyan.com`。
 - 已知限制:B站搜索翻页为唯一数据源,排序波动可能漏采旧视频;视频号仅能跳转微信观看;抖音风控未纳入。
-- 待办事项:**见 docs/TODO.md,逐条处理**。
+- 待办事项:**见 docs/TODO.md**(公众号/小红书渠道采集、旧架构文件清理)。

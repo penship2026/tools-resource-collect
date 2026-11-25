@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>单条精选 · 神奇网站挖掘机</title>
+  <title>单条精选 · 集页</title>
   <link rel="stylesheet" href="assets/style.css">
   <style>
     /* ===== 单链接页专属布局样式(单独维护本页时只改这里) ===== */
@@ -23,6 +23,14 @@
       position: absolute; inset: 0; display: grid; place-items: center;
       background: rgba(0,0,0,.18); color: #fff; font-size: 56px;
     }
+    /* B站官方 iframe 播放器 */
+    .player-frame {
+      position: relative; aspect-ratio: 16 / 9; border-radius: var(--radius);
+      overflow: hidden; background: #000; box-shadow: var(--shadow);
+    }
+    .player-frame iframe { width: 100%; height: 100%; border: 0; display: block; }
+    .player-fallback { margin-top: 10px; font-size: 12px; color: var(--text-mute); line-height: 1.6; }
+    .player-fallback a { color: var(--brand); text-decoration: none; }
 
     .detail h1 { font-size: 22px; font-weight: 600; line-height: 1.4; margin: 0 0 12px; }
     .detail .sub { color: var(--text-sub); font-size: 13px; margin: 0 0 18px; }
@@ -43,7 +51,7 @@
   <header class="site-header">
     <div class="wrap">
       <div class="brand">
-        <a href="index.html"><span class="brand-mark">◈</span><span>神奇网站挖掘机</span></a>
+        <a href="index.html"><span class="brand-mark">◈</span><span>集页</span></a>
       </div>
       <div class="header-meta">单条精选</div>
     </div>
@@ -56,7 +64,7 @@
 
   <footer class="site-footer">
     <div class="wrap">
-      <div>视频来自各平台公开投稿,版权归原作者所有;点击按钮将跳转至原平台观看。</div>
+      <div>内容来自各平台公开投稿或发布,版权归原作者所有;B站视频在页内直接播放,无法播放时可跳转原平台。</div>
       <div><a href="index.html">← 返回全部主题</a></div>
     </div>
   </footer>
@@ -87,19 +95,30 @@
           root.innerHTML = '<div class="empty">该单元没有视频数据。</div>';
           return;
         }
-        document.title = (topic.title || v.title) + ' · 单条精选';
+        document.title = (topic.title || v.title) + ' · 单条精选 · 集页';
         document.getElementById('crumb-title').textContent = topic.title || v.title;
         var author = v.author || (topic.source && topic.source.name) || '';
         var sourceUrl = (topic.source && topic.source.url) || v.url;
         var plat = (topic.source && topic.source.platform) || 'B站';
         var unitTags = Array.isArray(topic.tags) ? topic.tags : [];
+        // 播放区:B站视频用官方 iframe 在页内直接播放(合规);其他渠道或缺少编号时仍为封面跳转
+        var playerHtml;
+        if (plat === 'B站' && v.bv) {
+          var iframeSrc = 'https://player.bilibili.com/player.html?bvid=' + encodeURIComponent(v.bv) +
+            '&autoplay=0&danmaku=0&high_quality=1&as_wide=1';
+          playerHtml = '<div class="player-frame"><iframe src="' + iframeSrc +
+            '" scrolling="no" frameborder="0" allowfullscreen="true" title="B站视频 ' + v.bv + '"></iframe></div>' +
+            '<div class="player-fallback">若上方播放器无法播放(部分 UP 主关闭了站外播放),请' +
+            '<a href="' + v.url + '" target="_blank" rel="noopener">前往 B站 观看 →</a></div>';
+        } else {
+          playerHtml = '<a class="player" href="' + v.url + '" target="_blank" rel="noopener">' +
+            '<img src="' + v.cover + '" alt="' + v.title + '" referrerpolicy="no-referrer">' +
+            '<span class="play">▶</span></a>';
+        }
         root.innerHTML =
           '<div class="single-layout">' +
             '<div>' +
-              '<a class="player" href="' + v.url + '" target="_blank" rel="noopener">' +
-                '<img src="' + v.cover + '" alt="' + v.title + '" referrerpolicy="no-referrer">' +
-                '<span class="play">▶</span>' +
-              '</a>' +
+              playerHtml +
               '<div class="desc-box"><h3>简介</h3><p>' + (v.desc || '该视频暂无简介。') + '</p></div>' +
             '</div>' +
             '<div class="detail">' +

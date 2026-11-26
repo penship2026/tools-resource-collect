@@ -30,10 +30,12 @@
 import argparse
 import hmac
 import http.server
+import ipaddress
 import json
 import os
 import re
 import secrets
+import socket
 import socketserver
 import sys
 import threading
@@ -58,6 +60,36 @@ PUBLIC_MODE = False
 TOKEN = ""
 # 本机设置页 CSRF token：每次启动生成，GET /api/settings 下发，写接口回传
 CSRF_TOKEN = secrets.token_urlsafe(24)
+
+
+def origin_host_allowed(host):
+    """设置页 Origin 白名单：本机、内网 IP 与 .local 主机名。"""
+    host = (host or "").strip().strip("[]").lower()
+    if not host:
+        return False
+    if host in ("127.0.0.1", "localhost", "::1"):
+        return True
+    if host.endswith(".local"):
+        return True
+    try:
+        ip = ipaddress.ip_address(host)
+    except ValueError:
+        return False
+    return ip.is_private or ip.is_loopback
+
+
+def lan_ip():
+    """尽力获取本机一个局域网 IPv4 地址；失败返回空串。"""
+    try:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        sock.connect(("8.8.8.8", 80))
+        addr = sock.getsockname()[0]
+        sock.close()
+        if ipaddress.ip_address(addr).is_link_local:
+            return ""
+        return addr
+    except (OSError, ValueError):
+        return ""
 JOBS = {}
 JOBS_LOCK = threading.Lock()
 
@@ -119,9 +151,14 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         origin = self.headers.get("Origin") or ""
         if not origin:
             return True
-        return origin in ("http://127.0.0.1:8765", "http://localhost:8765",
-                          "http://127.0.0.1:%d" % self.server.server_address[1],
-                          "http://localhost:%d" % self.server.server_address[1])
+        try:
+            parsed = urllib.parse.urlparse(origin)
+        except ValueError:
+            return False
+        if parsed.scheme not in ("http", "https"):
+            return False
+        port = parsed.port or (443 if parsed.scheme == "https" else 80)
+        return origin_host_allowed(parsed.hostname) and port == self.server.server_address[1]
 
     def _csrf_ok(self):
         supplied = self.headers.get("X-CSRF-Token") or ""
@@ -556,6 +593,7 @@ def main():
     ap.add_argument("--port", type=int, default=None, help="端口,默认 8765(或环境变量 PORT)")
     ap.add_argument("--host", default=None, help="监听地址,默认 127.0.0.1")
     ap.add_argument("--public", action="store_true", help="公网模式:绑定 0.0.0.0,写接口必须带访问口令")
+    ap.add_argument("--lan", action="store_true", help="局域网模式:绑定 0.0.0.0,供同一 Wi-Fi 下手机访问")
     ap.add_argument("--token", default=None, help="访问口令,也可用环境变量 COLLECT_TOKEN")
     ap.add_argument("--api-only", action="store_true", help="采集端专用模式:只提供接口与采集页")
     args = ap.parse_args()
@@ -574,18 +612,26 @@ def main():
         print("错误:--public 公网模式必须提供访问口令(用 --token 或设置 COLLECT_TOKEN)", file=sys.stderr)
         sys.exit(2)
 
-    host = args.host or ("0.0.0.0" if PUBLIC_MODE else "127.0.0.1")
+    host = args.host or ("0.0.0.0" if (PUBLIC_MODE or args.lan) else "127.0.0.1")
     if host not in ("127.0.0.1", "localhost") and not PUBLIC_MODE and not TOKEN:
         print("提示:当前监听了非本机地址但未设口令,写接口对本网段开放;需要对外请改用 --public --token",
               file=sys.stderr)
 
     with ReusableTCPServer((host, port), Handler) as httpd:
         role = "采集端专用(api-only)" if API_ONLY else "全功能(静态+接口)"
-        mode = "公网+口令" if PUBLIC_MODE else ("口令" if TOKEN else "本机无口令")
+        mode = "公网+口令" if PUBLIC_MODE else ("局域网" if args.lan else ("口令" if TOKEN else "本机无口令"))
         print("采集服务已启动 [%s / %s]:" % (role, mode))
         print("  http://%s:%d/collect.html" % (host, port))
         if not API_ONLY:
             print("  http://%s:%d/index.html" % (host, port))
+            print("  http://%s:%d/collector/settings.html" % (host, port))
+            if args.lan and host == "0.0.0.0":
+                addr = lan_ip()
+                if addr:
+                    print("局域网访问(手机与电脑需同一 Wi-Fi):")
+                    print("  http://%s:%d/collector/settings.html" % (addr, port))
+                else:
+                    print("未自动识别局域网 IP,请用系统网络设置里的本机 IP 拼出访问地址")
         print("数据目录: %s" % generate.DATA_DIR)
         print("采集单元目录: %s" % generate.COLLECTIONS_DIR)
         if PUBLIC_MODE:

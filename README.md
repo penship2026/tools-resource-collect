@@ -158,10 +158,19 @@ python3 collector/generate.py --toggle daily-website --on            # 开启显
 
 ```bash
 python3 collector/server.py                    # 默认只监听 127.0.0.1:8765(仅本机)
+python3 collector/server.py --lan              # 局域网模式:绑定 0.0.0.0,同一 Wi-Fi 下手机可访问
 python3 collector/server.py --port 8080        # 改端口
 python3 collector/server.py 8080 --api-only    # 采集端专用:只提供 API + 采集页,静态展示交给独立 Web 服务
 python3 collector/server.py --public --token <口令>   # 对外访问:绑定 0.0.0.0,写接口必须带 X-Collect-Token
 ```
+
+局域网模式下，启动日志会打印本机局域网 IP；手机与电脑连同一个 Wi-Fi，访问：
+
+```text
+http://电脑局域网IP:8765/collector/settings.html
+```
+
+`--lan` 会把采集与设置接口暴露给同一局域网，只建议在可信网络临时使用，用完 `Ctrl+C` 关闭。设置页的 Origin 白名单已覆盖本机、内网 IP 和 `.local` 主机名，手机访问时保存、立即执行和 Git 推送不会被 CSRF 校验误拦。
 
 部署后自检 `<地址>/api/health`,应返回 JSON 且 `writable: true`、`index_ok: true`。反向代理需把 `/api/*` 转发到该进程,并用 `location /` 整体转发;只要该地址能从公网访问,就应使用 `--public --token` 启动,详见 `docs/DEPLOY.md` 的「安全基线」。静态站托管到 GitHub Pages 见 `docs/GITHUB-PAGES.md`。
 

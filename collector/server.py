@@ -239,6 +239,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             "title": payload.get("title"),
             "up": payload.get("up"),
             "pages": payload.get("pages"),
+            "channels": payload.get("channels"),
             "manual_title": manual["title"], "manual_author": manual["author"],
             "manual_desc": manual["desc"], "manual_date": manual["date"],
             "manual_cover": manual["cover"],
@@ -282,6 +283,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     min_match=int(payload.get("min_match") or 2),
                     match_all=bool(payload.get("match_all")),
                     dry_run=bool(payload.get("dry_run")),
+                    topic_channels=payload.get("channels"),
                     log=log,
                     intake=intake,
                 )

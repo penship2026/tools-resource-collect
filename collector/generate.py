@@ -509,6 +509,8 @@ def normalize_intake(raw):
         "title": (raw.get("title") or "").strip(),
         "up": (raw.get("up") or "").strip(),
         "pages": pages,
+        # 按主题采集勾选的渠道,重新采集时原样带回表单
+        "channels": normalize_topic_channels(raw.get("channels")) if mode == "keyword" else [],
         "manual": manual,
         "at": (raw.get("at") or "").strip() or now_stamp(),
     }
@@ -671,11 +673,39 @@ def merge_videos(existing, incoming):
     return merged, report
 
 
+def normalize_topic_channels(value, log=print):
+    """
+    规整「按主题采集」的渠道多选值:支持数组、逗号分隔字符串和中文名,
+    未知渠道忽略,空值退回 B站(与页面默认勾选保持一致)。
+    """
+    if isinstance(value, str):
+        parts = re.split(r"[,，\s|]+", value)
+    elif isinstance(value, (list, tuple)):
+        parts = []
+        for one in value:
+            parts.extend(re.split(r"[,，\s|]+", str(one or "")))
+    else:
+        parts = []
+    names = {"bilibili": "bilibili", "b站": "bilibili", "bili": "bilibili",
+             "wechat": "wechat", "公众号": "wechat", "wx": "wechat",
+             "xhs": "xhs", "小红书": "xhs", "xiaohongshu": "xhs"}
+    out = []
+    for raw in parts:
+        key = names.get((raw or "").strip().lower())
+        if key and key not in out:
+            out.append(key)
+    if not out:
+        out = ["bilibili"]
+    return out
+
+
 def collect_topic(keyword, pages=30, title=None, up=None, slug=None,
                   slogan=None, min_match=2, match_all=False, dry_run=False,
-                  unit_id=None, log=print, intake=None):
+                  unit_id=None, log=print, intake=None, topic_channels=None):
     """
-    按主题采集一个 series 单元。可被命令行和 Web 服务共同调用。
+    按主题采集一个 series 单元,可同时选 B站 / 公众号 / 小红书多个渠道。
+    B站走官方搜索并聚类同系列;公众号 / 小红书借搜索引擎找候选链接,
+    公众号再抓正文,小红书以搜索标题 + 原文链接收录(正文需登录)。
     只写数据,不生成页面;命中已有 id 时只更新该单元,不动其他单元。
     """
     result = {
@@ -683,32 +713,92 @@ def collect_topic(keyword, pages=30, title=None, up=None, slug=None,
         "added": 0, "updated": 0, "kept": 0, "total": 0,
         "fetched": 0, "author": "", "data_file": "", "page_file": "",
         "sample_url": "", "topic_count": 0, "unit_id": "", "type": "series",
+        "channels": [], "channel_report": [],
     }
     keyword = (keyword or "").strip()
     if not keyword:
         result["error"] = "主题关键词不能为空"
         return result
 
-    log("主题: %s" % keyword)
-    log("正在搜索 B站 (最多 %d 页)..." % pages)
-    items = search_bilibili(keyword, pages, verbose=False)
-    result["fetched"] = len(items)
-    log("共抓取 %d 条结果,正在聚类同系列..." % len(items))
+    selected = normalize_topic_channels(topic_channels, log=log)
+    result["channels"] = selected
+    log("主题: %s | 渠道: %s" % (keyword, "、".join(channels.platform_name(c) for c in selected)))
 
-    chosen, ranked = pick_series(items, keyword, up, min_match, match_all)
-    if not chosen:
-        result["error"] = "未找到匹配视频。关键词需完整出现在标题中(不拆分),请检查关键词是否准确;或取消「指定UP主」再试"
+    incoming, chosen, reports = [], [], []
+    author, mid = "", ""
+    result["fetched"] = 0
+
+    # B站:官方搜索 + 同系列聚类(只有这里需要 min_match / 指定UP主)
+    if "bilibili" in selected:
+        log("正在搜索 B站 (最多 %d 页)..." % pages)
+        items = search_bilibili(keyword, pages, verbose=False)
+        result["fetched"] += len(items)
+        log("共抓取 %d 条结果,正在聚类同系列..." % len(items))
+        found, ranked = pick_series(items, keyword, up, min_match, match_all)
+        if found:
+            chosen = found
+            author = up or found[0].get("author", "")
+            mid = found[0].get("mid", "")
+            result["author"] = author
+            log("识别系列: UP主「%s」,命中 %d 期" % (author, len(found)))
+            if not up and ranked:
+                log("候选UP主: %s" % ", ".join("%s(%d)" % (a, c) for a, c in ranked))
+            incoming.extend(normalize(v, keyword) for v in found)
+            reports.append({"channel": "bilibili", "name": "B站", "found": len(found), "error": ""})
+        else:
+            reason = "B站未找到匹配视频(关键词需完整出现在标题中,或取消「指定UP主」再试)"
+            log(reason)
+            reports.append({"channel": "bilibili", "name": "B站", "found": 0, "error": reason})
+    else:
+        log("未选择 B站,跳过视频搜索")
+
+    # 图文渠道:搜索引擎只用来找链接,公众号再抓正文;小红书不抓正文
+    for pkey in ("wechat", "xhs"):
+        if pkey not in selected:
+            continue
+        label = channels.platform_name(pkey)
+        log("正在检索%s主题内容(搜索引擎找候选链接)..." % label)
+        try:
+            hits = channels.search_topic(keyword, pkey, limit=12, log=log)
+        except Exception as exc:
+            reason = "%s搜索失败: %s" % (label, exc)
+            log(reason)
+            reports.append({"channel": pkey, "name": label, "found": 0, "error": str(exc)})
+            continue
+        result["fetched"] += len(hits)
+        picked = []
+        for hit in hits:
+            raw = {
+                "platform": pkey, "kind": channels.platform_kind(pkey),
+                "url": hit.get("url", ""), "title": hit.get("title", ""),
+            }
+            if pkey == "wechat":
+                try:
+                    raw = channels.fetch_wechat(hit["url"], log=lambda *a, **kw: None)
+                except Exception as exc:
+                    log("  正文抓取失败,沿用搜索标题: %s (%s)" % (hit["url"][:60], exc))
+            else:
+                # 小红书未登录读不到正文,用笔记 ID 做去重键,保留原文链接
+                ids = re.findall(r"/(?:explore|discovery/item)/([0-9a-zA-Z]{16,})", hit.get("url", ""))
+                if ids:
+                    raw["key"] = "xhs:" + ids[0]
+            item = article_item(raw, pkey)
+            if item.get("key"):
+                picked.append(item)
+        log("  %s命中 %d 条,成功入库候选 %d 条" % (label, len(hits), len(picked)))
+        reports.append({
+            "channel": pkey, "name": label, "found": len(picked),
+            "error": "" if picked else "命中的链接均无法解析,可改用「按链接采集」手工补录",
+        })
+        incoming.extend(picked)
+
+    result["channel_report"] = reports
+    if not incoming:
+        reasons = "；".join(r["error"] for r in reports if r.get("error"))
+        result["error"] = "未采集到内容。" + (reasons or "请检查关键词或更换渠道")
         log(result["error"])
         return result
 
-    author = up or chosen[0].get("author", "")
-    mid = chosen[0].get("mid", "")
-    result["author"] = author
-    log("识别系列: UP主「%s」,命中 %d 期" % (author, len(chosen)))
-    if not up and ranked:
-        log("候选UP主: %s" % ", ".join("%s(%d)" % (a, c) for a, c in ranked))
-
-    incoming = [normalize(v, keyword) for v in chosen]
     seen, incoming_unique = set(), []
     for v in incoming:
         key = item_key(v)
@@ -764,23 +854,51 @@ def collect_topic(keyword, pages=30, title=None, up=None, slug=None,
         return result
 
     page_path = "series.html?id=%s" % uid
-    final_slogan = slogan or "共收录 %d 期,点击卡片跳转 B站观看" % len(videos)
-    # 标签:取系列最新一期的视频标签(正式标签,来自实际采集内容),仅请求 1 次避免限流;
-    # 获取失败或为空时退回主题关键词,保证首页筛选有内容
-    latest_raw = max(chosen, key=lambda v: v.get("pubdate", 0) or 0)
-    unit_tags = fetch_video_tags(latest_raw.get("bvid", ""), log=log)
+    has_video = any(v.get("platform") in ("", "bilibili") and v.get("bv") for v in videos)
+    if not author:
+        author = next((v.get("author") for v in videos if v.get("author")), "")
+        result["author"] = author
+    final_slogan = slogan or (
+        "共收录 %d 期,点击卡片跳转 B站观看" % len(videos) if has_video and not any(
+            v.get("platform") not in ("", "bilibili") for v in videos)
+        else "共收录 %d 条内容 · 点击卡片查看详情" % len(videos)
+    )
+    # 标签:B站系列取最新一期的正式标签(只请求 1 次);图文合集取内容自带标签,
+    # 都没有时退回主题关键词,保证首页筛选有内容
+    unit_tags = []
+    if chosen:
+        latest_raw = max(chosen, key=lambda v: v.get("pubdate", 0) or 0)
+        unit_tags = fetch_video_tags(latest_raw.get("bvid", ""), log=log)
+    if not unit_tags:
+        counts = {}
+        for v in videos:
+            for tag in v.get("tags") or []:
+                if tag:
+                    counts[tag] = counts.get(tag, 0) + 1
+        unit_tags = [t for t, _ in sorted(counts.items(), key=lambda kv: kv[1], reverse=True)]
     if not unit_tags:
         unit_tags = [keyword]
+
+    actual = set((v.get("platform") or "bilibili") for v in videos)
+    # 按 B站 / 公众号 / 小红书的固定顺序生成渠道清单,首页可按任一渠道筛到多平台合集
+    plat_order = [k for k in ("bilibili", "wechat", "xhs") if k in actual]
+    plat_list = [channels.platform_name(k) for k in plat_order]
+    plat_name = plat_list[0] if len(plat_list) == 1 else "多平台"
+    if mid:
+        source_url = "https://space.bilibili.com/%s/video" % mid
+    else:
+        source_url = next((v.get("url") for v in videos if v.get("url")), "")
     collection = {
         "id": uid,
         "type": "series",
         "title": title,
         "slogan": final_slogan,
         "source": {
-            "platform": "B站",
-            "name": author,
-            "url": "https://space.bilibili.com/%s/video" % mid if mid else "https://www.bilibili.com/",
+            "platform": plat_name,
+            "name": author or plat_name,
+            "url": source_url,
         },
+        "platforms": plat_list,
         "keyword": keyword,
         "tags": unit_tags[:10],
         "page": page_path,
@@ -1432,6 +1550,8 @@ def build_parser():
     parser.add_argument("--slug", default=None, help="同 --id,兼容旧参数")
     parser.add_argument("--slogan", default=None, help="副标题")
     parser.add_argument("--min-match", type=int, default=2, help="标题相似度最小词块数,默认2")
+    parser.add_argument("--channels", default=None,
+                        help="按主题采集的渠道,逗号分隔:bilibili,wechat,xhs(默认 bilibili)")
     parser.add_argument("--match-all", action="store_true", help="要求包含关键词全部核心词")
     parser.add_argument("--url", action="store_true", help="按链接采集单条内容(自动识别 B站/公众号/小红书)")
     parser.add_argument("--batch", action="store_true", help="批量链接采集:位置参数传多条链接/分享文案")
@@ -1489,6 +1609,7 @@ def main():
         "title": args.title or "",
         "up": args.up or "",
         "pages": args.pages,
+        "channels": args.channels,
         "manual_title": args.manual_title, "manual_author": args.manual_author,
         "manual_desc": args.manual_desc, "manual_date": args.manual_date,
         "manual_cover": args.manual_cover,
@@ -1510,7 +1631,7 @@ def main():
             keyword=args.keyword, pages=args.pages, title=args.title, up=args.up,
             slug=args.slug, slogan=args.slogan, min_match=args.min_match,
             match_all=args.match_all, dry_run=args.dry_run, unit_id=args.unit_id,
-            intake=intake,
+            topic_channels=args.channels, intake=intake,
         )
     if not result["ok"]:
         sys.exit(1)

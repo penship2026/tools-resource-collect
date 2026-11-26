@@ -327,6 +327,152 @@ def fetch_xhs(url, log=print):
     }
 
 
+# ---------------------------------------------------------------- 按主题搜索
+# 公众号 / 小红书没有公开关键词搜索接口(搜狗微信已拦截、小红书需登录),
+# 只能借助搜索引擎的 site: 检索拿到候选链接;正文仍走各平台自己的解析器。
+# 结果仅用于「按主题采集」,数量与相关性都取决于搜索引擎,失败要如实告诉用户。
+
+_SEARCH_SITES = {
+    "wechat": {"site": "site:mp.weixin.qq.com", "hosts": ("mp.weixin.qq.com",)},
+    "xhs": {"site": "site:xiaohongshu.com", "hosts": ("xiaohongshu.com",)},
+}
+
+# 各渠道按优先级尝试多个搜索引擎:任一拿到候选链接即停,全部失败才报错。
+# 搜索引擎会间歇性风控,单点依赖不可靠;这里只找链接,绝不把搜索摘要当正文。
+_SEARCH_ENGINES = {
+    "wechat": [
+        {"name": "百度移动", "query": "https://m.baidu.com/s?word=%s&from=1000050b", "ua": UA_MOBILE, "parser": "baidu_mobile"},
+        {"name": "百度网页", "query": "https://www.baidu.com/s?wd=%s", "ua": UA_DESKTOP, "parser": "baidu_web"},
+        {"name": "搜狗网页", "query": "https://www.sogou.com/web?query=%s", "ua": UA_DESKTOP, "parser": "sogou"},
+    ],
+    "xhs": [
+        {"name": "360搜索", "query": "https://www.so.com/s?q=%s", "ua": UA_DESKTOP, "parser": "so360"},
+        {"name": "百度移动", "query": "https://m.baidu.com/s?word=%s&from=1000050b", "ua": UA_MOBILE, "parser": "baidu_mobile"},
+        {"name": "百度网页", "query": "https://www.baidu.com/s?wd=%s", "ua": UA_DESKTOP, "parser": "baidu_web"},
+    ],
+}
+
+
+def _search_host_ok(url, hosts):
+    netloc = urllib.parse.urlparse(url).netloc.lower()
+    return any(netloc == h or netloc.endswith("." + h) for h in hosts)
+
+
+def _clean_search_title(text):
+    title = re.sub(r"<[^>]+>", "", html.unescape(text or ""))
+    title = re.sub(r"\s+", " ", title).strip()
+    # 搜索引擎常把站点名拼在标题尾部
+    title = re.sub(r"\s*[-|｜—]\s*(小红书|微信公众号)$", "", title)
+    return title.strip()
+
+
+def _parse_search_page(platform_key, parser, page):
+    """从搜索结果页提取 (url, title);不同搜索引擎 DOM 不同,按类型解析"""
+    cfg = _SEARCH_SITES[platform_key]
+    hosts = cfg["hosts"]
+    pairs = []
+
+    def add(url, block):
+        url = html.unescape(url or "").replace("\\", "").strip()
+        if not _search_host_ok(url, hosts):
+            return
+        h3 = re.search(r"<h3[^>]*>(.*?)</h3>", block or "", re.S)
+        title = _clean_search_title(h3.group(1) if h3 else "")
+        if platform_key == "xhs":
+            # 跳过学校/助手等非笔记页;去掉 xsec_token,同一篇笔记不会重复入库
+            if not re.search(r"/(?:explore|discovery/item)/[0-9a-zA-Z]{16,}", url):
+                return
+            if not title:
+                return
+            parts = urllib.parse.urlsplit(url)
+            url = urllib.parse.urlunsplit((parts.scheme, parts.netloc, parts.path, "", ""))
+        pairs.append((url, title))
+
+    if parser == "baidu_mobile":
+        # 每个 c-result 块的 data-log 里带 mu="<原文直链>",标题在同块 h3
+        for block in re.split(r'<div\s+class="c-result result"', page)[1:]:
+            m = re.search(r'[\\"]mu[\\"]:\s*[\\"]?(https?://[^\\"\']+)', block)
+            if m:
+                add(m.group(1), block)
+    elif parser == "baidu_web":
+        # 桌面版结果块上的 mu="<原文直链>",标题在其后的 h3
+        mus = list(re.finditer(r'mu="(https?://[^"]+)"', page))
+        for i, m in enumerate(mus):
+            end = mus[i + 1].start() if i + 1 < len(mus) else min(len(page), m.end() + 6000)
+            add(m.group(1), page[m.end():end])
+    elif parser == "so360":
+        # 360 结果的 data-mdurl 是原文直链,标题在同一个 res-list 块的 h3
+        for block in re.split(r'<li class="res-list', page)[1:]:
+            m = re.search(r'data-mdurl="(https?://[^"]+)"', block)
+            if m:
+                add(m.group(1), block)
+    elif parser == "sogou":
+        for url in _URL_RE.findall(page):
+            if not _search_host_ok(html.unescape(url), hosts):
+                continue
+            idx = page.find(url)
+            add(url, page[max(0, idx - 1500):idx + 600])
+
+    seen, out = set(), []
+    for url, title in pairs:
+        if not url or url in seen:
+            continue
+        seen.add(url)
+        out.append({"url": url, "title": title})
+    return out
+
+
+def search_topic(keyword, platform_key, limit=20, log=print):
+    """
+    按关键词检索某图文渠道的候选内容,返回 [{"url","title","engine"}]。
+    只找链接;公众号正文请用 fetch_wechat 再抓,小红书以搜索标题为准。
+    搜索引擎会间歇性风控,按顺序尝试多个引擎,全部失败才抛 PlatformError。
+    """
+    cfg = _SEARCH_SITES.get(platform_key)
+    if not cfg:
+        raise PlatformError("渠道 %s 不支持按主题搜索" % platform_key)
+    keyword = (keyword or "").strip()
+    if not keyword:
+        raise PlatformError("主题关键词不能为空")
+
+    errors = []
+    for engine in _SEARCH_ENGINES[platform_key]:
+        url = engine["query"] % urllib.parse.quote("%s %s" % (cfg["site"], keyword))
+        try:
+            _, page = _get(url, headers={
+                "User-Agent": engine["ua"], "Accept-Language": "zh-CN,zh;q=0.9",
+            }, timeout=15)
+        except Exception as exc:
+            errors.append("%s请求失败" % engine["name"])
+            continue
+        if "百度安全验证" in page or "请输入验证码" in page:
+            errors.append("%s触发安全验证" % engine["name"])
+            continue
+        hits = _parse_search_page(platform_key, engine["parser"], page)
+        if not hits:
+            errors.append("%s无结果" % engine["name"])
+            continue
+
+        # 按标题与关键词的重合度排序,减少搜索引擎的噪声结果
+        tokens = [t for t in re.split(r"[\s|｜/、,，:：\-—_()（）\[\]【】#]+", keyword) if len(t) >= 2]
+        def score(hit):
+            title = hit.get("title", "").lower()
+            return sum(1 for t in tokens if t.lower() in title) + (1 if keyword.lower() in title else 0)
+        ranked = sorted(hits, key=score, reverse=True)
+        matched = [h for h in ranked if score(h) > 0]
+        if not matched:
+            log("  %s返回的标题未直接包含关键词,已按原始顺序收录,请自行核对" % engine["name"])
+            matched = ranked
+        for hit in matched[:limit]:
+            hit["engine"] = engine["name"]
+        if errors:
+            log("  搜索兜底: %s" % "、".join(errors))
+        return matched[:limit]
+
+    raise PlatformError("%s主题搜索失败(%s),请稍后重试或改用「按链接采集」" % (
+        platform_name(platform_key), "；".join(errors) or "无可用搜索引擎"))
+
+
 # ---------------------------------------------------------------- 统一入口
 
 def fetch(url, log=print):

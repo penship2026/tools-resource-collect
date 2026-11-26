@@ -38,6 +38,15 @@
     .field .tip { font-size: 12px; color: var(--text-mute); margin-top: 5px; }
     .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     .check { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-sub); }
+    /* 按主题采集的渠道多选 */
+    .channel-picks { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+    .pick {
+      display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
+      border: 1px solid var(--border); border-radius: var(--radius-sm);
+      padding: 7px 11px; font-size: 13px; color: var(--text-sub); background: var(--surface);
+    }
+    .pick input { margin: 0; accent-color: var(--brand); }
+    .pick:has(input:checked) { border-color: var(--brand); color: var(--brand); background: #f4f8ff; font-weight: 600; }
     .btn {
       display: inline-flex; align-items: center; justify-content: center; gap: 8px;
       background: var(--brand); color: #fff; border: none; border-radius: var(--radius-sm);
@@ -136,7 +145,7 @@
   <main class="wrap">
     <section class="hero" style="padding: 40px 0 20px">
       <h1>采集入口</h1>
-      <p class="sub">三种采集方式:按主题搜 B站、按链接采单条、批量粘贴多条链接(可混合 B站 / 公众号 / 小红书)。程序按固定规则解析去重后写入采集单元,不使用 AI。</p>
+      <p class="sub">三种采集方式:按主题采集(可多选 B站 / 公众号 / 小红书)、按链接采单条、批量粘贴多条链接。程序按固定规则解析去重后写入采集单元,不使用 AI。</p>
       <div id="backend-badge" class="tip" style="margin-top:8px">后端状态检测中…</div>
     </section>
 
@@ -163,7 +172,17 @@
           <div class="field hidden" id="field-keyword">
             <label for="keyword">主题关键词 *</label>
             <input type="text" id="keyword" placeholder="例如:每天挖掘一个神奇网站">
-            <div class="tip">需完整出现在视频标题中(可多字,但不拆分)。例如「每天挖掘一个神奇网站」。</div>
+            <div class="tip">B站需关键词完整出现在视频标题中(可多字,但不拆分);公众号 / 小红书按关键词检索标题。例如「每天挖掘一个神奇网站」。</div>
+          </div>
+          <!-- 按主题采集的渠道多选:默认 B站,图文渠道借搜索引擎找候选链接 -->
+          <div class="field hidden" id="field-channels">
+            <label>采集渠道(可多选)</label>
+            <div class="channel-picks" id="channel-picks">
+              <label class="pick"><input type="checkbox" value="bilibili" checked> B站视频</label>
+              <label class="pick"><input type="checkbox" value="wechat"> 公众号文章</label>
+              <label class="pick"><input type="checkbox" value="xhs"> 小红书笔记</label>
+            </div>
+            <div class="tip">B站走官方搜索并聚类同系列;公众号通过搜索引擎找文章再抓正文;小红书只收录搜索标题与原文链接(正文需登录),结果以搜索引擎为准。</div>
           </div>
           <div class="field" id="field-url">
             <label for="video_url">内容链接 / 分享文案 *</label>
@@ -304,6 +323,7 @@
       $('tab-url').classList.toggle('active', m === 'url');
       $('tab-batch').classList.toggle('active', m === 'batch');
       $('field-keyword').classList.toggle('hidden', !isKeyword);
+      $('field-channels').classList.toggle('hidden', !isKeyword);
       $('field-url').classList.toggle('hidden', m !== 'url');
       $('field-batch').classList.toggle('hidden', m !== 'batch');
       $('field-up').classList.toggle('hidden', !isKeyword);
@@ -339,7 +359,21 @@
       [/xiaohongshu\.com|xhslink\.com/i, '小红书'],
     ];
     const MODE_NAMES = { url: '按链接采集', batch: '批量链接采集', keyword: '按主题采集' };
+    const CHANNEL_NAMES = { bilibili: 'B站', wechat: '公众号', xhs: '小红书' };
     function modeName(m) { return MODE_NAMES[m] || m || '未知方式'; }
+    // 按主题采集的多选渠道:顺序固定为 B站 / 公众号 / 小红书,便于回填和展示
+    function selectedChannels() {
+      return Array.from(document.querySelectorAll('#channel-picks input:checked')).map(i => i.value);
+    }
+    function applyChannels(values) {
+      const list = (Array.isArray(values) && values.length) ? values : ['bilibili'];
+      document.querySelectorAll('#channel-picks input').forEach(i => {
+        i.checked = list.indexOf(i.value) >= 0;
+      });
+    }
+    function channelNames(values) {
+      return (values || []).map(v => CHANNEL_NAMES[v] || v).join(' / ');
+    }
     // 采集时间统一成 yyyy.mm.dd HH:MM,与全站日期格式一致
     function fmtStamp(s) { return (s || '').replace(/^(\d{4})-(\d{2})-(\d{2})/, '$1.$2.$3'); }
     function linksIn(text) {
@@ -452,6 +486,7 @@
       else $('video_url').value = input;
       $('up').value = it.up || '';
       $('pages').value = it.pages || 30;
+      applyChannels(it.channels); // 老单元没有记录时默认只选 B站
       const manual = it.manual || {};
       $('manual_title').value = manual.title || '';
       $('manual_author').value = manual.author || '';
@@ -470,6 +505,10 @@
       if (m === 'batch') {
         const n = linksIn(it.input || '').length;
         if (n) metaBits.push(n + ' 条链接');
+      }
+      if (m === 'keyword') {
+        const cs = selectedChannels();
+        if (cs.length) metaBits.push('渠道 ' + channelNames(cs));
       }
       metaBits.push('单元 id: ' + unitId);
       showRecall('已带出上次采集信息,确认无误后点「确认重新采集」', metaBits.join(' · '));
@@ -644,6 +683,12 @@
       e.preventDefault();
       const keyword = mode === 'url' ? $('video_url').value.trim()
         : (mode === 'batch' ? $('batch_links').value.trim() : $('keyword').value.trim());
+      const channels = mode === 'keyword' ? selectedChannels() : [];
+      if (mode === 'keyword' && !channels.length) {
+        statusBox.className = 'status err';
+        statusBox.textContent = '请至少选择一个采集渠道';
+        return;
+      }
       const payload = {
         mode: mode,
         keyword: keyword,
@@ -651,6 +696,7 @@
         unit_id: $('slug').value.trim(),
         up: $('up').value.trim(),
         pages: parseInt($('pages').value) || 30,
+        channels: channels,
         dry_run: $('dry_run').checked,
         // 手工补录:公众号/小红书抓取被风控时,至少填标题即可建单元
         manual_title: $('manual_title').value.trim(),

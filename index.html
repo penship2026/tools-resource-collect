@@ -117,14 +117,17 @@
     var currentTag = '';
     var keyword = '';
 
-    function platformOf(t) {
-      return (t.source && t.source.platform) || 'B站';
+    // 多平台合集同时出现在它包含的每个渠道筛选下
+    function platformsOf(t) {
+      if (Array.isArray(t.platforms) && t.platforms.length) return t.platforms;
+      return [(t.source && t.source.platform) || 'B站'];
     }
+    function platformOf(t) { return platformsOf(t)[0]; }
     function tagsOf(t) {
       return Array.isArray(t.tags) ? t.tags : [];
     }
     // 渠道徽标配色:与采集端 platforms.py 的平台定义保持一致
-    var PLAT_COLORS = { 'B站': '#fb7299', '公众号': '#07c160', '小红书': '#ff2442' };
+    var PLAT_COLORS = { 'B站': '#fb7299', '公众号': '#07c160', '小红书': '#ff2442', '多平台': '#5b6472' };
     function platColor(name) {
       return PLAT_COLORS[name] || 'rgba(0,0,0,.72)';
     }
@@ -137,8 +140,9 @@
     // 来源渠道统计与动态筛选:当前仅一个渠道时不显示筛选,新增渠道后自动出现
     var platforms = [];
     all.forEach(function (t) {
-      var p = platformOf(t);
-      if (platforms.indexOf(p) < 0) platforms.push(p);
+      platformsOf(t).forEach(function (p) {
+        if (platforms.indexOf(p) < 0) platforms.push(p);
+      });
     });
     document.getElementById('stat-platforms').textContent = platforms.length;
 
@@ -192,7 +196,7 @@
     function render() {
       var list = all.filter(function (t) {
         if (currentFilter !== 'all' && (t.type || 'series') !== currentFilter) return false;
-        if (currentPlatform !== 'all' && platformOf(t) !== currentPlatform) return false;
+        if (currentPlatform !== 'all' && platformsOf(t).indexOf(currentPlatform) < 0) return false;
         if (currentTag && tagsOf(t).indexOf(currentTag) < 0) return false;
         if (keyword) {
           var hay = [t.title, (t.source && t.source.name), t.slogan].join(' ').toLowerCase();
@@ -207,7 +211,7 @@
           ? '<img src="' + t.cover + '" alt="' + t.title + '" loading="lazy" referrerpolicy="no-referrer">'
           : '<div style="width:100%;height:100%;display:grid;place-items:center;background:linear-gradient(135deg,#1e3a5f,#2d7ff9);color:#fff;font-size:42px">' + t.title.charAt(0) + '</div>';
         // 封面左下角显示来源平台徽标,不同渠道用不同底色区分
-        var platName = platformOf(t);
+        var platName = (t.source && t.source.platform) || platformOf(t);
         var badgeHtml = '<span class="badge" style="background:' + platColor(platName) + '">' + platName + '</span>';
         var tag = type === 'single'
           ? '<span class="type-tag single">单条</span>'
@@ -228,7 +232,8 @@
       }).join('') : '<div class="empty">没有匹配的主题</div>';
     }
 
-    document.querySelectorAll('.chip').forEach(function (chip) {
+    // 只处理类型筛选;平台/标签 chip 有各自的处理器,不能被这里接管
+    document.querySelectorAll('.chip[data-filter]').forEach(function (chip) {
       chip.addEventListener('click', function () {
         document.querySelectorAll('.chip').forEach(function (c) { c.classList.remove('active'); });
         chip.classList.add('active');

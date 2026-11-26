@@ -6,6 +6,9 @@
   <title>集页 · 主题内容清单</title>
   <meta name="description" content="一集一页,把值得收藏的内容收成清单。按主题汇总视频与图文,持续更新">
   <link rel="stylesheet" href="assets/style.css">
+  <!-- 主题:阻塞脚本在 <head> 里同步注入主题 CSS,避免首屏闪一下 -->
+  <script src="assets/theme.js"></script>
+  <noscript><link rel="stylesheet" href="assets/themes/default.css"></noscript>
   <style>
     /* ===== 首页专属布局样式(单独维护本页时只改这里) ===== */
     .facts { display: flex; gap: 40px; margin-top: 24px; }
@@ -151,7 +154,8 @@
       return Array.isArray(t.tags) ? t.tags : [];
     }
     // 渠道徽标配色:与采集端 platforms.py 的平台定义保持一致
-    var PLAT_COLORS = { 'B站': '#fb7299', '公众号': '#07c160', '小红书': '#ff2442', '多平台': '#5b6472' };
+    // 渠道配色走主题 token(D22):主题改 --plat-* 即可整体换色
+    var PLAT_COLORS = { 'B站': 'var(--plat-bilibili)', '公众号': 'var(--plat-wechat)', '小红书': 'var(--plat-xhs)', '多平台': 'var(--plat-multi)' };
     function platColor(name) {
       return PLAT_COLORS[name] || 'rgba(0,0,0,.72)';
     }

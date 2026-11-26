@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>单条精选 · 集页</title>
   <link rel="stylesheet" href="assets/style.css">
+  <!-- 主题:阻塞脚本在 <head> 里同步注入主题 CSS,避免首屏闪一下 -->
+  <script src="assets/theme.js"></script>
+  <noscript><link rel="stylesheet" href="assets/themes/default.css"></noscript>
   <style>
     /* ===== 详情页样式:按渠道切换三套模板(视频 / 公众号文章 / 小红书笔记) ===== */
     .crumb { font-size: 13px; color: var(--text-mute); margin: 18px 0; }
@@ -199,7 +202,7 @@
     var root = document.getElementById('single-root');
 
     var PLAT = { bilibili: 'B站', wechat: '公众号', xhs: '小红书' };
-    var PLAT_COLORS = { 'B站': '#fb7299', '公众号': '#07c160', '小红书': '#ff2442' };
+    var PLAT_COLORS = { 'B站': 'var(--plat-bilibili)', '公众号': 'var(--plat-wechat)', '小红书': 'var(--plat-xhs)' };
 
     function esc(s) {
       // 统一转义:assets/data-loader.js 提供(含单引号,可安全用于属性值)

@@ -1,0 +1,24 @@
+/* 集页 · 浅色主题(default)
+ * 主题契约:只允许定义 token(变量)与最多一份页面级局部样式;
+ * 不得改 DOM、不得写业务逻辑。新增主题:复制本文件改名 + 改值 + 在 assets/theme.js 的 THEMES 注册一行。
+ */
+:root {
+  color-scheme: light;
+  /* 基础色 */
+  --bg: #f7f8fa;
+  --surface: #ffffff;
+  --text: #1a1d21;
+  --text-sub: #6b7280;
+  --text-mute: #9ca3af;
+  --border: #e8eaee;
+  --brand: #2d7ff9;
+  --brand-soft: #eaf2ff;
+  --shadow: 0 1px 3px rgba(16, 24, 40, .04), 0 8px 24px rgba(16, 24, 40, .04);
+  --radius: 14px;
+  --radius-sm: 9px;
+  /* 渠道徽标配色(前端 PLAT_COLORS 直接引用变量,主题可整体换色) */
+  --plat-bilibili: #fb7299;
+  --plat-wechat: #07c160;
+  --plat-xhs: #ff2442;
+  --plat-multi: #5b6472;
+}

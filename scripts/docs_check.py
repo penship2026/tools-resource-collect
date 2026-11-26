@@ -7,6 +7,7 @@
   3. 文档里提到的 docs/*.md 与仓库内文件对得上(不引用不存在的文档)
   4. workflow 引用的清单/脚本存在,且不内嵌重复的采集命令
   5. DEPLOY 覆盖本机 launchd 与「形态 A/B」
+  6. 两套内置主题 token 完全对齐(D25/D31)
 退出码:0 通过,1 有问题。
 """
 import os
@@ -86,6 +87,29 @@ def check_workflow():
             problems.append("update-data.yml: 引用的清单不存在 %s" % name)
 
 
+THEME_TOKEN = re.compile(r"--[a-z0-9-]+\s*:")
+
+
+def check_themes():
+    """主题契约(D25/D31):两套内置主题的 token 必须完全对齐,避免「半套主题」。"""
+    base = os.path.join(ROOT, "assets/themes")
+    files = {"default.css": None, "dark.css": None}
+    for name in files:
+        path = os.path.join(base, name)
+        if not os.path.exists(path):
+            problems.append("缺少主题文件: assets/themes/%s" % name)
+            continue
+        text = open(path, encoding="utf-8").read()
+        files[name] = set(m.group(0).rstrip(": ").strip() for m in THEME_TOKEN.finditer(text))
+    if all(files.values()):
+        missing_dark = files["default.css"] - files["dark.css"]
+        missing_light = files["dark.css"] - files["default.css"]
+        for name in sorted(missing_dark):
+            problems.append("dark.css 缺少 token %s(与 default.css 不一致)" % name)
+        for name in sorted(missing_light):
+            problems.append("default.css 缺少 token %s(与 dark.css 不一致)" % name)
+
+
 def check_deploy():
     path = os.path.join(ROOT, "docs/DEPLOY.md")
     if not os.path.exists(path):
@@ -102,6 +126,7 @@ def main():
     check_wording(texts)
     check_doc_links(texts)
     check_workflow()
+    check_themes()
     check_deploy()
     for p in problems:
         print("  ✗ %s" % p)

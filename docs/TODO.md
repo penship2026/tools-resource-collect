@@ -160,6 +160,17 @@
 - **D16 legacy 清理(部分)**:删除 `topics/*.html`(9)与根目录 `assets/data/*.js`(9),`--migrate` 保持幂等且空转不报错(旧文件缺失时输出「新增 0 个」);死参数 `min_match`/`match_all` 与 `LEGACY_DIR` 暂留,因为 `server.py` 采集接口仍透传这两个字段,删除需同步改接口与采集页(记入下轮)。
 - **验证**:`--verify` 通过(11 单元 0 问题);18 个测试通过;文档自检通过;本地 200 检查 7 个路径全部正常。
 
+### ◑ 13. M5 主题化(第一段已完成:token 拆分 + 双主题 + 页脚三态)(2026-11-26 16:00–16:50)
+
+- **完成(D22 部分 / D23 / D25 / D31 / D33 / D32)**:
+  1. 新增 `assets/themes/default.css` 与 `dark.css`,把 `:root` 的 12 个 token 与 4 个渠道色 token 从 `style.css` 迁出;`style.css` 只保留布局/组件骨架,不再定义颜色。
+  2. 新增 `assets/theme.js`(零依赖):只定义 `THEMES` 注册表 + 主题解析(本地存储 `jiye.theme` = auto/default/dark、`?theme=dark|light` 预览)、`<head>` 内阻塞注入 `<link id="theme-css">` 防闪烁、系统主题变化联动;页脚自动注入三态开关并持久化选择。
+  3. 5 个页面 `<head>` 只加一行脚本 + `<noscript>` 兜底;`PLAT_COLORS` 改为 `var(--plat-*)`,渠道配色随主题走。
+  4. D32:单元级 `theme` 字段纳入 `--verify` 校验(取值必须在 `default`/`dark` 内),仅提示不启用渲染。
+  5. `scripts/docs_check.py` 新增「两套主题 token 必须完全对齐」检查,防半套主题。
+- **验证**:node 单测 6 个主题解析用例通过(系统浅/深、存 dark、`?theme=light` 覆盖存储、非法值回退);本地 8895 端口 9 个路径(含 `assets/theme.js`、两套 CSS、`collect.html`)全 200;19 个 unittest 与 docs-check 通过。
+- **未完成(留到下一段)**:D21 抽 `assets/render.js`(卡片/详情渲染函数收拢,目前 4 个页面仍有各写一份的 `cardHtml`);D24 数据侧解耦(去掉数据里的 `page` 字段、`source.platform` 改存稳定 key)。
+
 ---
 
 ## 新增待办

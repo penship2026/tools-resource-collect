@@ -193,6 +193,14 @@ python3 collector/backup_data.py backup --out /mnt/nas/backup            # 备�
 
 旧版是「每个主题一个 `topics/<slug>.html` + `assets/data/<slug>.js`」。执行 `python3 collector/generate.py --migrate` 会把旧数据转成采集单元格式(创建 `collections/<id>.js` 并重建索引),BV 号 id 归为 `single`、其余为 `series`。迁移幂等。旧版 `topics/*.html` 与 `assets/data/*.js`(根目录那批)已在 2026-11-26 清理中删除(需要时从 git 历史恢复),页面统一由五个固定模板提供。
 
+## 主题与换肤(页面/数据分离)
+
+- 分层:`assets/data/`(纯数据) → `assets/data-loader.js`(加载) → 页面(容器 + 路由) → `assets/style.css`(布局骨架) → `assets/themes/<name>.css`(设计 token)。
+- 内置两套:浅色 `default`、深色 `dark`;默认**跟随系统**,页脚三态切换(跟随系统 / 浅色 / 深色),选择存 `localStorage`(`jiye.theme`)。`?theme=dark` 只做预览,不写入存储、不进索引。
+- 新增主题 = ①复制 `assets/themes/default.css` 改名 → ②只改变量值 → ③在 `assets/theme.js` 的 `THEMES` 注册一行。**不需要改任何 HTML/JS**。
+- 契约:主题只允许定义 token 与最多一份页面级局部样式,不得改 DOM 或写业务逻辑;`default.css` 与 `dark.css` 的变量必须完全对齐(否则会出现"半套主题",`scripts/docs_check.py` 会拦)。
+- 防闪烁:`theme.js` 是 `<head>` 内的阻塞脚本,在首次绘制前同步插入 `<link id="theme-css">`。
+
 ## 自检与测试(不需要联网)
 
 ```bash

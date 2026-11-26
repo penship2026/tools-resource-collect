@@ -393,7 +393,9 @@ def index_status():
         return {"ok": False, "count": 0, "reason": str(exc)}
 
 
-DATE_RE = re.compile(r"^\d{4}[.\-]\d{2}[.\-]\d{2}$")  # 数据里的标准格式是 yyyy.mm.dd,旧数据允许 yyyy-mm-dd
+DATE_RE = re.compile(r"^\d{4}[.\-]\d{2}[.\-]\d{2}$")
+# 主题注册表(D32):与 assets/theme.js 的 THEMES 保持一致。单元级 theme 只做提示,不启用渲染分支。
+THEME_NAMES = ("default", "dark")  # 数据里的标准格式是 yyyy.mm.dd,旧数据允许 yyyy-mm-dd
 
 
 def verify_data(log=print):
@@ -437,6 +439,8 @@ def verify_data(log=print):
                 problems.append("%s: 第 %d 条日期格式异常(%s)" % (uid, i + 1, d))
             if not str(v.get("title") or "").strip():
                 problems.append("%s: 第 %d 条缺少标题" % (uid, i + 1))
+        if data.get("theme") and data.get("theme") not in THEME_NAMES:
+            problems.append("%s: theme 取值不在主题注册表内(%s)" % (uid, data.get("theme")))
         if "enabled" in data and bool(data.get("enabled")) != bool(t.get("enabled", True)):
             problems.append("%s: 显示开关两处不一致(索引 %s / 数据 %s)" % (
                 uid, t.get("enabled", True), data.get("enabled")))

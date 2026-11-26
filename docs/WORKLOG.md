@@ -327,3 +327,10 @@ Chrome 无头截图三页面全部正常:首页卡片标签独立行两行截断
 - **D38 文档自检**:`scripts/docs_check.py`(文件存在/口径/引用/workflow/部署章节),接入新增的 `ci.yml`。
 - **D16 清理**:删 `topics/*.html`(9)与根 `assets/data/*.js`(9);`--migrate` 空转正常。`min_match`/`match_all`/`LEGACY_DIR` 因接口透传暂留,记入下轮。
 - **验证**:`--verify` 11 单元 0 问题;18 测试通过;docs-check 通过;7 个本地路径 200。
+
+### 16:00–16:50 M5 主题化(第一段)
+- **token 拆分**:`:root` 的 12 个基础 token + 4 个 `--plat-*` 从 `style.css` 移到 `assets/themes/default.css` / `dark.css`;`style.css` 只保留布局。
+- **切换机制**:新增 `assets/theme.js`——注册表 `THEMES`、解析顺序「`?theme=` 预览 > 本地存储 > 系统偏好」、`<head>` 阻塞注入 `<link id="theme-css">` 防闪烁、系统深色变化联动、页脚三态开关(跟随系统/浅色/深色)。
+- **页面接入**:5 个页面 `<head>` 加脚本与 `<noscript>` 兜底;`PLAT_COLORS` 改用 `var(--plat-*)`。
+- **校验**:`--verify` 增加单元级 `theme` 取值校验;`docs_check.py` 增加两套主题 token 对齐检查。
+- **验证**:6 个主题解析用例(node)通过;本地 9 个路径 200;19 个 unittest 与 docs-check 通过。

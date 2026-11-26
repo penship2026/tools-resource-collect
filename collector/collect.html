@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>采集入口 · 集页</title>
   <link rel="stylesheet" href="assets/style.css">
+  <!-- 主题:阻塞脚本在 <head> 里同步注入主题 CSS,避免首屏闪一下 -->
+  <script src="assets/theme.js"></script>
+  <noscript><link rel="stylesheet" href="assets/themes/default.css"></noscript>
   <style>
     .layout { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 28px; align-items: start; }
     @media (max-width: 860px) { .layout { grid-template-columns: 1fr; } }

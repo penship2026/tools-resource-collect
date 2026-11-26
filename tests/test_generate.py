@@ -103,6 +103,17 @@ class GenerateDataTest(unittest.TestCase):
         self.assertFalse(r["ok"])
         self.assertTrue(any("开关" in p for p in r["problems"]))
 
+    def test_verify_unknown_theme(self):
+        # 单元级 theme 字段(D32):只做提示与校验,不启用渲染分支
+        data = {"id": "u1", "type": "series", "title": "主题单元", "count": 1,
+                "theme": "magazine", "videos": [video(0)]}
+        with open(os.path.join(generate.COLLECTIONS_DIR, "u1.js"), "w", encoding="utf-8") as fh:
+            fh.write("window.COLLECTION_DATA[\"u1\"] = %s;\n" % json.dumps(data, ensure_ascii=False))
+        self.write_index([{"id": "u1", "count": 1, "enabled": True}])
+        r = generate.verify_data(log=lambda *a: None)
+        self.assertFalse(r["ok"])
+        self.assertTrue(any("theme 取值" in p for p in r["problems"]))
+
     def test_write_text_atomic_no_tmp_left(self):
         path = os.path.join(TMP, "atomic.txt")
         generate.write_text_atomic(path, "hello")

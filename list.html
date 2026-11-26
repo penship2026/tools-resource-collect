@@ -6,6 +6,9 @@
   <title>全部内容 · 集页</title>
   <meta name="description" content="某个主题的全部采集记录,可按关键词、作者、平台筛选,支持分页浏览">
   <link rel="stylesheet" href="assets/style.css">
+  <!-- 主题:阻塞脚本在 <head> 里同步注入主题 CSS,避免首屏闪一下 -->
+  <script src="assets/theme.js"></script>
+  <noscript><link rel="stylesheet" href="assets/themes/default.css"></noscript>
   <style>
     /* ===== 全量列表页专属样式(合集页只展示最近 20 条,更多记录在这里) ===== */
     .crumb { font-size: 13px; color: var(--text-mute); margin: 18px 0; }
@@ -138,7 +141,7 @@
     var platform = 'all';
     var unitPlatform = 'B站';
     var PLAT = { bilibili: 'B站', wechat: '公众号', xhs: '小红书' };
-    var PLAT_COLORS = { 'B站': '#fb7299', '公众号': '#07c160', '小红书': '#ff2442' };
+    var PLAT_COLORS = { 'B站': 'var(--plat-bilibili)', '公众号': 'var(--plat-wechat)', '小红书': 'var(--plat-xhs)' };
 
     var grid = document.getElementById('grid');
     var pager = document.getElementById('pager');

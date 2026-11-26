@@ -652,10 +652,12 @@ def build_site_payload(config):
 
 
 def dump_site_yaml(config):
-    lines = ["version: 1", "", "site:", "  default_layout: %s" % config["default_layout"], "", "editorial:"]
+    lines = ["version: 1", "", "site:", "  default_layout: %s" % config["default_layout"], ""]
     editorial = config.get("editorial") or {}
     if not editorial:
-        lines.append("  {}")
+        lines.append("editorial: {}")
+    else:
+        lines.append("editorial:")
     for uid, item in sorted(editorial.items()):
         lines.append("  %s:" % uid)
         if item.get("pin"):

@@ -45,7 +45,7 @@
 | M2 | 版式层与切换器 | ✅ 完成 | `templates.js`/`layout.js`/`standard.css`；4 公开页接入；`?layout=news` 回退 standard；11 个逻辑用例 | 11-27 |
 | M3 | 门户版式与板块导航 | ✅ 完成 | `sections.js`+导航/头条/分节+`?section`；`news.css`、`pages/index.css`；1280/500 截图；视图测试 15 例 | 11-27 |
 | M4 | 画册、置顶、大图、默认版式 | ✅ 完成 | `magazine.css`+目录/章节/大图回退；`site.yml`/`site.js`；设置页默认版式；采集页置顶与大图；Python 74 例、视图 17 例 | 11-27 |
-| M5 | 自检与验收矩阵 | ⏸ 待开始 | — | — |
+| M5 | 自检与验收矩阵 | ✅ 完成 | `layout_lint` 注册表/脚本/颜色 + CI；README；390/768/1280 CDP 实测；T1–T15 记录 | 11-27 |
 
 状态符号：⏸ 待开始 / ⏳ 进行中 / ✅ 完成 / ⚠️ 阻塞 / 🔁 返工。
 

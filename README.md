@@ -2,9 +2,9 @@
 
 一集一页,把值得收藏的内容收成清单。纯静态站点 + 配套**纯规则采集程序**:输入主题关键词 → B站 搜索 → 精准匹配 → 去重合并 → 写入数据。全程不调用任何 AI 服务。(原名「神奇网站挖掘机 · 视频聚合站」)
 
-核心原则:**采集只处理数据,不生成、不修改任何静态页面**。页面是五个固定模板,由人工单独维护布局样式;每次采集是一个独立数据单元,可单独更新、单独关闭显示。
+核心原则:**采集只处理数据,不生成、不修改任何静态页面**。页面是四个公开页 + 两个本机工具页,由人工单独维护布局与版式;每次采集是一个独立数据单元,可单独更新、单独关闭显示。
 
-## 五个页面(固定模板,单独维护样式)
+## 四个公开页 + 两个工具页(固定页面,版式可切换)
 
 | 页面 | 用途 | 参数 |
 |---|---|---|
@@ -14,9 +14,27 @@
 | `single.html` | 站内详情页:按渠道切换模板(B站视频页内播放 / 公众号文章版式 / 小红书笔记版式),多集内容带上一集、下一集与全集列表 | `?id=<单元ID>&k=<条目键>`(兼容 `&i=<下标>`) |
 | `collector/collect.html` | 采集页(仅本机使用):填主题关键词/链接发起采集,调 `/api/*`;公网模式需填口令 | — |
 
-五个页面各自把**本页专属布局样式内联在 `<style>` 块**里,改某页布局只动该页文件;公共基础样式在 `assets/style.css`。数据加载统一在 `assets/data-loader.js`,**渲染统一在 `assets/render.js`**(卡片/条目/详情/多集导航只有一份实现),主题在 `assets/themes/`。
+公开页不再有 `<style>` 块:公共结构在 `assets/style.css`,页级结构在 `assets/pages/<page>.css`,版式差异在 `assets/layouts/*.css`,主题只定义颜色 token(`assets/themes/`)。数据加载统一在 `assets/data-loader.js`,**渲染统一在 `assets/render.js`**(卡片/条目/详情/多集导航只有一份实现)。
 
 页面跳转链路:首页 → 合集页 → 全部内容页 / 站内详情页。合集页与列表页的卡片**不再直连源平台**,统一进站内详情页;详情页里再提供「前往 B站 观看」「阅读原文」等外链兜底。
+
+## 页面版式与模板
+
+公开页共用同一套 DOM 与数据,只通过 `<html data-layout>` 换版式;主题与版式各自记忆,互不覆盖。
+
+| 版式 | key | 特征 | 能力 |
+|---|---|---|---|
+| 简洁 | `standard` | 单列 Hero + 卡片网格 | 无导航/头条/分节 |
+| 门户 | `news` | 顶部板块导航 + 1 主 3 副头条 + 板块分节 | nav / lead / bands / sidebar |
+| 画册 | `magazine` | 刊头 + 目录 + 章节编号 + 3:2 大图 | nav / bands / toc |
+
+- 切换入口在页脚「版式」三项,文案固定为 **简洁 / 门户 / 画册**;新增版式只需在 `assets/templates.js` 加一行、在 `assets/layouts/` 放一个 CSS,切换器自动出现。
+- 优先级:`?layout=<key>`(预览,不写存储) → `localStorage.jiye.layout` → `site.yml` 的 `site.default_layout` → 注册表默认 `standard`。
+- 板块视图统一用 `index.html?section=<板块 id>`;导航与板块计数来自 `sections.yml` 生成的 `assets/data/sections.js`。
+- 编辑推荐统一写根目录 `site.yml`,由 `generate.py` 生成 `assets/site.js`:设置页改默认版式,采集页给单元加「置顶」或「画册大图」;置顶只改展示顺序,不改 `assets/data/index.js`。
+- 画册首页的空章节只保留目录入口,不排正文;板块视图仍显示空态(D79)。
+
+**新增一套版式三步**:① 在 `assets/layouts/` 新增 CSS;② 在 `assets/templates.js` 的 `list` 加 `{label, desc, file, nav/lead/bands/toc...}`;③ 跑 `python3 scripts/layout_lint.py`。不需要改任何页面。
 
 首页只展示 `enabled !== false` 的单元;关闭显示的单元数据仍保留,只是不在首页出现。
 
@@ -37,13 +55,19 @@
 ```
 .
 ├── README.md                       # 根目录唯一文档(项目总览)
-├── index.html / series.html / single.html   # 固定展示页(人工维护样式)
+├── index.html / series.html / single.html   # 固定展示页(人工维护)
 ├── list.html                       # 全部内容页(筛选 + 分页)
+├── site.yml                        # 站点外观 + 编辑推荐(默认版式/置顶/画册大图)
 ├── assets/
-│   ├── style.css                   # 公共基础样式
+│   ├── style.css                   # 公共基础样式 + 17 个布局 token
+│   ├── site.js                     # site.yml 的前端产物(默认版式/编辑推荐)
+│   ├── templates.js / layout.js    # 版式注册表 / 版式解析与注入
+│   ├── pages/                      # 页级结构:index/series/list/single.css
+│   ├── layouts/                    # 版式:standard/news/magazine.css
 │   ├── data-loader.js              # 各页面共用的单元数据加载器
 │   └── data/
 │       ├── index.js                # 采集单元索引(元信息+显示开关)
+│       ├── sections.js             # 板块注册表(由 sections.yml 生成)
 │       └── collections/
 │           ├── daily-website.js    # 每次采集独立一个数据文件
 │           └── ...
@@ -58,6 +82,7 @@
 │   └── settings-guide.html         # 设置页填写说明
 ├── sections.yml                    # 板块注册表(0–18 岁分段 + 全龄)
 ├── topics.yml                      # 主题清单(v2: must/any + section)
+├── scripts/                        # docs_check / layout_lint 自检
 ├── docs/                           # 部署、过程与对外文档
 │   ├── DEPLOY.md                   # 服务器 / 群晖 / 飞牛部署
 │   ├── GITHUB-PAGES.md             # GitHub Pages 托管与数据更新

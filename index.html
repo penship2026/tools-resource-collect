@@ -198,7 +198,30 @@
     var keyword = '';
 
     // ===== 板块导航与 ?section 路由(D66/D67) =====
+    // sections.js 缺失时的兜底:按索引里的 section 聚合,导航仍可用(T9)
+    var SECTION_TITLES = {
+      'infant-care': '婴幼儿养护', preschool: '学前教育', k12: '中小学教育',
+      ai: 'AI 与智能工具', tech: '科技前沿', tools: '工具与效率', humanities: '人文与通识'
+    };
     var SECTION_LIST = (window.SECTIONS || []);
+    if (!SECTION_LIST.length && all.length) {
+      var fallback = {};
+      all.forEach(function (t) {
+        var id = t.section || '';
+        if (!id) return;
+        fallback[id] = (fallback[id] || 0) + 1;
+      });
+      SECTION_LIST = Object.keys(fallback).map(function (id, i) {
+        return {
+          id: id,
+          title: SECTION_TITLES[id] || id,
+          description: '',
+          order: i,
+          enabled: true,
+          count: fallback[id]
+        };
+      });
+    }
     var EDITORIAL = window.EDITORIAL || {};
     var routeParam = '';
     try { routeParam = new URLSearchParams(location.search).get('section') || ''; } catch (e) {}

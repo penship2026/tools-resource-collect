@@ -66,6 +66,10 @@ class GenerateDataTest(unittest.TestCase):
         self.assertEqual(generate.load_site_config(path), cfg)
         self.assertEqual(generate.build_site_payload(cfg), {
             "default_layout": "magazine", "editorial": cfg["editorial"]})
+        empty = generate.normalize_site_config({"default_layout": "standard", "editorial": {}})
+        with open(path, "w", encoding="utf-8") as fh:
+            fh.write(generate.dump_site_yaml(empty))
+        self.assertEqual(generate.load_site_config(path), empty)
 
     def test_site_config_rejects_bad_values(self):
         for raw in (

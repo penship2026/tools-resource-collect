@@ -502,11 +502,15 @@ magazine 只改"形"：封面比例、单栏、章节间距、编号排版，全
 
 **退出条件**：置顶后首屏主位变化且索引顺序不变；画册有/无大图均正常；设置页改默认版式后新开浏览器生效、已切过版式的浏览器保留本机选择；新增第 4 套版式演练只加 CSS + 1 行注册。
 
-### M5 自检（1–1.5 人日）
+### M5 自检（已完成 2026-11-27）
 
-1. `layout_lint.py`：白名单、`!important`、`@import`、`url(`、token 覆盖、注册表一致性。
-2. 接入 CI；`docs_check` 增加 `layouts/` 目录与页面脚本检查。
-3. 验收矩阵跑完并归档截图。
+1. `layout_lint.py` 扩展：版式注册表与 CSS 一一对应、`site.yml`/`site.js` 存在、页面脚本顺序 `site.js → templates.js → layout.js`、索引加载 `sections.js`、页级 CSS 只允许 token 与 `#fff/#000`。
+2. CI 接入 `node tests/test_render.js`、`node tests/test_layout.js`、`layout_lint.py`；`py_compile` 覆盖 `scripts/`。
+3. README 更新为「四公开页 + 两工具页」、外置样式、版式表、`?section`、`site.yml` 与“新增版式三步”。
+4. 验收矩阵改用 Chrome CDP 实测 390/768/1280 的 `scrollWidth`；T1–T15 结果归档到 `docs/ACCEPTANCE-TEMPLATES-P1-20261127.md`。
+5. 补 T9 兜底：`sections.js` 缺失时按索引 `section` 聚合导航；补 T10 硬编码颜色拦截。
+
+**退出条件**：CI 绿、`layout_lint` 绿、T1–T15 有记录；新增版式只改注册表 + CSS。
 
 ---
 
@@ -514,7 +518,7 @@ magazine 只改"形"：封面比例、单栏、章节间距、编号排版，全
 
 ### 10.1 视觉矩阵
 
-| 版式 | 主题 | 1280 | 390 |
+| 版式 | 主题 | 1280 | 390（CDP） |
 |---|---|---|---|
 | standard | default / dark / classical | ✓ | ✓ |
 | news | default / dark / classical | ✓ | ✓ |

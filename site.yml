@@ -3,5 +3,4 @@ version: 1
 site:
   default_layout: standard
 
-editorial:
-  {}
+editorial: {}

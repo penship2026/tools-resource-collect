@@ -26,10 +26,18 @@ jobs:
           python-version: "3.x"
 
       - name: 语法检查
-        run: python3 -m py_compile collector/*.py scripts/docs_check.py
+        run: python3 -m py_compile collector/*.py scripts/docs_check.py scripts/layout_lint.py
 
       - name: 离线回归测试
         run: python3 -m unittest discover -s tests -v
+
+      - name: 视图与版式逻辑测试
+        run: |
+          node tests/test_render.js
+          node tests/test_layout.js
+
+      - name: 版式自检
+        run: python3 scripts/layout_lint.py
 
       - name: 数据一致性自检
         run: python3 collector/generate.py --verify

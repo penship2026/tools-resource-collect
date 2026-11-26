@@ -617,3 +617,14 @@ Chrome 无头截图三页面全部正常:首页卡片标签独立行两行截断
 - 首页置顶排序按 `pin_at` 倒序，接口清单顺序不变；置顶角标、画册大图三级回退（hero_image → cover → 隐藏）。
 - 修复 `site.js` 误写到 `assets/data/` 导致页面读不到；已改为 `assets/site.js` 并在 `--verify` 中比对。
 - 验证：Python 74 例、Node 视图 17 例、版式逻辑 11 例、`--verify`、`docs_check`、`layout_lint` 通过；临时置顶 + 大图截图验证后已恢复为空配置。
+
+## 十六、页面模板一期 M5：自检、CI 与验收(2026-11-27)
+
+- `layout_lint.py` 新增注册表/CSS 对齐、`site.yml`/`site.js` 存在、页面脚本顺序、首页加载 `sections.js`、页级 CSS 硬编码颜色拦截。
+- CI 增加 `node tests/test_render.js`、`node tests/test_layout.js`、`layout_lint.py`，`py_compile` 覆盖 `scripts/`。
+- README 更新为四公开页 + 两工具页、外置页面样式、版式表、`?section`、`site.yml` 编辑配置与「新增版式三步」。
+- 补 T9：`sections.js` 缺失时按索引 `section` 聚合导航；实截验证仍可用。
+- T10：临时注入 `#123456`，自检退出码 1；恢复后通过。
+- T6：Chrome CDP 实测 390/768/1280 × 6 组页面，`scrollWidth == innerWidth`，18 组全通过。
+- T4/T5/T14：CDP 自动化验证查询预览不落存储、手动切换保留、主题/版式互不影响、默认版式只影响新会话。
+- T1–T15 结果与证据归档 `docs/ACCEPTANCE-TEMPLATES-P1-20261127.md`。

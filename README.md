@@ -54,7 +54,8 @@
 │   ├── git_sync.py                 # 数据同步 Git(只提交采集数据)
 │   ├── backup_data.py              # 数据备份/还原工具
 │   ├── collect.html                # 采集交互页(表单入口)
-│   └── settings.html               # 采集设置页(仅本机)
+│   ├── settings.html               # 采集设置页(仅本机/局域网)
+│   └── settings-guide.html         # 设置页填写说明
 ├── sections.yml                    # 板块注册表(0–18 岁分段 + 全龄)
 ├── topics.yml                      # 主题清单(v2: must/any + section)
 ├── docs/                           # 部署、过程与对外文档

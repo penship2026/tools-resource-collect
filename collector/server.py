@@ -127,6 +127,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         "/", "/index.html", "/series.html", "/list.html", "/single.html",
         "/collector/collect.html", "/collect.html",
         "/collector/settings.html", "/settings.html",
+        "/collector/settings-guide.html", "/settings-guide.html",
     }
 
     def __init__(self, *args, **kwargs):
@@ -169,7 +170,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         # 同时保留 /collector/collect.html 的自然路径。
         clean = (path or "").split("?", 1)[0].split("#", 1)[0]
         tail = clean.rstrip("/").split("/")[-1]
-        if tail in ("collect.html", "settings.html") and not clean.startswith("/collector/"):
+        if tail in ("collect.html", "settings.html", "settings-guide.html") and not clean.startswith("/collector/"):
             return os.path.join(COLLECTOR_DIR, tail)
         return super().translate_path(path)
 
@@ -338,7 +339,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         # 采集端专用模式:只放行采集页本身和它依赖的样式表,其他静态文件由展示端 Web 服务器提供
         if API_ONLY:
             tail = path.rstrip("/").split("/")[-1]
-            if tail in ("collect.html", "settings.html", "style.css"):
+            if tail in ("collect.html", "settings.html", "settings-guide.html", "style.css"):
                 return super().do_GET()
             self._json({
                 "ok": False,

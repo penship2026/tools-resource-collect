@@ -90,7 +90,8 @@
       <p>本机设置页；默认只监听 127.0.0.1，使用 --lan 启动后同一 Wi-Fi 下手机可访问。保存只改本机配置；线上自动采集由 GitHub Actions 管理。</p>
     </div>
     <div class="top-actions">
-      <button class="btn ghost" id="toggle-all" type="button">全部收起</button>
+      <a href="/collector/settings-guide.html">填写说明</a>
+      <button class="btn ghost" id="toggle-all" type="button">全部展开</button>
       <a href="/collect.html">← 返回采集页</a>
     </div>
   </div>
@@ -196,25 +197,26 @@
   $("modal").addEventListener("click", function (e) { if (e.target === $("modal")) closeModal(false); });
   var markDirty = function () { state.dirty = true; $("save-state").textContent = "有未保存改动"; $("save-state").className = "unsaved"; };
 
-  var COLLAPSE_KEY = "jiye.settings.collapsed.v1";
-  var collapsed = { section: {}, topic: {} };
-  function loadCollapsed() {
+  var EXPAND_KEY = "jiye.settings.expanded.v1";
+  var expanded = { section: {}, topic: {} };
+  function loadExpanded() {
     try {
-      var raw = localStorage.getItem(COLLAPSE_KEY);
+      localStorage.removeItem("jiye.settings.collapsed.v1");
+      var raw = localStorage.getItem(EXPAND_KEY);
       if (!raw) return;
       var data = JSON.parse(raw) || {};
-      collapsed.section = data.section || {};
-      collapsed.topic = data.topic || {};
-    } catch (e) { collapsed = { section: {}, topic: {} }; }
+      expanded.section = data.section || {};
+      expanded.topic = data.topic || {};
+    } catch (e) { expanded = { section: {}, topic: {} }; }
   }
-  function saveCollapsed() {
-    try { localStorage.setItem(COLLAPSE_KEY, JSON.stringify(collapsed)); } catch (e) {}
+  function saveExpanded() {
+    try { localStorage.setItem(EXPAND_KEY, JSON.stringify(expanded)); } catch (e) {}
   }
-  function isCollapsed(kind, id) { return !!(collapsed[kind] && collapsed[kind][id]); }
-  function setCollapsed(kind, id, value) {
-    if (!collapsed[kind]) collapsed[kind] = {};
-    if (value) collapsed[kind][id] = true;
-    else delete collapsed[kind][id];
+  function isExpanded(kind, id) { return !!(expanded[kind] && expanded[kind][id]); }
+  function setExpanded(kind, id, value) {
+    if (!expanded[kind]) expanded[kind] = {};
+    if (value) expanded[kind][id] = true;
+    else delete expanded[kind][id];
   }
   function collapseCards() {
     return document.querySelectorAll("[data-collapse-kind][data-collapse-id]");
@@ -224,10 +226,10 @@
     cards.forEach(function (card) {
       var kind = card.getAttribute("data-collapse-kind");
       var id = card.getAttribute("data-collapse-id");
-      var closed = isCollapsed(kind, id);
-      card.classList.toggle("is-collapsed", closed);
+      var open = isExpanded(kind, id);
+      card.classList.toggle("is-collapsed", !open);
       var btn = card.querySelector("[data-collapse-btn]");
-      if (btn) btn.setAttribute("aria-expanded", closed ? "false" : "true");
+      if (btn) btn.setAttribute("aria-expanded", open ? "true" : "false");
     });
     var total = cards.length;
     var allClosed = total > 0 && Array.prototype.every.call(cards, function (card) {
@@ -237,17 +239,17 @@
   }
   function toggleAllCards() {
     var cards = collapseCards();
-    var allClosed = cards.length > 0 && Array.prototype.every.call(cards, function (card) {
-      return card.classList.contains("is-collapsed");
+    var allOpen = cards.length > 0 && Array.prototype.every.call(cards, function (card) {
+      return !card.classList.contains("is-collapsed");
     });
-    var target = !allClosed;
+    var target = !allOpen;
     cards.forEach(function (card) {
-      setCollapsed(card.getAttribute("data-collapse-kind"), card.getAttribute("data-collapse-id"), target);
+      setExpanded(card.getAttribute("data-collapse-kind"), card.getAttribute("data-collapse-id"), target);
     });
     applyCollapseState();
-    saveCollapsed();
+    saveExpanded();
   }
-  loadCollapsed();
+  loadExpanded();
 
   async function api(path, opts) {
     var options = opts || {};
@@ -270,9 +272,9 @@
     box.innerHTML = state.sections.map(function (s, idx) {
       var reserved = ["infant-care", "preschool", "k12"].indexOf(s.id) >= 0;
       var age = s.age_min_months == null ? "全龄" : (s.age_min_months + "–" + s.age_max_months + " 月");
-      return '<div class="section-card" data-sec="' + idx + '" data-collapse-kind="section" data-collapse-id="' + esc(s.id) + '">' +
+      return '<div class="section-card is-collapsed" data-sec="' + idx + '" data-collapse-kind="section" data-collapse-id="' + esc(s.id) + '">' +
         '<div class="section-head">' +
-          '<button class="card-toggle" type="button" data-collapse-btn aria-expanded="true">' +
+          '<button class="card-toggle" type="button" data-collapse-btn aria-expanded="false">' +
             '<span class="chev" aria-hidden="true">▾</span>' +
             '<strong>' + esc(s.title) + '</strong>' +
             '<span class="meta">' + esc(s.id) + ' · ' + esc(age) + (s.enabled ? '' : ' · 已停用') + '</span>' +
@@ -294,9 +296,9 @@
     if (!state.topics.length) { box.innerHTML = '<div class="hint">还没有主题。新增板块后请至少加一个启用主题，才能参与自动采集。</div>'; return; }
     box.innerHTML = state.topics.map(function (t, idx) {
       var sec = state.sections.filter(function (s) { return s.id === t.section; })[0];
-      return '<div class="topic-row" data-top="' + idx + '" data-collapse-kind="topic" data-collapse-id="' + esc(t.id) + '">' +
+      return '<div class="topic-row is-collapsed" data-top="' + idx + '" data-collapse-kind="topic" data-collapse-id="' + esc(t.id) + '">' +
         '<div class="topic-head">' +
-          '<button class="card-toggle" type="button" data-collapse-btn aria-expanded="true">' +
+          '<button class="card-toggle" type="button" data-collapse-btn aria-expanded="false">' +
             '<span class="chev" aria-hidden="true">▾</span>' +
             '<span><b>' + esc(t.title) + '</b> · ' + esc(sec ? sec.title : t.section) + '</span>' +
           '</button>' +
@@ -485,9 +487,9 @@
     if (!card) return;
     var kind = card.getAttribute("data-collapse-kind");
     var id = card.getAttribute("data-collapse-id");
-    setCollapsed(kind, id, !isCollapsed(kind, id));
+    setExpanded(kind, id, !isExpanded(kind, id));
     applyCollapseState();
-    saveCollapsed();
+    saveExpanded();
   });
 
   load();

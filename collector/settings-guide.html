@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>设置页填写说明 · 集页</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="../assets/style.css">
+  <script>window.__THEME_BASE = "../assets/";</script>
+  <script src="../assets/theme.js"></script>
+  <noscript><link rel="stylesheet" href="../assets/themes/default.css"></noscript>
+  <style>
+    .wrap { max-width: 900px; margin: 0 auto; padding: 28px 20px 72px; }
+    .top { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; margin-bottom: 20px; }
+    .top h1 { font-size: 24px; margin-bottom: 6px; }
+    .top p { color: var(--text-mute); font-size: 13px; line-height: 1.7; margin: 0; }
+    .top-actions { display: flex; gap: 14px; flex-wrap: wrap; }
+    .top-actions a { color: var(--brand); font-size: 13px; white-space: nowrap; }
+    .panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow); margin-bottom: 16px; }
+    .panel h2 { font-size: 16px; margin: 0 0 10px; }
+    .panel h3 { font-size: 14px; margin: 18px 0 8px; }
+    .panel p, .panel li { color: var(--text-sub); font-size: 13px; line-height: 1.85; }
+    .panel ul, .panel ol { margin: 6px 0 0; padding-left: 22px; }
+    .tip { background: var(--bg); border-left: 3px solid var(--brand); border-radius: 0 8px 8px 0; padding: 10px 12px; margin: 12px 0; color: var(--text-sub); font-size: 13px; line-height: 1.8; }
+    .warn { border-left-color: #d08b1f; }
+    .danger { border-left-color: #c0392b; }
+    table { width: 100%; border-collapse: collapse; margin: 8px 0 4px; font-size: 13px; }
+    th, td { border: 1px solid var(--border); padding: 8px 10px; text-align: left; vertical-align: top; color: var(--text-sub); line-height: 1.7; }
+    th { background: var(--bg); color: var(--text); font-weight: 600; }
+    code { font-family: var(--font-mono); font-size: 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 5px; padding: 1px 5px; color: var(--text); }
+    .quick { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 12px 0 4px; }
+    .quick div { background: var(--bg); border-radius: 8px; padding: 12px; font-size: 12px; line-height: 1.7; color: var(--text-sub); }
+    .quick b { display: block; color: var(--text); font-size: 13px; margin-bottom: 4px; }
+    @media (max-width: 640px) { .wrap { padding: 20px 12px 56px; } .top { flex-wrap: wrap; } .top-actions { width: 100%; } .quick { grid-template-columns: 1fr; } table { display: block; overflow-x: auto; white-space: nowrap; } }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div>
+      <h1>设置页填写说明</h1>
+      <p>本页说明「采集设置」页面各字段怎么填、保存后会发生什么，以及常见失败原因。</p>
+    </div>
+    <div class="top-actions">
+      <a href="/collector/settings.html">← 返回设置页</a>
+      <a href="/collect.html">采集页</a>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>一、先看三件事</h2>
+    <div class="quick">
+      <div><b>卡片默认收起</b>点击板块或主题标题栏展开；顶部「全部展开」可一次打开所有卡片。</div>
+      <div><b>保存是整页保存</b>板块和主题共用「保存设置」，未保存前改动只在当前页面生效。</div>
+      <div><b>采集才会写数据</b>保存配置不会采集；「立即执行」会真实抓取并写入数据，不是预览。</div>
+    </div>
+    <div class="tip">设置页只改本机的 <code>sections.yml</code> 与 <code>topics.yml</code>；线上定时采集由 GitHub Actions 执行。</div>
+  </div>
+
+  <div class="panel">
+    <h2>二、板块怎么填</h2>
+    <p>板块决定首页的筛选分组，也决定主题归属。每个主题必须挂在一个板块下。</p>
+    <table>
+      <tr><th>字段</th><th>填写规则</th><th>说明</th></tr>
+      <tr><td>名称</td><td>2–12 个字</td><td>首页筛选和设置页卡片显示的名字。</td></tr>
+      <tr><td>说明</td><td>最多 60 字</td><td>建议写年龄段和内容范围；自定义板块不填会有提示，但不阻止保存。</td></tr>
+      <tr><td>排序</td><td>整数</td><td>保存排序值；当前页面按配置顺序渲染，不会即时拖动重排。</td></tr>
+      <tr><td>显示</td><td>勾选 / 不勾选</td><td>控制该板块的单元是否在首页展示；不控制是否采集。</td></tr>
+      <tr><td>板块 id</td><td>小写字母、数字、短横</td><td>创建后不可改；主题归属和采集单元都依赖它。</td></tr>
+      <tr><td>年龄段</td><td>只读</td><td>「婴幼儿养护」「学前教育」「中小学教育」三段边界固定，不能删、不能改。</td></tr>
+    </table>
+    <h3>新增板块</h3>
+    <ol>
+      <li>点「+ 新增板块」，先输入板块 id，再输入名称。</li>
+      <li>新板块默认全龄、启用、无说明；需要时展开卡片补说明。</li>
+      <li>点「保存设置」后才会写入配置文件。</li>
+    </ol>
+    <div class="tip warn">自定义板块只能全龄；0–18 岁的三段保留板块不能删除，也不能改年龄段。已有采集单元的板块删除后会导致自检失败，不建议删。</div>
+  </div>
+
+  <div class="panel">
+    <h2>三、主题怎么填</h2>
+    <p>一个主题对应一个采集单元；主题 id 同时是单元 id，创建后不可改。</p>
+    <table>
+      <tr><th>字段</th><th>填写规则</th><th>说明</th></tr>
+      <tr><td>must</td><td>1–4 个，逗号分隔</td><td>每个关键词都必须出现在候选标题、简介或分P标题中。</td></tr>
+      <tr><td>any</td><td>0–5 个，逗号分隔</td><td>至少命中一个；留空表示不限制。</td></tr>
+      <tr><td>渠道</td><td><code>bilibili</code>、<code>wechat</code>、<code>xhs</code></td><td>B站走视频搜索；公众号/小红书走图文检索。</td></tr>
+      <tr><td>显示 / 采集</td><td>勾选 / 不勾选</td><td>停用后不参与自动采集，已有单元也不会在首页展示。</td></tr>
+      <tr><td>主题名称</td><td>新增时填写</td><td>当前主题卡片里只读；需要改名请直接改 <code>topics.yml</code>。</td></tr>
+      <tr><td>归属板块</td><td>新增时填写板块 id</td><td>当前主题卡片里只读；需要换板块请直接改 <code>topics.yml</code>。</td></tr>
+    </table>
+    <h3>关键词怎么选</h3>
+    <ul>
+      <li><b>第一个 must 同时是搜索词</b>，建议放最宽的主词，例如「大模型」；后面的 must 只参与过滤。</li>
+      <li>must 太长容易抓不到；标题措辞稍有变化就会失败。</li>
+      <li>any 用来补同义词，例如「对比 / 评测 / 横评」。</li>
+      <li>匹配会忽略大小写、全角半角、空格和常见标点。</li>
+    </ul>
+    <h3>已有单元的 author 锁</h3>
+    <div class="tip warn">已有单元重采时只认原作者。原作者本次没有命中，就本次不更新，<b>不会自动切换到其他 UP 主</b>。这是防止系列串台；需要换作者只能人工处理，页面不提供解锁开关。</div>
+    <h3>新增主题</h3>
+    <ol>
+      <li>点「+ 新增主题」，依次填写板块 id、主题名称、must 关键词、主题 id。</li>
+      <li>新主题默认渠道 <code>bilibili</code>、any 为空、启用。</li>
+      <li>保存前再展开卡片补 any 或渠道。</li>
+    </ol>
+  </div>
+
+  <div class="panel">
+    <h2>四、保存与提示</h2>
+    <ul>
+      <li>「保存设置」会同时保存板块和主题，写入 <code>sections.yml</code> / <code>topics.yml</code>，并执行一次全量数据自检。</li>
+      <li>保存成功后会重新读取服务端配置；失败时看页面红色错误，不会自动回滚页面上的输入。</li>
+      <li>以下情况会给出提示但不阻止保存：自定义板块没有说明；启用板块下没有启用主题。</li>
+      <li>「启用板块但没有启用主题」不会参与自动采集，需要至少加一个启用主题。</li>
+    </ul>
+  </div>
+
+  <div class="panel">
+    <h2>五、线上定时</h2>
+    <table>
+      <tr><th>项目</th><th>当前行为</th></tr>
+      <tr><td>cron</td><td>只读，来自 <code>.github/workflows/update-data.yml</code>，当前为 <code>0 23 * * *</code>（北京时间每天 07:00）。</td></tr>
+      <tr><td>每主题页数</td><td>只读，当前默认 3 页；「立即执行」也使用这个页数。</td></tr>
+      <tr><td>导出 cron 片段</td><td>只生成 YAML 文本，不会修改 workflow；需要自己粘贴并提交。</td></tr>
+      <tr><td>立即执行</td><td><b>真实采集并写数据</b>，串行执行；页面最多轮询约 4 分钟，超时后任务可能仍在后台继续。</td></tr>
+    </table>
+    <div class="tip danger">「立即执行」不是 dry-run。确认当前配置和作者锁符合预期后再点。</div>
+  </div>
+
+  <div class="panel">
+    <h2>六、数据同步 Git</h2>
+    <p>只同步采集数据，不提交代码、配置和文档。固定提交到 <code>origin/main</code>。</p>
+    <ul>
+      <li>只允许 <code>assets/data/index.js</code> 与 <code>assets/data/collections/*.js</code>。</li>
+      <li>推送前要求当前分支是 <code>main</code>；开发分支会显示阻塞。</li>
+      <li>要求 Git 已配置 <code>user.name</code> 和 <code>user.email</code>；身份显示「已配置」只代表 name 存在，email 仍会在预检时校验。</li>
+      <li>要求没有合并/变基/拣选状态，白名单内不能有删除文件，本地不能落后远端。</li>
+      <li>「预览变更」只做本地预检；「同步推送数据」会先 fetch，再做校验、commit 和 push。</li>
+      <li>推送失败但已本地 commit 时，状态可能是「已提交未推送」，需要处理网络或凭据后重试。</li>
+    </ul>
+  </div>
+
+  <div class="panel">
+    <h2>七、本机调度</h2>
+    <p>当前版本由 GitHub Actions 固定运行，本机调度默认关闭；页面不提供开启按钮。停用线上 cron 后才适合改用本机 launchd，页面本身不做切换。</p>
+  </div>
+
+  <div class="panel">
+    <h2>八、常见问题</h2>
+    <table>
+      <tr><th>现象</th><th>处理</th></tr>
+      <tr><td>页面打不开</td><td>先确认本机服务已启动：<code>python3 collector/server.py</code>；手机访问用 <code>--lan</code> 并连同一 Wi-Fi。</td></tr>
+      <tr><td>保存返回 403</td><td>CSRF / Origin 校验失败。刷新页面拿新 token；服务重启后旧页面也会失效。</td></tr>
+      <tr><td>保存提示板块 id 非法</td><td>板块 id 只能用小写字母、数字和短横。</td></tr>
+      <tr><td>保存提示 section 不存在</td><td>主题引用了已删除的板块；先恢复板块或把主题改到现有板块。</td></tr>
+      <tr><td>全部主题失败</td><td>看「立即执行」日志：关键词 must 未全命中、原作者无命中，或网络请求失败。</td></tr>
+      <tr><td>某个主题一直不更新</td><td>已有单元作者锁生效：原作者本次没有新内容时不会切换作者。</td></tr>
+      <tr><td>Git 推送被阻塞</td><td>看预览里的 blockers：分支不是 main、身份缺失、远端领先、数据文件删除或没有数据变更。</td></tr>
+    </table>
+  </div>
+
+  <div class="panel">
+    <h2>九、推荐操作顺序</h2>
+    <ol>
+      <li>先加板块，再给板块加至少一个启用主题。</li>
+      <li>保存设置，确认页面没有红色错误。</li>
+      <li>需要验证采集时，先看关键词和作者锁，再点「立即执行」。</li>
+      <li>确认数据无误后，切到 <code>main</code>，用 Git 面板预览并推送数据。</li>
+      <li>线上首页更新后，再检查板块筛选和单元归属。</li>
+    </ol>
+  </div>
+</div>
+</body>
+</html>

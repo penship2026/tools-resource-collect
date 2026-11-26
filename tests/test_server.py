@@ -3,11 +3,14 @@
 """设置页局域网 Origin 白名单测试。"""
 
 import os
+import pathlib
 import sys
 import unittest
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "collector"))
 import server  # noqa: E402
+
+ROOT = pathlib.Path(__file__).resolve().parents[1]
 
 
 class OriginTest(unittest.TestCase):
@@ -26,6 +29,20 @@ class OriginTest(unittest.TestCase):
     def test_lan_ip_shape(self):
         value = server.lan_ip()
         self.assertIsInstance(value, str)
+
+
+class SettingsPageTest(unittest.TestCase):
+    def test_default_collapsed_and_guide_link(self):
+        html = (ROOT / "collector" / "settings.html").read_text(encoding="utf-8")
+        self.assertIn('id="toggle-all"', html)
+        self.assertIn("settings-guide.html", html)
+        self.assertIn('class="section-card is-collapsed"', html)
+        self.assertIn('class="topic-row is-collapsed"', html)
+
+    def test_guide_covers_key_fields(self):
+        guide = (ROOT / "collector" / "settings-guide.html").read_text(encoding="utf-8")
+        for text in ("must", "any", "作者锁", "立即执行", "数据同步 Git"):
+            self.assertIn(text, guide)
 
 
 if __name__ == "__main__":

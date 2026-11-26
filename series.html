@@ -107,6 +107,7 @@
 
   <script src="assets/data-loader.js"></script>
   <script>
+    var esc = window.escHtml;  // 统一转义:assets/data-loader.js 提供
     var id = CollectionLoader.currentId();
     var grid = document.getElementById('video-grid');
     var moreBar = document.getElementById('more-bar');
@@ -135,7 +136,7 @@
       CollectionLoader.load(id, function (topic, err) {
         if (err || !topic) {
           document.querySelector('main').innerHTML =
-            '<div class="empty">未找到该合集数据(' + (err || '') + ')。请从 <a href="index.html">首页</a> 选择。</div>';
+            '<div class="empty">未找到该合集数据(' + esc(err || '') + ')。请从 <a href="index.html">首页</a> 选择。</div>';
           return;
         }
         document.title = topic.title + ' · 系列合集 · 集页';
@@ -158,17 +159,17 @@
         var plat = (topic.source && topic.source.platform) || 'B站';
         unitPlatform = plat;
         var srcHtml = '<div class="topic-meta-row"><span class="label">来源</span>' +
-          '<span class="value">' + plat +
-          (topic.source && topic.source.name ? ' · <a href="' + (topic.source.url || '#') + '" target="_blank" rel="noopener" style="color:var(--brand)">' + topic.source.name + '</a>' : '') +
+          '<span class="value">' + esc(plat) +
+          (topic.source && topic.source.name ? ' · <a href="' + esc(topic.source.url || '#') + '" target="_blank" rel="noopener" style="color:var(--brand)">' + esc(topic.source.name) + '</a>' : '') +
           '</span></div>';
         // 标签行(采集时获取,可用于首页筛选)
         var unitTags = Array.isArray(topic.tags) ? topic.tags : [];
         var tagsHtml = unitTags.length
-          ? '<div class="topic-meta-row"><span class="label">标签</span><span class="value">' + unitTags.join(' / ') + '</span></div>'
+          ? '<div class="topic-meta-row"><span class="label">标签</span><span class="value">' + esc(unitTags.join(' / ')) + '</span></div>'
           : '';
         var brief = (vids.filter(function (v) { return v.desc; })[0] || {}).desc || '';
         var briefHtml = brief
-          ? '<div class="topic-meta-row"><span class="label">简介</span><span class="value">' + brief.slice(0, 120) + '</span></div>'
+          ? '<div class="topic-meta-row"><span class="label">简介</span><span class="value">' + esc(brief.slice(0, 120)) + '</span></div>'
           : '';
         document.getElementById('topic-meta').innerHTML = srcHtml + tagsHtml + briefHtml;
         render(vids);
@@ -184,17 +185,17 @@
     function cardHtml(v) {
       var isVideo = (v.kind || 'video') === 'video';
       var cover = v.cover
-        ? '<img src="' + v.cover + '" alt="' + v.title + '" loading="lazy" referrerpolicy="no-referrer">'
-        : '<div class="thumb-placeholder">' + (v.title || '内').charAt(0) + '</div>';
+        ? '<img src="' + esc(v.cover) + '" alt="' + esc(v.title) + '" loading="lazy" referrerpolicy="no-referrer">'
+        : '<div class="thumb-placeholder">' + esc((v.title || '内').charAt(0)) + '</div>';
       // 视频显示播放标记,图文显示常驻「图文」标记,避免让图文卡片看起来像视频
       var mark = isVideo ? '<span class="play"><i>▶</i></span>' : '<span class="kind-tag">图文</span>';
       // 编号只对视频展示(BV 号);图文显示平台名
       var idText = v.bv ? (' · ' + v.bv) : '';
       return '<a class="video-card" href="' + detailHref(v) + '">' +
         '<div class="video-thumb">' + cover + mark + '</div>' +
-        '<div class="video-info"><h3>' + v.title + '</h3>' +
-        (v.desc ? '<p class="desc">' + v.desc + '</p>' : '') +
-        '<div class="meta"><span>' + v.date + '</span><span>' + platOf(v) + idText + '</span></div></div></a>';
+        '<div class="video-info"><h3>' + esc(v.title) + '</h3>' +
+        (v.desc ? '<p class="desc">' + esc(v.desc) + '</p>' : '') +
+        '<div class="meta"><span>' + esc(v.date) + '</span><span>' + esc(platOf(v) + idText) + '</span></div></div></a>';
     }
 
     function render(list) {
@@ -214,7 +215,7 @@
       });
       if (order.length > 1) {
         grid.innerHTML = order.map(function (a) {
-          return '<section class="author-section"><h3 class="author-heading">' + a +
+          return '<section class="author-section"><h3 class="author-heading">' + esc(a) +
             '<span>' + groups[a].length + ' 条</span></h3><div class="video-grid">' +
             groups[a].map(cardHtml).join('') + '</div></section>';
         }).join('');

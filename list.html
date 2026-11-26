@@ -145,11 +145,7 @@
     function platOf(v) {
       return PLAT[v.platform] || unitPlatform || 'B站';
     }
-    function esc(s) {
-      return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
-        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
-      });
-    }
+    var esc = window.escHtml;  // 统一转义:assets/data-loader.js 提供
     // 日期统一 yyyy.mm.dd
     function fmtDate(iso) {
       if (!iso) return '—';

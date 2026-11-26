@@ -279,6 +279,14 @@
 
   <script>
     const $ = id => document.getElementById(id);
+    // 统一转义:标题/作者/平台等来自抓取结果,拼进 innerHTML 前必须转义
+    const ESC_MAP = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+    const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ESC_MAP[c]);
+    // 只接受站内页面路由,防止数据里的 page 字段被写成外链或 javascript:
+    function safePage(page) {
+      const p = String(page || '');
+      return /^(index|series|list|single)\.html(\?|$)/.test(p) ? p : '#';
+    }
     const form = $('form');
     const statusBox = $('status');
     const logBox = $('log');
@@ -620,7 +628,8 @@
     function loadTopics() {
       fetch(API_TOPICS, { cache: 'no-store' }).then(readJSON).then(d => {
         const box = $('topics');
-        if (!d.ok || !d.topics.length) { box.innerHTML = '<div class="tip">暂无采集单元</div>'; return; }
+        if (!d.ok) { box.innerHTML = '<div class="tip">' + esc(d.error || '索引不可用') + '</div>'; return; }
+        if (!d.topics.length) { box.innerHTML = '<div class="tip">暂无采集单元</div>'; return; }
         box.innerHTML = d.topics.map(t => {
           const type = t.type || 'series';
           const typeTag = type === 'single'
@@ -628,20 +637,20 @@
             : '<span class="topic-type">合集</span>';
           const enabled = t.enabled !== false;
           const last = t.last_at
-            ? `<small title="${t.last_mode_label || ''}">上次采集 ${fmtStamp(t.last_at)}</small>`
+            ? `<small title="${esc(t.last_mode_label || '')}">上次采集 ${esc(fmtStamp(t.last_at))}</small>`
             : '';
           return `
           <div class="topic-item ${enabled ? '' : 'off'}">
             <div>
-              ${typeTag}<a href="${t.page}" target="_blank">${t.title}</a>
-              <small>${t.count} 条 · ${t.platform || 'B站'}${t.author ? ' · ' + t.author : ''} · id: ${t.id}</small>
+              ${typeTag}<a href="${esc(safePage(t.page))}" target="_blank">${esc(t.title)}</a>
+              <small>${esc(t.count)} 条 · ${esc(t.platform || 'B站')}${t.author ? ' · ' + esc(t.author) : ''} · id: ${esc(t.id)}</small>
               ${last}
             </div>
             <div class="topic-actions">
-              <button class="toggle-btn ${enabled ? '' : 'off'}" data-id="${t.id}" data-enabled="${enabled}">
+              <button class="toggle-btn ${enabled ? '' : 'off'}" data-id="${esc(t.id)}" data-enabled="${enabled}">
                 ${enabled ? '显示中' : '已关闭'}
               </button>
-              <button class="toggle-btn" data-fill-id="${t.id}">重新采集</button>
+              <button class="toggle-btn" data-fill-id="${esc(t.id)}">重新采集</button>
             </div>
           </div>`;
         }).join('');
@@ -676,7 +685,7 @@
         box.querySelectorAll('[data-fill-id]').forEach(btn => {
           btn.addEventListener('click', () => fillFromUnit(btn.getAttribute('data-fill-id')));
         });
-      }).catch(err => { $('topics').innerHTML = '<div class="tip">加载失败: ' + err.message + '</div>'; });
+      }).catch(err => { $('topics').innerHTML = '<div class="tip">加载失败: ' + esc(err.message) + '</div>'; });
     }
 
     form.addEventListener('submit', async e => {

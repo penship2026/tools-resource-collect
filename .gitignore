@@ -7,8 +7,15 @@ Thumbs.db
 __pycache__/
 *.pyc
 
-# 本地数据备份(仅保留在本地,不进仓库)
-backups/*.zip
+# 本地数据备份与自动快照(仅保留在本地,不进仓库)
+backups/
+
+# 个人收藏导出文件(含浏览偏好,不进仓库)
+个人收藏-*.json
+personal-*.json
+
+# 本机调度用的未公开主题清单
+topics.local.yml
 
 # 本地工具数据(工作区记忆、浏览器测试产物等),不进仓库
 .workbuddy/

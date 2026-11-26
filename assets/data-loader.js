@@ -30,6 +30,15 @@
     return String(id || '').replace(/[^a-zA-Z0-9_-]/g, '');
   }
 
+  // 统一的 HTML 转义:所有把数据拼进 innerHTML 的地方都必须经过它。
+  // 标题/简介/标签/封面均来自站外抓取,属于不可信内容,属性值与文本一并转义。
+  var ESC_MAP = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+  function escHtml(value) {
+    return String(value == null ? '' : value).replace(/[&<>"']/g, function (ch) {
+      return ESC_MAP[ch];
+    });
+  }
+
   // 加载指定 id 的单元数据,通过回调返回(兼容 file://,不用 fetch)
   function load(unitId, done) {
     var id = safeId(unitId);
@@ -59,11 +68,13 @@
     return index().filter(function (t) { return t.id === unitId; })[0] || null;
   }
 
+  global.escHtml = escHtml;
   global.CollectionLoader = {
     currentId: currentId,
     load: load,
     index: index,
     meta: meta,
-    safeId: safeId
+    safeId: safeId,
+    esc: escHtml
   };
 })(window);

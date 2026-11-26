@@ -84,6 +84,15 @@ DATA_DIR = _resolve_dir("VIDEO_DATA_DIR", os.path.join("assets", "data"))
 INDEX_JS = os.path.join(DATA_DIR, "index.js")
 # 每次采集是独立单元,数据单独存一个文件,便于局部更新与单独关闭显示
 COLLECTIONS_DIR = os.path.join(DATA_DIR, "collections")
+# 覆盖索引前的自动快照目录(仅本地保留,已在 .gitignore 中排除)
+BACKUP_DIR = os.path.join(ROOT, "backups", "auto")
+SNAPSHOT_KEEP = 10
+
+
+class IndexCorrupt(Exception):
+    """索引文件存在但内容无法解析(用于区分「不存在」与「损坏」)"""
+
+
 # 旧版目录:迁移时读取,采集本身不再写入
 LEGACY_DIR = _resolve_dir("VIDEO_TOPICS_DIR", "topics")
 
@@ -338,19 +347,32 @@ def manual_item(url, platform_key, manual):
     }
 
 
-def load_index():
-    """读取采集单元索引,返回元信息列表(每个单元一条)"""
+def load_index(strict=False):
+    """读取采集单元索引,返回元信息列表(每个单元一条)
+
+    strict=True 时,文件存在但无法解析会抛 IndexCorrupt,供健康检查区分
+    「索引不存在」与「索引损坏」;默认宽松模式仍返回 [],保持既有调用方兼容。
+    """
     if not os.path.exists(INDEX_JS):
         return []
-    text = open(INDEX_JS, encoding="utf-8").read()
-    # 优先读新格式 window.COLLECTION_INDEX,兼容 const 声明与旧格式 TOPIC_INDEX
-    m = re.search(r"(?:window\.)?(?:const\s+)?(?:COLLECTION_INDEX|TOPIC_INDEX)\s*=\s*(\[.*\])\s*;", text, re.S)
-    if not m:
-        return []
     try:
+        text = open(INDEX_JS, encoding="utf-8").read()
+        # 优先读新格式 window.COLLECTION_INDEX,兼容 const 声明与旧格式 TOPIC_INDEX
+        m = re.search(r"(?:window\.)?(?:const\s+)?(?:COLLECTION_INDEX|TOPIC_INDEX)\s*=\s*(\[.*\])\s*;", text, re.S)
+        if not m:
+            raise IndexCorrupt("未找到 COLLECTION_INDEX 声明")
         items = json.loads(m.group(1))
+        if not isinstance(items, list):
+            raise IndexCorrupt("索引内容不是数组")
+    except IndexCorrupt as exc:
+        print("  错误:采集索引损坏(%s): %s" % (INDEX_JS, exc), file=sys.stderr)
+        if strict:
+            raise
+        return []
     except Exception as exc:
-        print("  警告:读取采集索引失败: %s" % exc, file=sys.stderr)
+        print("  错误:读取采集索引失败(%s): %s" % (INDEX_JS, exc), file=sys.stderr)
+        if strict:
+            raise IndexCorrupt(str(exc))
         return []
     # 旧格式补齐默认字段,让页面与接口都能直接用
     for it in items:
@@ -359,6 +381,61 @@ def load_index():
         it.setdefault("created", "")
         it.setdefault("updated", "")
     return items
+
+
+def index_status():
+    """索引健康状态:供 /api/health 与 --verify 使用,避免把「损坏」当成「空站」"""
+    if not os.path.exists(INDEX_JS):
+        return {"ok": False, "count": 0, "reason": "索引文件不存在"}
+    try:
+        return {"ok": True, "count": len(load_index(strict=True)), "reason": ""}
+    except IndexCorrupt as exc:
+        return {"ok": False, "count": 0, "reason": str(exc)}
+
+
+def snapshot_file(path, keep=SNAPSHOT_KEEP):
+    """覆盖前把现有文件复制一份到 backups/auto,只保留最近 keep 份"""
+    if not os.path.exists(path):
+        return None
+    try:
+        os.makedirs(BACKUP_DIR, exist_ok=True)
+        base = os.path.splitext(os.path.basename(path))[0]
+        stamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S-%f")[:-3]
+        dest = os.path.join(BACKUP_DIR, "%s-%s.js" % (base, stamp))
+        with open(path, "rb") as src, open(dest, "wb") as dst:
+            dst.write(src.read())
+        olds = sorted(f for f in os.listdir(BACKUP_DIR) if f.startswith(base + "-"))
+        for name in olds[:-keep]:
+            try:
+                os.remove(os.path.join(BACKUP_DIR, name))
+            except OSError:
+                pass
+        return dest
+    except OSError as exc:
+        # 快照失败不影响主写入,但要在日志里留痕
+        print("  警告:写入前快照失败(%s): %s" % (path, exc), file=sys.stderr)
+        return None
+
+
+def write_text_atomic(path, text, snapshot=False):
+    """原子写入:先写同目录临时文件再 os.replace,中断不会留下半截文件"""
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    tmp = path + ".tmp"
+    try:
+        with open(tmp, "w", encoding="utf-8") as fh:
+            fh.write(text)
+            fh.flush()
+            os.fsync(fh.fileno())
+        if snapshot:
+            snapshot_file(path)
+        os.replace(tmp, path)
+    finally:
+        if os.path.exists(tmp):
+            try:
+                os.remove(tmp)
+            except OSError:
+                pass
+    return path
 
 
 def write_index(items, updated):
@@ -373,18 +450,18 @@ def write_index(items, updated):
         "};",
         "window.COLLECTION_INDEX = %s;" % json.dumps(items, ensure_ascii=False, indent=2),
     ]
-    with open(INDEX_JS, "w", encoding="utf-8") as fh:
-        fh.write("\n".join(lines) + "\n")
+    # 索引是首页的唯一入口,覆盖前留快照,写入走原子替换
+    write_text_atomic(INDEX_JS, "\n".join(lines) + "\n", snapshot=True)
 
 
 def write_collection_file(collection):
     """写入单个采集单元的数据文件(独立文件,不覆盖其他单元)"""
     os.makedirs(COLLECTIONS_DIR, exist_ok=True)
     path = os.path.join(COLLECTIONS_DIR, "%s.js" % collection["id"])
-    with open(path, "w", encoding="utf-8") as fh:
-        fh.write("// 采集单元数据: %s (由 generate.py 生成)\n" % collection["title"])
-        fh.write("window.COLLECTION_DATA[%s] = %s;\n" % (
-            json.dumps(collection["id"]), js(collection)))
+    text = ("// 采集单元数据: %s (由 generate.py 生成)\n" % collection["title"]) + \
+           ("window.COLLECTION_DATA[%s] = %s;\n" % (
+               json.dumps(collection["id"]), js(collection)))
+    write_text_atomic(path, text, snapshot=True)
     return path
 
 
@@ -465,9 +542,9 @@ def set_enabled(unit_id, enabled, log=print):
     if data is not None:
         data["enabled"] = bool(enabled)
         os.makedirs(COLLECTIONS_DIR, exist_ok=True)
-        with open(os.path.join(COLLECTIONS_DIR, "%s.js" % unit_id), "w", encoding="utf-8") as fh:
-            fh.write("// 采集单元数据: %s (由 generate.py 生成)\n" % data.get("title", ""))
-            fh.write("window.COLLECTION_DATA[%s] = %s;\n" % (json.dumps(unit_id), js(data)))
+        text = ("// 采集单元数据: %s (由 generate.py 生成)\n" % data.get("title", "")) + \
+               ("window.COLLECTION_DATA[%s] = %s;\n" % (json.dumps(unit_id), js(data)))
+        write_text_atomic(os.path.join(COLLECTIONS_DIR, "%s.js" % unit_id), text, snapshot=True)
     log("%s 显示已%s: %s" % (unit_id, "开启" if enabled else "关闭", target.get("title", "")))
     return {"ok": True, "id": unit_id, "enabled": bool(enabled), "title": target.get("title", "")}
 
@@ -1486,9 +1563,9 @@ def migrate_legacy(log=print):
             if _backfill_item_fields(data):
                 changed = True
             if changed:
-                with open(new_path, "w", encoding="utf-8") as fh:
-                    fh.write("// 采集单元数据: %s (迁移自旧格式)\n" % data.get("title", ""))
-                    fh.write("window.COLLECTION_DATA[%s] = %s;\n" % (json.dumps(uid), js(data)))
+                text = ("// 采集单元数据: %s (迁移自旧格式)\n" % data.get("title", "")) + \
+                       ("window.COLLECTION_DATA[%s] = %s;\n" % (json.dumps(uid), js(data)))
+                write_text_atomic(new_path, text, snapshot=False)
             continue
         data = load_collection_data(uid)
         if not data:

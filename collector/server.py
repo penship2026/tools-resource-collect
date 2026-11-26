@@ -87,6 +87,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             # 采集只写数据:数据目录 + 采集单元目录,两处都可写才算健康
             data_ok = os.access(generate.DATA_DIR, os.W_OK)
             coll_ok = os.access(generate.COLLECTIONS_DIR, os.W_OK)
+            idx = generate.index_status()
             self._json({
                 "ok": True,
                 "writable": data_ok and coll_ok,
@@ -94,10 +95,22 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 "collections_dir": generate.COLLECTIONS_DIR,
                 "data_writable": data_ok,
                 "collections_writable": coll_ok,
+                # 索引可读性单独上报:损坏时不要让前端误以为「站里没有内容」
+                "index_ok": idx["ok"],
+                "index_count": idx["count"],
+                "index_error": idx["reason"],
                 "role": "api" if API_ONLY else "full",
             })
             return
         if path.endswith("/api/topics"):
+            status = generate.index_status()
+            if not status["ok"]:
+                self._json({
+                    "ok": False,
+                    "error": "采集索引不可用: " + (status["reason"] or "未知原因"),
+                    "topics": [],
+                }, 500)
+                return
             index = generate.load_index()
             self._json({"ok": True, "topics": [
                 {

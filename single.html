@@ -201,9 +201,8 @@
     var PLAT_COLORS = { 'B站': '#fb7299', '公众号': '#07c160', '小红书': '#ff2442' };
 
     function esc(s) {
-      return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
-        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
-      });
+      // 统一转义:assets/data-loader.js 提供(含单引号,可安全用于属性值)
+      return window.escHtml(s);
     }
     // 条目唯一键:与采集端 item_key 一致(B站=BV,公众号=原文地址,小红书=笔记ID)
     function itemRefKey(v) {
@@ -229,7 +228,7 @@
       var iframeSrc = 'https://player.bilibili.com/player.html?bvid=' + encodeURIComponent(v.bv) +
         '&autoplay=0&danmaku=0&high_quality=1&as_wide=1';
       var rows =
-        row('来源平台', plat) +
+        row('来源平台', esc(plat)) +
         row('发布者', esc(ctx.author)) +
         row('发布日期', esc(v.date)) +
         row('最近采集', fmtDate(ctx.topic.updated)) +
@@ -416,7 +415,7 @@
     } else {
       CollectionLoader.load(id, function (topic, err) {
         if (err || !topic) {
-          root.innerHTML = '<div class="empty">未找到该内容数据(' + (err || '') + ')。请从 <a href="index.html">首页</a> 选择。</div>';
+          root.innerHTML = '<div class="empty">未找到该内容数据(' + esc(err || '') + ')。请从 <a href="index.html">首页</a> 选择。</div>';
           return;
         }
         // 按发布时间升序 = 「第 1 集 → 第 N 集」的固定顺序,上一集/下一集都基于它

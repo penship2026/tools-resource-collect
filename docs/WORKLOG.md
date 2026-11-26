@@ -362,3 +362,9 @@ Chrome 无头截图三页面全部正常:首页卡片标签独立行两行截断
 - `theme.js` 注册 5 套主题、页脚 6 项切换并允许换行;`generate.py` 的 `THEME_NAMES` 同步;`docs_check.py` 主题检查改为全量 token 对齐 + 注册表覆盖;新增页面测试防「加了 css 切不到」。
 - 验证:32 个 Python 用例、10 个 node 用例、`--verify`、docs-check 通过;截图检查三套新主题与页脚切换器渲染正常。
 
+### 21:40–22:20 科技风重做 + 二次元主题
+- 反馈 `tech` 与 `dark` 太像 → 科技风改为靛蓝黑底 + 青/品红霓虹 + 网格底纹 + 近直角 + 霓虹描边,与深色明确区隔。
+- 新增 `assets/themes/anime.css`:樱花粉/天蓝渐变、大圆角、柔和彩影、圆体标题;注册为第 6 套,页脚 7 项切换。
+- 同步 `THEME_NAMES`、页面主题数量基线、README/GITHUB-PAGES 文案;PLAN 追加 10.5(D42)。
+- 验证:32 个 Python + 10 个 node 用例、`--verify`、docs-check 通过;截图对比通过。
+

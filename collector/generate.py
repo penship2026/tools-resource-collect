@@ -406,7 +406,7 @@ def index_status():
 
 DATE_RE = re.compile(r"^\d{4}[.\-]\d{2}[.\-]\d{2}$")
 # 主题注册表(D32/D40):与 assets/theme.js 的 THEMES 保持一致。单元级 theme 只做提示,不启用渲染分支。
-THEME_NAMES = ("default", "dark", "tech", "campus", "classical")
+THEME_NAMES = ("default", "dark", "tech", "campus", "classical", "anime")
 
 
 def _bad_platform(value):

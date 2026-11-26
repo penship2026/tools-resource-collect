@@ -1,20 +1,20 @@
 /* 集页 · 科技风主题(tech)
- * 深空底色 + 青/紫霓虹,直角偏锐、带发光阴影;适合夜间浏览与开发者审美。
+ * 深空靛蓝底 + 青/品红霓虹 + 细网格,近直角、卡片带霓虹描边;与「深色」主题明确区隔。
  * 契约与 default.css 相同:只定义 token,不改 DOM、不写业务逻辑,所有 token 必须齐全。
  */
 :root {
   color-scheme: dark;
-  --bg: #070b12;
-  --surface: #101b28;
-  --text: #e6f1ff;
-  --text-sub: #9db2c8;
-  --text-mute: #6b7f96;
-  --border: #223a52;
-  --brand: #22d3ee;
-  --brand-soft: #0a2a33;
-  --shadow: 0 1px 3px rgba(0, 0, 0, .5), 0 10px 28px rgba(0, 0, 0, .38);
-  --radius: 12px;
-  --radius-sm: 6px;
+  --bg: #05060d;
+  --surface: #0c1022;
+  --text: #eaf6ff;
+  --text-sub: #a6b8e8;
+  --text-mute: #6d7fa8;
+  --border: #2b2160;
+  --brand: #00e5ff;
+  --brand-soft: #062b3f;
+  --shadow: 0 0 0 1px rgba(0, 229, 255, .06), 0 12px 30px rgba(0, 0, 0, .55);
+  --radius: 4px;
+  --radius-sm: 2px;
   --radius-pill: 999px;
   --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
   --font-display: "SF Mono", ui-monospace, Menlo, Consolas, "PingFang SC", monospace;
@@ -25,11 +25,15 @@
   --fs-xs: 12px;
   --gap-card: 18px;
   --pad-card: 18px;
-  --shadow-hover: 0 0 0 1px rgba(34, 211, 238, .35), 0 0 30px rgba(34, 211, 238, .18);
-  --brand-2: #a78bfa;
-  --hero-wash: radial-gradient(1100px 420px at 8% -12%, rgba(34, 211, 238, .22), rgba(34, 211, 238, 0) 68%),
-               radial-gradient(900px 380px at 88% -10%, rgba(167, 139, 250, .18), rgba(167, 139, 250, 0) 70%);
-  --header-bg: rgba(7, 11, 18, .86);
+  --shadow-hover: 0 0 0 1px var(--brand), 0 0 26px rgba(0, 229, 255, .35);
+  --brand-2: #ff4ecd;
+  --hero-wash:
+    repeating-linear-gradient(0deg, rgba(0, 229, 255, .045) 0 1px, transparent 1px 56px),
+    repeating-linear-gradient(90deg, rgba(0, 229, 255, .045) 0 1px, transparent 1px 56px),
+    radial-gradient(900px 420px at 10% -10%, rgba(0, 229, 255, .28), rgba(0, 229, 255, 0) 62%),
+    radial-gradient(800px 400px at 92% -6%, rgba(255, 78, 205, .24), rgba(255, 78, 205, 0) 65%),
+    linear-gradient(180deg, #080b18, #05060d 55%);
+  --header-bg: rgba(5, 6, 13, .9);
   /* 渠道徽标配色(与数据无关,只影响展示) */
   --plat-bilibili: #fb7299;
   --plat-wechat: #07c160;

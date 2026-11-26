@@ -1,0 +1,39 @@
+/* 集页 · 二次元主题(anime)
+ * 樱花粉 + 天蓝渐变、大圆角、柔和彩影,标题用圆体;偏轻快,适合娱乐/动漫清单。
+ * 契约与 default.css 相同:只定义 token,不改 DOM、不写业务逻辑,所有 token 必须齐全。
+ */
+:root {
+  color-scheme: light;
+  --bg: #fff4f9;
+  --surface: #ffffff;
+  --text: #2a2340;
+  --text-sub: #6d6285;
+  --text-mute: #a394b8;
+  --border: #ffd6e8;
+  --brand: #ff4f9a;
+  --brand-soft: #ffe6f2;
+  --shadow: 0 2px 6px rgba(255, 79, 154, .08), 0 12px 28px rgba(122, 215, 255, .16);
+  --radius: 18px;
+  --radius-sm: 10px;
+  --radius-pill: 999px;
+  --font-sans: "Hiragino Maru Gothic ProN", "Yuanti SC", -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-display: "Hiragino Maru Gothic ProN", "Yuanti SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --fs-hero: clamp(30px, 4.2vw, 42px);
+  --fs-title: 19px;
+  --fs-body: 15px;
+  --fs-sm: 13px;
+  --fs-xs: 12px;
+  --gap-card: 18px;
+  --pad-card: 18px;
+  --shadow-hover: 0 6px 10px rgba(255, 79, 154, .14), 0 18px 38px rgba(122, 215, 255, .24);
+  --brand-2: #7ad7ff;
+  --hero-wash:
+    radial-gradient(900px 420px at 8% -12%, rgba(255, 79, 154, .28), rgba(255, 79, 154, 0) 66%),
+    radial-gradient(820px 400px at 92% -8%, rgba(122, 215, 255, .34), rgba(122, 215, 255, 0) 66%);
+  --header-bg: rgba(255, 244, 249, .9);
+  /* 渠道徽标配色(与数据无关,只影响展示) */
+  --plat-bilibili: #fb7299;
+  --plat-wechat: #07c160;
+  --plat-xhs: #ff2442;
+  --plat-multi: #8a7fa8;
+}

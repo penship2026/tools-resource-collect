@@ -222,6 +222,14 @@
 - **校验**:`generate.py` 的 `THEME_NAMES` 同步为 5 个;`docs_check.py` 的主题检查改为「themes 下所有 css 逐 token 对齐 + 必须被 theme.js 注册」;新增 `tests/test_pages.py::test_all_theme_files_registered`。
 - **验证**:32 个 Python 用例、10 个 node 用例、`--verify`、docs-check 全通过;Chrome 截图检查 tech/campus/classical 首页与页脚切换器,排版正常。
 
+### ✅ 21. 科技风重做 + 二次元主题(D42)(2026-11-26)
+
+- **科技风重做**:首版与深色过于接近 → 改为深空靛蓝底(`#05060d`)+ 青/品红双霓虹 + 细网格底纹 + 4px 近直角 + 卡片霓虹描边/发光 hover,与 `dark` 一眼可辨。
+- **二次元主题**:新增 `assets/themes/anime.css`,樱花粉 + 天蓝渐变、18px 大圆角、柔和彩影、圆体标题;`theme.js` 注册为第 6 套,页脚 7 项切换。
+- **校验同步**:`generate.py` 的 `THEME_NAMES` 增至 6 个;`tests/test_pages.py` 的主题数量基线改为 6;docs-check 的 token 对齐与注册表检查自动覆盖新文件。
+- **文档**:PLAN 追加 10.5(D42),README/GITHUB-PAGES 五套→六套同步。
+- **验证**:32 个 Python 用例、10 个 node 用例、`--verify`、docs-check 全通过;截图对比 `tech`/`dark`、`anime`/`classical`,区分明显。
+
 ---
 
 ## 新增待办

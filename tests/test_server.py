@@ -34,7 +34,6 @@ class OriginTest(unittest.TestCase):
 class SettingsPageTest(unittest.TestCase):
     def test_default_collapsed_and_guide_link(self):
         html = (ROOT / "collector" / "settings.html").read_text(encoding="utf-8")
-        self.assertIn('id="toggle-all"', html)
         self.assertIn("settings-guide.html", html)
         self.assertIn("section-card is-collapsed", html)
         self.assertIn("topic-row is-collapsed", html)
@@ -56,6 +55,10 @@ class SettingsPageTest(unittest.TestCase):
         for text in ('id="search-sections"', 'id="search-topics"', 'id="toggle-sections"',
                      'id="toggle-topics"', "function toggleAreaCards", "function cardsFor"):
             self.assertIn(text, html)
+        self.assertIn('data-area-head="section"', html)
+        self.assertIn('data-area-head="topic"', html)
+        self.assertIn("function toggleArea", html)
+        self.assertNotIn('id="toggle-all"', html)
 
 
 if __name__ == "__main__":

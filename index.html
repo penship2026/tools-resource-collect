@@ -164,6 +164,14 @@
           <button type="button" id="mine-set-cancel" class="mine-btn">取消</button>
         </div>
       </div>
+      <!-- 我的页筛选:与公开首页同一套 .filter-bar 布局(类型 + 标签 + 搜索) -->
+      <div class="filter-bar" id="mine-filter-bar">
+        <button class="chip active" data-mine-filter="all">全部</button>
+        <button class="chip" data-mine-filter="series">系列合集</button>
+        <button class="chip" data-mine-filter="single">单条精选</button>
+        <span id="mine-tag-chips"></span>
+        <input type="text" id="mine-search" placeholder="搜索收藏标题或所属主题…" style="margin-left:auto">
+      </div>
       <div class="mine-mode">
         <label><input type="radio" name="mine-mode" value="merge" checked> 合并(保留较新)</label>
         <label><input type="radio" name="mine-mode" value="replace"> 替换(覆盖当前,慎用)</label>

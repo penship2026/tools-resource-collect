@@ -59,6 +59,8 @@ class PagesContractTest(unittest.TestCase):
         self.assertIn("switchLabel", js)
         self.assertIn("jiye.mine.public.v1", js)
         self.assertIn("publicLabel", js)
+        self.assertIn("filterMine", js)
+        self.assertIn("mine-filter-bar", js)
         self.assertIn("mineSubtitle", js)
 
     def test_mine_settings_hooks(self):
@@ -66,6 +68,7 @@ class PagesContractTest(unittest.TestCase):
         idx = read(os.path.join(ROOT, "index.html"))
         for hook in ('id="mine-settings"', 'id="mine-settings-panel"', 'id="mine-set-title"', 'id="mine-set-sub"',
                      'id="mine-set-public"', 'id="mine-set-switch"', 'id="mine-set-theme"', 'id="mine-set-save"', 'id="mine-sub"',
+                     'id="mine-filter-bar"', 'id="mine-tag-chips"', 'id="mine-search"',
                      'class="mine-hero"'):
             self.assertIn(hook, idx)
         js = read(os.path.join(ROOT, "assets/personal.js"))

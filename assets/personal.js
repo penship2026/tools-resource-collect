@@ -369,6 +369,88 @@
       '</div></div></div>';
   }
 
+  /* ---------- 我的页筛选(与公开首页同一套布局) ---------- */
+  var mineFilter = 'all';
+  var mineTag = '';
+  var mineKeyword = '';
+
+  function unitMeta(id) {
+    var idx = (global.COLLECTION_INDEX || global.TOPIC_INDEX || []);
+    for (var i = 0; i < idx.length; i++) {
+      if (idx[i].id === id) return idx[i];
+    }
+    return null;
+  }
+
+  function unitTags(id) {
+    var meta = unitMeta(id);
+    return meta && Array.isArray(meta.tags) ? meta.tags : [];
+  }
+
+  function unitType(id) {
+    var meta = unitMeta(id);
+    return (meta && meta.type) || 'series';
+  }
+
+  function filterMine(items) {
+    return items.filter(function (it) {
+      if (mineFilter !== 'all' && unitType(it.unit) !== mineFilter) return false;
+      if (mineTag && unitTags(it.unit).indexOf(mineTag) < 0) return false;
+      if (mineKeyword) {
+        var hay = [it.title, it.unitTitle, it.author, it.note].join(' ').toLowerCase();
+        if (hay.indexOf(mineKeyword) < 0) return false;
+      }
+      return true;
+    });
+  }
+
+  function renderMineTags(items) {
+    var wrap = document.getElementById('mine-tag-chips');
+    if (!wrap) return;
+    var counts = {};
+    items.forEach(function (it) {
+      unitTags(it.unit).forEach(function (tag) { counts[tag] = (counts[tag] || 0) + 1; });
+    });
+    var names = Object.keys(counts).sort(function (a, b) { return counts[b] - counts[a]; }).slice(0, 8);
+    if (mineTag && names.indexOf(mineTag) < 0) mineTag = ''; // 取消收藏后标签消失,自动回到全部
+    var html = names.length ? '<button class="chip" data-mine-tag="">全部标签</button>' : '';
+    names.forEach(function (tag) {
+      html += '<button class="chip" data-mine-tag="' + esc(tag) + '">' + esc(tag) + ' (' + counts[tag] + ')</button>';
+    });
+    wrap.innerHTML = html;
+    wrap.querySelectorAll('.chip').forEach(function (chip) {
+      var on = chip.getAttribute('data-mine-tag') === mineTag;
+      chip.classList.toggle('active', on);
+      chip.addEventListener('click', function () {
+        wrap.querySelectorAll('.chip').forEach(function (c) { c.classList.remove('active'); });
+        chip.classList.add('active');
+        mineTag = chip.getAttribute('data-mine-tag') || '';
+        renderMineContent();
+      });
+    });
+  }
+
+  function mountMineFilter(panel) {
+    var bar = panel.querySelector('#mine-filter-bar');
+    if (!bar) return;
+    bar.querySelectorAll('.chip[data-mine-filter]').forEach(function (chip) {
+      chip.classList.toggle('active', chip.getAttribute('data-mine-filter') === mineFilter);
+      chip.addEventListener('click', function () {
+        bar.querySelectorAll('.chip[data-mine-filter]').forEach(function (c) { c.classList.remove('active'); });
+        chip.classList.add('active');
+        mineFilter = chip.getAttribute('data-mine-filter');
+        renderMineContent();
+      });
+    });
+    var search = panel.querySelector('#mine-search');
+    if (search) {
+      search.addEventListener('input', function (e) {
+        mineKeyword = e.target.value.trim().toLowerCase();
+        renderMineContent();
+      });
+    }
+  }
+
   function unitsEnabledMap() {
     var idx = (global.COLLECTION_INDEX || global.TOPIC_INDEX || []);
     var map = {};
@@ -386,12 +468,20 @@
     if (subEl) subEl.textContent = mineSubtitle();
     // 我的视图只渲染本机收藏(localStorage),不混入公开数据
     var items = list();
+    var allCount = items.length;
     var units = unitsEnabledMap();
-    body.innerHTML = items.length
-      ? '<div class="fav-grid">' + items.map(function (it) { return snapshotCard(it, { units: units }); }).join('') + '</div>'
-      : '<div class="empty">还没有收藏。到合集页点条目右上角的 ☆ 即可收藏。</div>';
+    renderMineTags(items);
+    var shown = filterMine(items);
+    body.innerHTML = shown.length
+      ? '<div class="fav-grid">' + shown.map(function (it) { return snapshotCard(it, { units: units }); }).join('') + '</div>'
+      : '<div class="empty">' + (allCount ? '没有匹配的收藏,试试换个标签或清空搜索。' : '还没有收藏。到合集页点条目右上角的 ☆ 即可收藏。') + '</div>';
     var stat = panel.querySelector('#mine-stat');
-    if (stat) stat.textContent = items.length ? '共 ' + items.length + ' 条收藏' + (items.length >= LIMIT ? '(已达软上限)' : '') : '';
+    if (stat) {
+      stat.textContent = allCount
+        ? (shown.length === allCount ? '共 ' + allCount + ' 条收藏' : '筛选出 ' + shown.length + ' / ' + allCount + ' 条收藏') +
+          (allCount >= LIMIT ? ' · 已达软上限' : '')
+        : '';
+    }
     syncStars(body);
   }
 
@@ -584,6 +674,7 @@
       updateSwitchCount();
     });
 
+    mountMineFilter(panel);
     renderMineContent();
   }
 

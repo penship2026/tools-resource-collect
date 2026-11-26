@@ -214,6 +214,14 @@
 - **文档**:README「从旧版迁移」改为「已结束」,DEPLOY 旧版说明改为「已清理,需要时从 git 历史恢复」。
 - **验证**:31 个 Python 用例 + 10 个 node 用例通过;`--verify` 11 单元 0 问题;`--help` 已无 `--migrate/--min-match/--match-all`;服务端 `/api/topics`、`/api/intake`、`/api/collect`(dry-run)响应正常。
 
+### ✅ 20. 主题扩展:科技 / 学院 / 古典(D40/D41)(2026-11-26)
+
+- **新增三套主题**:`assets/themes/tech.css`(深空底 + 青紫霓虹、锐角、发光阴影)、`campus.css`(米白纸张 + 藏青 + 衬线标题)、`classical.css`(宣纸 + 墨色 + 朱砂、小圆角、宋体);与 `default/dark` 共 5 套,29 个 token 完全对齐。
+- **token 扩展**:新增 `--font-sans`(正文)与 `--font-display`(标题),`style.css` 的 `body` 与 `h1/h2/h3` 改为引用变量;两套既有主题同步补齐。
+- **切换器**:`theme.js` 注册表扩到 5 套,页脚「跟随系统 + 五套」6 个按钮(可换行);`?theme=` 支持全部 key。
+- **校验**:`generate.py` 的 `THEME_NAMES` 同步为 5 个;`docs_check.py` 的主题检查改为「themes 下所有 css 逐 token 对齐 + 必须被 theme.js 注册」;新增 `tests/test_pages.py::test_all_theme_files_registered`。
+- **验证**:32 个 Python 用例、10 个 node 用例、`--verify`、docs-check 全通过;Chrome 截图检查 tech/campus/classical 首页与页脚切换器,排版正常。
+
 ---
 
 ## 新增待办

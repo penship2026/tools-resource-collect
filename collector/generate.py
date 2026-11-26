@@ -405,8 +405,8 @@ def index_status():
 
 
 DATE_RE = re.compile(r"^\d{4}[.\-]\d{2}[.\-]\d{2}$")
-# 主题注册表(D32):与 assets/theme.js 的 THEMES 保持一致。单元级 theme 只做提示,不启用渲染分支。
-THEME_NAMES = ("default", "dark")  # 数据里的标准格式是 yyyy.mm.dd,旧数据允许 yyyy-mm-dd
+# 主题注册表(D32/D40):与 assets/theme.js 的 THEMES 保持一致。单元级 theme 只做提示,不启用渲染分支。
+THEME_NAMES = ("default", "dark", "tech", "campus", "classical")
 
 
 def _bad_platform(value):

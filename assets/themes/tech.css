@@ -1,0 +1,38 @@
+/* 集页 · 科技风主题(tech)
+ * 深空底色 + 青/紫霓虹,直角偏锐、带发光阴影;适合夜间浏览与开发者审美。
+ * 契约与 default.css 相同:只定义 token,不改 DOM、不写业务逻辑,所有 token 必须齐全。
+ */
+:root {
+  color-scheme: dark;
+  --bg: #070b12;
+  --surface: #101b28;
+  --text: #e6f1ff;
+  --text-sub: #9db2c8;
+  --text-mute: #6b7f96;
+  --border: #223a52;
+  --brand: #22d3ee;
+  --brand-soft: #0a2a33;
+  --shadow: 0 1px 3px rgba(0, 0, 0, .5), 0 10px 28px rgba(0, 0, 0, .38);
+  --radius: 12px;
+  --radius-sm: 6px;
+  --radius-pill: 999px;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  --font-display: "SF Mono", ui-monospace, Menlo, Consolas, "PingFang SC", monospace;
+  --fs-hero: clamp(30px, 4.2vw, 42px);
+  --fs-title: 19px;
+  --fs-body: 15px;
+  --fs-sm: 13px;
+  --fs-xs: 12px;
+  --gap-card: 18px;
+  --pad-card: 18px;
+  --shadow-hover: 0 0 0 1px rgba(34, 211, 238, .35), 0 0 30px rgba(34, 211, 238, .18);
+  --brand-2: #a78bfa;
+  --hero-wash: radial-gradient(1100px 420px at 8% -12%, rgba(34, 211, 238, .22), rgba(34, 211, 238, 0) 68%),
+               radial-gradient(900px 380px at 88% -10%, rgba(167, 139, 250, .18), rgba(167, 139, 250, 0) 70%);
+  --header-bg: rgba(7, 11, 18, .86);
+  /* 渠道徽标配色(与数据无关,只影响展示) */
+  --plat-bilibili: #fb7299;
+  --plat-wechat: #07c160;
+  --plat-xhs: #ff2442;
+  --plat-multi: #5b6472;
+}

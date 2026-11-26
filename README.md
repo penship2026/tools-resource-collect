@@ -195,9 +195,10 @@ python3 collector/backup_data.py backup --out /mnt/nas/backup            # 备�
 ## 主题与换肤(页面/数据分离)
 
 - 分层:`assets/data/`(纯数据) → `assets/data-loader.js`(加载) → 页面(容器 + 路由) → `assets/style.css`(布局骨架) → `assets/themes/<name>.css`(设计 token)。
-- 内置两套:浅色 `default`、深色 `dark`;默认**跟随系统**,页脚三态切换(跟随系统 / 浅色 / 深色),选择存 `localStorage`(`jiye.theme`)。`?theme=dark` 只做预览,不写入存储、不进索引。
+- 内置五套:浅色 `default`、深色 `dark`、科技 `tech`、学院 `campus`、古典 `classical`;默认**跟随系统**,页脚 6 项切换(跟随系统 / 五套主题),选择存 `localStorage`(`jiye.theme`)。`?theme=tech` 等只做预览,不写入存储、不进索引。
 - 新增主题 = ①复制 `assets/themes/default.css` 改名 → ②只改变量值 → ③在 `assets/theme.js` 的 `THEMES` 注册一行。**不需要改任何 HTML/JS**。
-- 契约:主题只允许定义 token 与最多一份页面级局部样式,不得改 DOM 或写业务逻辑;`default.css` 与 `dark.css` 的变量必须完全对齐(否则会出现"半套主题",`scripts/docs_check.py` 会拦)。
+- 契约:主题只允许定义 token 与最多一份页面级局部样式,不得改 DOM 或写业务逻辑;所有主题的变量必须与 `default.css` 完全对齐、且都在 `theme.js` 注册(否则会出现"半套主题"或切不到,`scripts/docs_check.py` 与 `tests/test_pages.py` 会拦)。
+- 字体也走 token:正文 `--font-sans`、标题 `--font-display`;学院/古典风用衬线标题,科技风用等宽拉丁字形。
 - 防闪烁:`theme.js` 是 `<head>` 内的阻塞脚本,在首次绘制前同步插入 `<link id="theme-css">`。
 
 ## 自检与测试(不需要联网)

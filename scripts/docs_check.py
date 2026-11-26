@@ -112,23 +112,34 @@ def check_pages_contract():
 
 
 def check_themes():
-    """主题契约(D25/D31):两套内置主题的 token 必须完全对齐,避免「半套主题」。"""
+    """主题契约(D25/D31/D40):themes/ 下每套主题的 token 必须完全对齐,且都在 theme.js 注册。"""
     base = os.path.join(ROOT, "assets/themes")
-    files = {"default.css": None, "dark.css": None}
+    if not os.path.isdir(base):
+        problems.append("缺少主题目录: assets/themes")
+        return
+    files = sorted(f for f in os.listdir(base) if f.endswith(".css"))
+    if len(files) < 2:
+        problems.append("主题数量不足: assets/themes 下仅有 %d 个 css" % len(files))
+        return
+    tokens = {}
     for name in files:
-        path = os.path.join(base, name)
-        if not os.path.exists(path):
-            problems.append("缺少主题文件: assets/themes/%s" % name)
+        text = open(os.path.join(base, name), encoding="utf-8").read()
+        tokens[name] = set(m.group(0).rstrip(": ").strip() for m in THEME_TOKEN.finditer(text))
+    ref_name = "default.css" if "default.css" in tokens else files[0]
+    ref = tokens[ref_name]
+    for name in files:
+        if name == ref_name:
             continue
-        text = open(path, encoding="utf-8").read()
-        files[name] = set(m.group(0).rstrip(": ").strip() for m in THEME_TOKEN.finditer(text))
-    if all(files.values()):
-        missing_dark = files["default.css"] - files["dark.css"]
-        missing_light = files["dark.css"] - files["default.css"]
-        for name in sorted(missing_dark):
-            problems.append("dark.css 缺少 token %s(与 default.css 不一致)" % name)
-        for name in sorted(missing_light):
-            problems.append("default.css 缺少 token %s(与 dark.css 不一致)" % name)
+        for token in sorted(ref - tokens[name]):
+            problems.append("%s 缺少 token %s(与 %s 不一致)" % (name, token, ref_name))
+        for token in sorted(tokens[name] - ref):
+            problems.append("%s 多出 token %s(与 %s 不一致)" % (name, token, ref_name))
+    # 每个主题文件都要在 theme.js 的 THEMES 注册表里出现,否则切换面板看不到
+    js_path = os.path.join(ROOT, "assets/theme.js")
+    js = open(js_path, encoding="utf-8").read() if os.path.exists(js_path) else ""
+    for name in files:
+        if name not in js:
+            problems.append("theme.js 未注册主题文件 %s" % name)
 
 
 def check_deploy():

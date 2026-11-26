@@ -357,3 +357,8 @@ Chrome 无头截图三页面全部正常:首页卡片标签独立行两行截断
 - **D16 legacy**:删 `LEGACY_DIR`、`migrate_legacy()`、`--migrate`;`load_collection_data()` 去掉旧根目录回退;README/DEPLOY 旧版迁移章节同步改为「已清理」。
 - **验证**:31 个 Python 用例(新增 2 个)、10 个 node 用例、`--verify`、docs-check 全通过;`--help` 无遗留参数;服务端三个接口冒烟正常(collect 返回业务错误而非崩溃)。
 
+### 20:40–21:30 主题扩展(科技 / 学院 / 古典)
+- 新增 `assets/themes/tech.css` / `campus.css` / `classical.css`,与 default/dark 共用 29 个 token;新增 `--font-sans`/`--font-display`,正文与标题分别引用,学院/古典风启用衬线标题。
+- `theme.js` 注册 5 套主题、页脚 6 项切换并允许换行;`generate.py` 的 `THEME_NAMES` 同步;`docs_check.py` 主题检查改为全量 token 对齐 + 注册表覆盖;新增页面测试防「加了 css 切不到」。
+- 验证:32 个 Python 用例、10 个 node 用例、`--verify`、docs-check 通过;截图检查三套新主题与页脚切换器渲染正常。
+

@@ -2,8 +2,9 @@
  *
  * 契约(见 docs/PLAN-20261126.md D23/D25/D31/D33):
  *  - 主题 = assets/themes/<file>.css,只定义 token(变量),不改 DOM/不写业务逻辑;
+ *  - 内置 5 套:浅色 / 深色 / 科技 / 学院 / 古典,外加「跟随系统」;
  *  - 新增主题:复制一份 CSS 改成自己的取值 + 在下方 THEMES 注册一行;
- *  - 选择保存于 localStorage(键 jiye.theme:auto / default / dark),?theme= 仅作预览不入索引;
+ *  - 选择保存于 localStorage(键 jiye.theme:auto 或任一套主题 key),?theme= 仅作预览不入索引;
  *  - 默认跟随系统 prefers-color-scheme;首屏在本脚本内同步注入 <link>,避免主题闪烁。
  */
 (function () {
@@ -12,7 +13,10 @@
   var KEY = 'jiye.theme';
   var THEMES = {
     default: { file: 'default.css', label: '浅色' },
-    dark: { file: 'dark.css', label: '深色' }
+    dark: { file: 'dark.css', label: '深色' },
+    tech: { file: 'tech.css', label: '科技' },
+    campus: { file: 'campus.css', label: '学院' },
+    classical: { file: 'classical.css', label: '古典' }
   };
   var AUTO_LABEL = '跟随系统';
 
@@ -82,7 +86,7 @@
     var wrap = document.createElement('div');
     wrap.className = 'theme-switch';
     var html = '<span>主题</span>';
-    ['auto', 'default', 'dark'].forEach(function (key) {
+    ['auto'].concat(Object.keys(THEMES)).forEach(function (key) {
       var label = key === 'auto' ? AUTO_LABEL : THEMES[key].label;
       html += '<button type="button" class="theme-btn" data-theme-choice="' + key + '">' + label + '</button>';
     });

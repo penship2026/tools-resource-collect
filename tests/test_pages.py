@@ -46,6 +46,15 @@ class PagesContractTest(unittest.TestCase):
             self.assertNotIn("class=\"topic-card\" href=", html, page)
             self.assertNotIn("<div class=\"video-thumb\">", html, page)
 
+    def test_all_theme_files_registered(self):
+        """D40:themes/ 下每个 css 都要在 theme.js 的 THEMES 里注册,避免加了文件却切不到"""
+        base = os.path.join(ROOT, "assets/themes")
+        files = sorted(f for f in os.listdir(base) if f.endswith(".css"))
+        self.assertGreaterEqual(len(files), 5, files)
+        js = read(os.path.join(ROOT, "assets/theme.js"))
+        for name in files:
+            self.assertIn(name, js, "theme.js 未注册 %s" % name)
+
     def test_theme_loaded_in_every_page(self):
         for page in THEMED:
             self.assertIn("theme.js", read(page), page)

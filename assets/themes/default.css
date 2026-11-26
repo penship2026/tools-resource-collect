@@ -18,6 +18,9 @@
   --radius-sm: 9px;
   --radius-pill: 999px;
   /* 排版与节奏(M6 样式优化):所有页面共用一套字号/间距,避免各页各写一份 */
+  /* 字体:主题可切正文/标题字体;科技风用无衬线,学院/古典风用衬线标题 */
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  --font-display: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
   --fs-hero: clamp(30px, 4.2vw, 42px);
   --fs-title: 19px;
   --fs-body: 15px;

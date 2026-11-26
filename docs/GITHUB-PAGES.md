@@ -237,7 +237,7 @@ python3 collector/generate.py --topics topics.yml --dry-run --pages 1
 | 自动部署 | 用 `GITHUB_TOKEN` 推送的提交**不会**再次触发本 workflow,不会形成死循环 |
 | 手动补采 | 在 Actions 页面点 **Run workflow** 可随时手动触发 |
 
-**主题维护**:样式 token 在 `assets/themes/`(`default.css` / `dark.css`),切换逻辑在 `assets/theme.js`,页面只引用 `<link>` 与脚本。新增一套主题 = 复制一份 CSS 改变量 + 在 `theme.js` 注册一行,不要改页面;两套主题的变量必须一一对应。
+**主题维护**:样式 token 在 `assets/themes/`(现有 `default` / `dark` / `tech` / `campus` / `classical` 五套),切换逻辑在 `assets/theme.js`,页面只引用 `<link>` 与脚本。新增一套主题 = 复制一份 CSS 改变量 + 在 `theme.js` 注册一行,不要改页面;所有主题的变量必须与 `default.css` 一一对应,且都被 `theme.js` 注册(自检会拦)。
 
 **多主题维护建议**:要增减采集单元,直接编辑仓库根目录的 `topics.yml`(字段 `keyword` / `id` / `title` / `channels`),**不要改 workflow**。`id` 确保续采同一单元,`--pages` 在 workflow 里统一控制页数。改完提交后下次运行即生效。
 

@@ -80,7 +80,10 @@
     .log { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 10px; margin-top: 10px; max-height: 260px; overflow: auto; font-family: var(--font-mono); font-size: 11px; line-height: 1.7; white-space: pre-wrap; color: var(--text-sub); }
     .cron { width: 100%; box-sizing: border-box; min-height: 112px; font-family: var(--font-mono); font-size: 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 10px; color: var(--text); }
     .pill { display: inline-block; font-size: 11px; padding: 3px 7px; border-radius: 999px; background: #eef3fb; color: #2d7ff9; margin-left: 6px; }
-    .panel-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; cursor: pointer; user-select: none; border-radius: 6px; }
+    .panel-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; cursor: pointer; user-select: none; border-radius: 6px; position: sticky; top: 0; z-index: 10; background: var(--surface); padding: 2px 0 10px; margin-bottom: 2px; box-shadow: 0 1px 0 var(--border); }
+    .panel-head > div:first-child { min-width: 0; }
+    .panel-actions { flex: 0 0 auto; display: flex; align-items: center; gap: 8px; }
+    .panel-actions .btn { padding: 8px 12px; font-size: 12px; white-space: nowrap; }
     .panel-head:focus-visible { outline: 2px solid var(--brand); outline-offset: 3px; }
     .panel-head h2 { display: flex; align-items: center; gap: 8px; margin: 0 0 6px; }
     .panel-head .area-chev { display: inline-block; color: var(--text-mute); font-size: 12px; transition: transform .15s ease; }
@@ -93,6 +96,9 @@
     .area-tools input[type=search]:focus { outline: 2px solid var(--brand); outline-offset: 0; }
     .area-tools .btn { flex: 0 0 auto; padding: 8px 12px; font-size: 12px; }
     .empty { border: 1px dashed var(--border); border-radius: 8px; padding: 14px; color: var(--text-mute); font-size: 13px; text-align: center; }
+    .pagination { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 6px; font-size: 12px; color: var(--text-mute); }
+    .pagination .btn { padding: 7px 12px; font-size: 12px; }
+    .pagination[hidden] { display: none !important; }
     .unsaved { color: #c0392b; font-size: 12px; }
     @media (max-width: 520px) {
       .top { flex-wrap: wrap; }
@@ -105,9 +111,16 @@
     }
     .modal { position: fixed; inset: 0; background: rgba(15,23,42,.45); display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 50; }
     .modal[hidden] { display: none !important; }
-    .modal-box { width: min(420px, 100%); background: var(--surface); border-radius: 12px; padding: 20px; box-shadow: 0 24px 80px rgba(0,0,0,.25); }
+    .modal-box { width: min(420px, 100%); background: var(--surface); border-radius: 12px; padding: 20px; box-shadow: 0 24px 80px rgba(0,0,0,.25); max-height: calc(100vh - 40px); overflow-y: auto; }
     .modal-box p { font-size: 14px; line-height: 1.8; margin: 0 0 18px; }
     .modal-box .btns { justify-content: flex-end; }
+    .form-box { width: min(520px, 100%); }
+    .form-box h2 { margin: 0 0 6px; font-size: 17px; }
+    .form-box .form-hint { color: var(--text-mute); font-size: 12px; line-height: 1.6; margin-bottom: 14px; }
+    .form-box .row { grid-template-columns: 92px minmax(0, 1fr); }
+    .form-box .row:last-child { margin-bottom: 0; }
+    .form-box .status { margin: 10px 0 0; min-height: 18px; }
+    .form-box .btn { min-width: 96px; }
   </style>
 </head>
 <body>
@@ -131,14 +144,17 @@
             <h2><span class="area-chev" aria-hidden="true">▾</span>板块 <span class="pill" id="section-count">—</span></h2>
             <div class="hint">0–18 岁三段不可删除、不可改边界；其他板块只能全龄。</div>
           </div>
+          <div class="panel-actions">
+            <button class="btn ghost" id="add-section" type="button">+ 新增板块</button>
+          </div>
         </div>
         <div class="panel-body" data-area-body="section">
           <div class="area-tools">
             <input type="search" id="search-sections" placeholder="搜索板块名称、id 或说明" autocomplete="off">
             <button class="btn ghost" id="toggle-sections" type="button">全部展开</button>
-            <button class="btn ghost" id="add-section">+ 新增板块</button>
           </div>
           <div id="sections"></div>
+          <div class="pagination" id="section-pagination" hidden></div>
           <div class="btns">
             <button class="btn" id="save">保存全部改动</button>
             <span id="save-state"></span>
@@ -154,12 +170,14 @@
             <h2><span class="area-chev" aria-hidden="true">▾</span>主题 <span class="pill" id="topic-count">—</span></h2>
             <div class="hint">must 全部命中 + any 至少命中一个；主题 id 同时是采集单元 id，保存后不可改。</div>
           </div>
+          <div class="panel-actions">
+            <button class="btn ghost" id="add-topic" type="button">+ 新增主题</button>
+          </div>
         </div>
         <div class="panel-body" data-area-body="topic">
           <div class="area-tools">
             <input type="search" id="search-topics" placeholder="搜索主题、板块或关键词" autocomplete="off">
             <button class="btn ghost" id="toggle-topics" type="button">全部展开</button>
-            <button class="btn ghost" id="add-topic">+ 新增主题</button>
           </div>
           <div id="topics"></div>
         </div>
@@ -220,6 +238,19 @@
   </div>
 </div>
 
+<div class="modal" id="form-modal" hidden>
+  <div class="modal-box form-box" role="dialog" aria-modal="true" aria-labelledby="form-title">
+    <h2 id="form-title">新增</h2>
+    <div class="form-hint">提交后会新增并自动保存本卡。</div>
+    <div id="form-fields"></div>
+    <div class="status" id="form-error"></div>
+    <div class="btns">
+      <button class="btn ghost" id="form-cancel" type="button">取消</button>
+      <button class="btn" id="form-submit" type="button">新增并保存</button>
+    </div>
+  </div>
+</div>
+
 <script>
 (function () {
   var state = {
@@ -227,8 +258,10 @@
     editing: { section: {}, topic: {} },
     dirtyKeys: {},
     baselines: { section: [], topic: [] },
-    search: { section: "", topic: "" }
+    search: { section: "", topic: "" },
+    page: { section: 1 }
   };
+  var PAGE_SIZE = 10;
   var CHANNEL_OPTIONS = [
     { id: "bilibili", label: "B站" },
     { id: "wechat", label: "公众号" },
@@ -256,6 +289,140 @@
   $("modal-ok").addEventListener("click", function () { closeModal(true); });
   $("modal-cancel").addEventListener("click", function () { closeModal(false); });
   $("modal").addEventListener("click", function (e) { if (e.target === $("modal")) closeModal(false); });
+
+  var formMode = "";
+  var splitWords = function (value) { return String(value || "").split(/[,，\s|]+/).filter(Boolean); };
+  function formError(text) {
+    $("form-error").textContent = text || "";
+    $("form-error").className = "status" + (text ? " err" : "");
+  }
+  function closeAddForm() {
+    $("form-modal").hidden = true;
+    $("form-fields").innerHTML = "";
+    formMode = "";
+  }
+  function sectionFormHtml() {
+    var nextOrder = state.sections.reduce(function (max, s) {
+      return Math.max(max, Number(s.order) || 0);
+    }, 0) + 1;
+    return '<div class="row"><label>板块 id</label><input id="add-section-id" type="text" placeholder="例如 coding" autocomplete="off"></div>' +
+      '<div class="row"><label>名称</label><input id="add-section-title" type="text" placeholder="2–12 字"></div>' +
+      '<div class="row"><label>说明</label><textarea id="add-section-description" placeholder="可选，最多 60 字"></textarea></div>' +
+      '<div class="row"><label>排序</label><input id="add-section-order" type="number" value="' + esc(nextOrder) + '"></div>' +
+      '<div class="row"><label>显示</label><label class="check"><input id="add-section-enabled" type="checkbox" checked> 在首页展示</label></div>';
+  }
+  function topicFormHtml() {
+    var options = sortSections(state.sections).map(function (s) {
+      return '<option value="' + esc(s.id) + '">' + esc(s.title) + '（' + esc(s.id) + '）</option>';
+    }).join("");
+    var channels = CHANNEL_OPTIONS.map(function (c, idx) {
+      return '<label class="channel-chip"><input type="checkbox" data-add-channel value="' + esc(c.id) + '"' + (idx === 0 ? " checked" : "") + '><span>' + esc(c.label) + '</span></label>';
+    }).join("");
+    return '<div class="row"><label>归属板块</label><select id="add-topic-section">' + options + '</select></div>' +
+      '<div class="row"><label>主题名称</label><input id="add-topic-title" type="text" placeholder="例如 初中数学思维"></div>' +
+      '<div class="row"><label>must</label><input id="add-topic-must" type="text" placeholder="1–4 个，逗号分隔，全部命中"></div>' +
+      '<div class="row"><label>any</label><input id="add-topic-any" type="text" placeholder="可选，最多 5 个，至少命中一个"></div>' +
+      '<div class="row"><label>渠道</label><div class="channel-picker">' + channels + '</div></div>' +
+      '<div class="row"><label>主题 id</label><input id="add-topic-id" type="text" placeholder="字母数字下划线短横，创建后不可改"></div>' +
+      '<div class="row"><label>显示 / 采集</label><label class="check"><input id="add-topic-enabled" type="checkbox" checked> 启用</label></div>';
+  }
+  function openAddForm(mode) {
+    formMode = mode;
+    formError("");
+    $("form-title").textContent = mode === "section" ? "新增板块" : "新增主题";
+    $("form-fields").innerHTML = mode === "section" ? sectionFormHtml() : topicFormHtml();
+    $("form-submit").disabled = false;
+    $("form-modal").hidden = false;
+    var first = $("form-fields").querySelector("input, select, textarea");
+    if (first) setTimeout(function () { first.focus(); }, 0);
+  }
+  function readSectionForm() {
+    var id = $("add-section-id").value.trim();
+    var title = $("add-section-title").value.trim();
+    var description = $("add-section-description").value.trim();
+    var order = Number($("add-section-order").value);
+    if (!/^[a-z0-9-]+$/.test(id)) throw new Error("板块 id 只能用小写字母、数字和短横");
+    if (state.sections.some(function (s) { return s.id === id; })) throw new Error("板块 id 已存在");
+    if (title.length < 2 || title.length > 12) throw new Error("板块名称必须是 2–12 字");
+    if (description.length > 60) throw new Error("板块说明最多 60 字");
+    if (!Number.isInteger(order)) throw new Error("排序必须是整数");
+    return {
+      id: id, title: title, age_min_months: null, age_max_months: null,
+      order: order, enabled: $("add-section-enabled").checked, description: description
+    };
+  }
+  function readTopicForm() {
+    var section = $("add-topic-section").value;
+    var title = $("add-topic-title").value.trim();
+    var must = splitWords($("add-topic-must").value);
+    var anyList = splitWords($("add-topic-any").value);
+    var id = $("add-topic-id").value.trim();
+    var channels = Array.prototype.map.call($("form-fields").querySelectorAll("[data-add-channel]:checked"), function (box) { return box.value; });
+    if (!section || !state.sections.some(function (s) { return s.id === section; })) throw new Error("归属板块不存在");
+    if (!title) throw new Error("主题名称不能为空");
+    if (must.length < 1 || must.length > 4) throw new Error("must 关键词必须是 1–4 个");
+    if (anyList.length > 5) throw new Error("any 关键词最多 5 个");
+    if (!/^[A-Za-z0-9_-]{1,80}$/.test(id)) throw new Error("主题 id 只能使用字母、数字、下划线或短横");
+    if (state.topics.some(function (t) { return t.id === id; })) throw new Error("主题 id 已存在");
+    if (!channels.length) throw new Error("至少选择一个渠道");
+    return {
+      id: id, section: section, title: title, must_keywords: must,
+      any_keywords: anyList, channels: channels, enabled: $("add-topic-enabled").checked
+    };
+  }
+  function scrollToCard(kind, id) {
+    setTimeout(function () {
+      var el = document.querySelector('[data-collapse-id="' + id + '"]');
+      if (el) el.scrollIntoView({ block: "center" });
+    }, 0);
+  }
+  async function submitAddForm() {
+    if ($("form-submit").disabled || !formMode) return;
+    var item;
+    try {
+      item = formMode === "section" ? readSectionForm() : readTopicForm();
+    } catch (e) {
+      formError(e.message);
+      return;
+    }
+    var kind = formMode;
+    $("form-submit").disabled = true;
+    if (kind === "section") {
+      state.sections.push(item);
+      state.sections = sortSections(state.sections);
+      state.search.section = "";
+      $("search-sections").value = "";
+      var ordered = sortSections(state.sections);
+      var pos = ordered.findIndex(function (s) { return s.id === item.id; });
+      state.page.section = Math.floor(Math.max(0, pos) / PAGE_SIZE) + 1;
+    } else {
+      state.topics.push(item);
+      state.search.topic = "";
+      $("search-topics").value = "";
+    }
+    areaCollapsed[kind] = false;
+    saveAreaCollapsed();
+    applyAreaState();
+    setExpanded(kind, item.id, true);
+    saveExpanded();
+    setEditing(kind, item.id, true);
+    closeAddForm();
+    renderAll();
+    await saveCard(kind, item.id);
+    scrollToCard(kind, item.id);
+  }
+  $("form-cancel").addEventListener("click", closeAddForm);
+  $("form-submit").addEventListener("click", submitAddForm);
+  $("form-modal").addEventListener("click", function (e) {
+    if (e.target === $("form-modal")) closeAddForm();
+  });
+  $("form-fields").addEventListener("keydown", function (e) {
+    if (e.key === "Enter" && e.target.tagName !== "TEXTAREA") {
+      e.preventDefault();
+      submitAddForm();
+    }
+  });
+
   var cardKey = function (kind, id) { return kind + ":" + id; };
   var updateDirtyLabel = function (text) {
     if (text) { $("save-state").textContent = text; $("save-state").className = "unsaved"; return; }
@@ -299,6 +466,24 @@
     var text = [t.title, t.id, t.section, sec ? sec.title : "", (t.must_keywords || []).join(" "),
       (t.any_keywords || []).join(" "), channels.join(" "), t.enabled === false ? "停用" : "启用"].join(" ");
     return normSearch(text).indexOf(query) >= 0;
+  };
+  var visibleItems = function (kind) {
+    if (kind === "section") {
+      var query = normSearch(state.search.section);
+      return sortSections(state.sections).filter(function (s) { return sectionMatches(s, query); });
+    }
+    var tquery = normSearch(state.search.topic);
+    return state.topics.filter(function (t) { return topicMatches(t, tquery); });
+  };
+  var renderSectionPagination = function (total, totalPages) {
+    var el = $("section-pagination");
+    var page = state.page.section;
+    if (totalPages <= 1) { el.hidden = true; el.innerHTML = ""; return; }
+    el.hidden = false;
+    el.innerHTML =
+      '<button class="btn ghost" type="button" data-page-dir="prev"' + (page <= 1 ? " disabled" : "") + '>上一页</button>' +
+      '<span>第 ' + page + ' / ' + totalPages + ' 页 · 共 ' + total + ' 条</span>' +
+      '<button class="btn ghost" type="button" data-page-dir="next"' + (page >= totalPages ? " disabled" : "") + '>下一页</button>';
   };
   var listFor = function (kind) { return kind === "section" ? state.sections : state.topics; };
   var baselineFor = function (kind) { return kind === "section" ? state.baselines.section : state.baselines.topic; };
@@ -379,24 +564,21 @@
   function collapseCards() {
     return document.querySelectorAll("[data-collapse-kind][data-collapse-id]");
   }
-  function cardsFor(kind) {
-    return document.querySelectorAll('[data-collapse-kind="' + kind + '"][data-collapse-id]');
+  function allItemsOpen(kind) {
+    var items = visibleItems(kind);
+    return items.length > 0 && items.every(function (item) { return isExpanded(kind, item.id); });
   }
-  function allCardsOpen(cards) {
-    return cards.length > 0 && Array.prototype.every.call(cards, function (card) {
-      return !card.classList.contains("is-collapsed");
-    });
-  }
-  function updateAreaToggle(kind, cards) {
+  function updateAreaToggle(kind) {
     var btn = $(kind === "section" ? "toggle-sections" : "toggle-topics");
     if (!btn) return;
-    if (!cards.length) {
+    var items = visibleItems(kind);
+    if (!items.length) {
       btn.disabled = true;
       btn.textContent = "无结果";
       return;
     }
     btn.disabled = false;
-    btn.textContent = allCardsOpen(cards) ? "全部收起" : "全部展开";
+    btn.textContent = allItemsOpen(kind) ? "全部收起" : "全部展开";
   }
   function applyCollapseState() {
     var cards = collapseCards();
@@ -408,14 +590,13 @@
       var btn = card.querySelector("[data-collapse-btn]");
       if (btn) btn.setAttribute("aria-expanded", open ? "true" : "false");
     });
-    updateAreaToggle("section", cardsFor("section"));
-    updateAreaToggle("topic", cardsFor("topic"));
+    updateAreaToggle("section");
+    updateAreaToggle("topic");
   }
   function toggleAreaCards(kind) {
-    var cards = cardsFor(kind);
-    var target = !allCardsOpen(cards);
-    cards.forEach(function (card) {
-      setExpanded(kind, card.getAttribute("data-collapse-id"), target);
+    var target = !allItemsOpen(kind);
+    visibleItems(kind).forEach(function (item) {
+      setExpanded(kind, item.id, target);
     });
     applyCollapseState();
     saveExpanded();
@@ -447,9 +628,14 @@
     $("section-count").textContent = query ? (shown.length + "/" + all.length) : String(all.length);
     if (!shown.length) {
       box.innerHTML = '<div class="empty">没有匹配的板块，换个关键词试试。</div>';
+      renderSectionPagination(0, 1);
       return;
     }
-    box.innerHTML = shown.map(function (s, idx) {
+    var totalPages = Math.ceil(shown.length / PAGE_SIZE);
+    state.page.section = Math.min(Math.max(1, state.page.section), totalPages);
+    renderSectionPagination(shown.length, totalPages);
+    var pageItems = shown.slice((state.page.section - 1) * PAGE_SIZE, state.page.section * PAGE_SIZE);
+    box.innerHTML = pageItems.map(function (s, idx) {
       var reserved = ["infant-care", "preschool", "k12"].indexOf(s.id) >= 0;
       var age = s.age_min_months == null ? "全龄" : (s.age_min_months + "–" + s.age_max_months + " 月");
       var editing = isEditing("section", s.id);
@@ -673,37 +859,14 @@
     } catch (e) { status($("settings-status"), "加载失败：" + e.message, false); }
   }
 
-  $("add-section").addEventListener("click", function () {
-    var id = window.prompt("板块 id（小写字母/数字/短横，创建后不可改）");
-    if (!id) return;
-    var title = window.prompt("板块名称（2–12 字）");
-    if (!title) return;
-    if (state.sections.some(function (s) { return s.id === id; })) { alert("板块 id 已存在"); return; }
-    state.sections.push({ id: id, title: title, age_min_months: null, age_max_months: null, order: state.sections.length + 1, enabled: true, description: "" });
-    state.sections = sortSections(state.sections);
-    setExpanded("section", id, true);
-    saveExpanded();
-    setEditing("section", id, true);
-    markDirty("section", id);
-    renderAll();
+  $("add-section").addEventListener("click", function (e) {
+    e.stopPropagation();
+    openAddForm("section");
   });
 
-  $("add-topic").addEventListener("click", function () {
-    var section = window.prompt("归属板块 id（例如 infant-care）");
-    if (!section || !state.sections.some(function (s) { return s.id === section; })) { alert("板块不存在"); return; }
-    var title = window.prompt("主题名称");
-    if (!title) return;
-    var must = window.prompt("must 关键词，逗号分隔（1–4 个）");
-    if (!must) return;
-    var id = window.prompt("主题 id / 采集单元 id（字母数字短横，创建后不可改）");
-    if (!id) return;
-    if (state.topics.some(function (t) { return t.id === id; })) { alert("主题 id 已存在"); return; }
-    state.topics.push({ id: id, section: section, title: title, must_keywords: must.split(/[,，\s|]+/).filter(Boolean), any_keywords: [], channels: ["bilibili"], enabled: true });
-    setExpanded("topic", id, true);
-    saveExpanded();
-    setEditing("topic", id, true);
-    markDirty("topic", id);
-    renderAll();
+  $("add-topic").addEventListener("click", function (e) {
+    e.stopPropagation();
+    openAddForm("topic");
   });
 
   $("save").addEventListener("click", async function () {
@@ -790,8 +953,15 @@
 
   $("toggle-sections").addEventListener("click", function () { toggleAreaCards("section"); });
   $("toggle-topics").addEventListener("click", function () { toggleAreaCards("topic"); });
+  $("section-pagination").addEventListener("click", function (e) {
+    var btn = e.target.closest && e.target.closest("[data-page-dir]");
+    if (!btn || btn.disabled) return;
+    state.page.section += btn.getAttribute("data-page-dir") === "next" ? 1 : -1;
+    renderAll();
+  });
   $("search-sections").addEventListener("input", function () {
     state.search.section = this.value;
+    state.page.section = 1;
     renderAll();
   });
   $("search-topics").addEventListener("input", function () {
@@ -801,8 +971,12 @@
   document.querySelectorAll("[data-area-head]").forEach(function (head) {
     var kind = head.getAttribute("data-area-head");
     function handler() { toggleArea(kind); }
-    head.addEventListener("click", handler);
+    head.addEventListener("click", function (e) {
+      if (e.target.closest && e.target.closest("button")) return;
+      handler();
+    });
     head.addEventListener("keydown", function (e) {
+      if (e.target !== head) return;
       if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handler(); }
     });
   });

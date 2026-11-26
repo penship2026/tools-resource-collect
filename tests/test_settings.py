@@ -67,6 +67,27 @@ class SettingsStoreTest(unittest.TestCase):
         self.assertEqual(item["any_keywords"], ["网站", "工具"])
         self.assertEqual(item["channels"], ["bilibili", "wechat"])
 
+    def test_merge_can_create_section_and_topic(self):
+        sections = generate.load_sections_yaml()
+        created_sections, _ = settings_store.merge_section(sections, "coding", {
+            "title": "编程启蒙", "description": "全龄编程与计算思维",
+            "order": 8, "enabled": True,
+        })
+        self.assertEqual(len(created_sections), 8)
+        item = next(s for s in created_sections if s["id"] == "coding")
+        self.assertEqual(item["title"], "编程启蒙")
+        self.assertIsNone(item["age_min_months"])
+
+        topics = generate.load_topics_yaml(generate.TOPICS_FILE)
+        created_topics = settings_store.merge_topic(topics, "coding-kids", {
+            "section": "coding", "title": "少儿编程",
+            "must_keywords": ["少儿编程"], "any_keywords": [],
+            "channels": ["bilibili", "xhs"], "enabled": True,
+        })
+        topic = next(t for t in created_topics if t["id"] == "coding-kids")
+        self.assertEqual(topic["section"], "coding")
+        self.assertEqual(topic["channels"], ["bilibili", "xhs"])
+
     def test_git_path_whitelist(self):
         self.assertTrue(git_sync._allowed("assets/data/index.js"))
         self.assertTrue(git_sync._allowed("assets/data/collections/daily-website.js"))

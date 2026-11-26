@@ -53,12 +53,36 @@ class SettingsPageTest(unittest.TestCase):
     def test_area_search_and_independent_toggles(self):
         html = (ROOT / "collector" / "settings.html").read_text(encoding="utf-8")
         for text in ('id="search-sections"', 'id="search-topics"', 'id="toggle-sections"',
-                     'id="toggle-topics"', "function toggleAreaCards", "function cardsFor"):
+                     'id="toggle-topics"', "function toggleAreaCards", "function allItemsOpen"):
             self.assertIn(text, html)
         self.assertIn('data-area-head="section"', html)
         self.assertIn('data-area-head="topic"', html)
         self.assertIn("function toggleArea", html)
         self.assertNotIn('id="toggle-all"', html)
+
+    def test_section_pagination(self):
+        html = (ROOT / "collector" / "settings.html").read_text(encoding="utf-8")
+        for text in ('id="section-pagination"', "var PAGE_SIZE = 10", "var renderSectionPagination",
+                     "shown.slice(", 'data-page-dir="prev"', 'data-page-dir="next"'):
+            self.assertIn(text, html)
+
+    def test_add_forms_replace_browser_prompts(self):
+        html = (ROOT / "collector" / "settings.html").read_text(encoding="utf-8")
+        for text in ('id="form-modal"', 'id="add-section-id"', 'id="add-topic-id"',
+                     "function openAddForm", "function readSectionForm", "function readTopicForm"):
+            self.assertIn(text, html)
+        self.assertNotIn("window.prompt", html)
+        self.assertNotIn("alert(", html)
+
+    def test_add_buttons_in_sticky_area_header(self):
+        html = (ROOT / "collector" / "settings.html").read_text(encoding="utf-8")
+        self.assertIn("position: sticky", html)
+        for area in ("section", "topic"):
+            head = html.index('data-area-head="%s"' % area)
+            add = html.index('id="add-%s"' % area)
+            body = html.index('data-area-body="%s"' % area)
+            self.assertLess(head, add)
+            self.assertLess(add, body)
 
 
 if __name__ == "__main__":

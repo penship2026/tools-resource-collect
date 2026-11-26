@@ -134,6 +134,7 @@
 
   <script src="assets/data/index.js"></script>
   <script src="assets/data-loader.js"></script>
+  <script src="assets/render.js"></script>
   <script src="assets/personal.js"></script>
   <script>
     var esc = window.escHtml;  // 统一转义:assets/data-loader.js 提供
@@ -152,12 +153,6 @@
     function platformOf(t) { return platformsOf(t)[0]; }
     function tagsOf(t) {
       return Array.isArray(t.tags) ? t.tags : [];
-    }
-    // 渠道徽标配色:与采集端 platforms.py 的平台定义保持一致
-    // 渠道配色走主题 token(D22):主题改 --plat-* 即可整体换色
-    var PLAT_COLORS = { 'B站': 'var(--plat-bilibili)', '公众号': 'var(--plat-wechat)', '小红书': 'var(--plat-xhs)', '多平台': 'var(--plat-multi)' };
-    function platColor(name) {
-      return PLAT_COLORS[name] || 'rgba(0,0,0,.72)';
     }
 
     document.getElementById('stat-topics').textContent = all.length;
@@ -241,28 +236,12 @@
         return true;
       });
       grid.innerHTML = list.length ? list.map(function (t) {
-        var type = t.type || 'series';
-        var href = cardHref(t);
-        var cover = t.cover
-          ? '<img src="' + esc(t.cover) + '" alt="' + esc(t.title) + '" loading="lazy" referrerpolicy="no-referrer">'
-          : '<div style="width:100%;height:100%;display:grid;place-items:center;background:linear-gradient(135deg,#1e3a5f,#2d7ff9);color:#fff;font-size:42px">' + esc((t.title || '内').charAt(0)) + '</div>';
-        // 封面左下角显示来源平台徽标,不同渠道用不同底色区分
-        var platName = (t.source && t.source.platform) || platformOf(t);
-        var badgeHtml = '<span class="badge" style="background:' + platColor(platName) + '">' + esc(platName) + '</span>';
-        var tag = type === 'single'
-          ? '<span class="type-tag single">单条</span>'
-          : '<span class="type-tag">合集</span>';
-        // 标签独立成行展示(实际采集的正式标签),超出两行自动截断
-        var showTags = tagsOf(t).slice(0, 6).map(function (x) {
-          return '<span class="mini-tag">' + esc(x) + '</span>';
-        }).join('');
-        return '<a class="topic-card" href="' + esc(href) + '">' +
-          '<div class="topic-cover">' + cover + tag + badgeHtml + '</div>' +
-          '<div class="topic-body"><h3>' + esc(t.title) + '</h3>' +
-          '<p class="slogan">' + esc(t.slogan || '') + '</p>' +
-          (showTags ? '<div class="tag-line">' + showTags + '</div>' : '') +
-          '<div class="foot"><span class="count">' + esc(t.count || 0) + ' 条内容 →</span>' +
-          '<span>' + esc(t.latest || updated) + '</span></div></div></a>';
+        return Render.topicCard(t, {
+          href: cardHref(t),
+          updated: updated,
+          platName: (t.source && t.source.platform) || platformOf(t),
+          tags: tagsOf(t)
+        });
       }).join('') : '<div class="empty">没有匹配的主题</div>';
     }
 

@@ -1,0 +1,80 @@
+"""页面结构回归:视图层收口后的契约检查(D21/D14)。只读静态文件,不联网。
+运行: python3 -m unittest discover -s tests
+"""
+import os
+import re
+import shutil
+import subprocess
+import sys
+import tempfile
+import unittest
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+PAGES = ["index.html", "series.html", "list.html", "single.html", "collector/collect.html"]
+THEMED = ["index.html", "series.html", "list.html", "single.html", "collector/collect.html"]
+NODE = shutil.which("node")
+
+
+def read(rel):
+    with open(os.path.join(ROOT, rel), encoding="utf-8") as fh:
+        return fh.read()
+
+
+class PagesContractTest(unittest.TestCase):
+    def test_render_js_exists(self):
+        self.assertTrue(os.path.exists(os.path.join(ROOT, "assets/render.js")))
+
+    def test_pages_load_render_js_before_inline(self):
+        for page in ["index.html", "series.html", "list.html", "single.html"]:
+            html = read(page)
+            self.assertIn("assets/render.js", html, page)
+            pos_render = html.index("assets/render.js")
+            pos_inline = html.rindex("<script>")
+            self.assertLess(pos_render, pos_inline, "%s: render.js 必须在页面脚本之前加载" % page)
+
+    def test_pages_use_render_functions(self):
+        self.assertIn("Render.topicCard", read("index.html"))
+        self.assertIn("Render.videoCard", read("series.html"))
+        self.assertIn("Render.videoCard", read("list.html"))
+        self.assertIn("Render.detail", read("single.html"))
+        self.assertIn("Render.episodes", read("single.html"))
+
+    def test_no_duplicate_card_implementation(self):
+        """卡片实现只允许存在于 assets/render.js。"""
+        for page in PAGES:
+            html = read(page)
+            self.assertNotIn("class=\"topic-card\" href=", html, page)
+            self.assertNotIn("<div class=\"video-thumb\">", html, page)
+
+    def test_theme_loaded_in_every_page(self):
+        for page in THEMED:
+            self.assertIn("theme.js", read(page), page)
+
+    def test_inline_scripts_syntax(self):
+        if not NODE:
+            self.skipTest("未安装 node")
+        for page in PAGES:
+            html = read(page)
+            blocks = [m.group(2) for m in re.finditer(r"<script([^>]*)>(.*?)</script>", html, re.S)
+                      if "src=" not in m.group(1)]
+            for block in blocks:
+                with tempfile.NamedTemporaryFile("w", suffix=".js", delete=False, encoding="utf-8") as fh:
+                    fh.write(block)
+                    path = fh.name
+                try:
+                    r = subprocess.run([NODE, "--check", path], capture_output=True, text=True)
+                finally:
+                    os.unlink(path)
+                self.assertEqual(r.returncode, 0, "%s 内联脚本语法错误: %s" % (page, r.stderr[-400:]))
+
+    def test_render_unit_tests(self):
+        if not NODE:
+            self.skipTest("未安装 node")
+        r = subprocess.run([NODE, os.path.join(ROOT, "tests", "test_render.js")],
+                           capture_output=True, text=True, timeout=60)
+        self.assertEqual(r.returncode, 0, r.stdout[-800:] + r.stderr[-800:])
+        self.assertIn("全部通过", r.stdout)
+
+
+if __name__ == "__main__":
+    unittest.main()

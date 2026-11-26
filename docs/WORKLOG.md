@@ -334,3 +334,9 @@ Chrome 无头截图三页面全部正常:首页卡片标签独立行两行截断
 - **页面接入**:5 个页面 `<head>` 加脚本与 `<noscript>` 兜底;`PLAT_COLORS` 改用 `var(--plat-*)`。
 - **校验**:`--verify` 增加单元级 `theme` 取值校验;`docs_check.py` 增加两套主题 token 对齐检查。
 - **验证**:6 个主题解析用例(node)通过;本地 9 个路径 200;19 个 unittest 与 docs-check 通过。
+
+### 17:00–18:00 D21 视图层收口
+- **新增 `assets/render.js`**:`topicCard` / `videoCard` / `detail`(四渠道模板)/ `episodes` + 路由与格式化辅助函数,全部转义、配色走主题 token。
+- **四页改写**:删掉各自的卡片与详情模板、`row`/`pills`/`shortTitle`/`buildEpisodeNav`、重复的 `PLAT_COLORS`/`fmtDate`,只留容器、路由、数据加载;`detailHref` 统一走 `Render.detailHref`。
+- **回归**:新增 `tests/test_render.js`(10 个视图层用例)与 `tests/test_pages.py`(渲染层引用/无重复实现/内联脚本语法/node 用例);`docs_check.py` 增加页面契约检查。
+- **验证**:26 个 Python 用例 + 10 个 node 用例通过;`--verify` 通过;8894 端口 9 个路径 200。

@@ -109,6 +109,7 @@
   </footer>
 
   <script src="assets/data-loader.js"></script>
+  <script src="assets/render.js"></script>
   <script src="assets/personal.js"></script>
   <script>
     var esc = window.escHtml;  // 统一转义:assets/data-loader.js 提供
@@ -181,20 +182,14 @@
     }
 
     // 卡片跳站内详情页(不直接跳源平台);源链接在详情页里提供
+    // 路由统一由 assets/render.js 提供(D21)
     function detailHref(v) {
-      var k = v.key || v.bv || v.url || '';
-      return 'single.html?id=' + encodeURIComponent(id) + (k ? '&k=' + encodeURIComponent(k) : '');
+      return Render.detailHref(id, v);
     }
 
     function cardHtml(v) {
-      var isVideo = (v.kind || 'video') === 'video';
-      var cover = v.cover
-        ? '<img src="' + esc(v.cover) + '" alt="' + esc(v.title) + '" loading="lazy" referrerpolicy="no-referrer">'
-        : '<div class="thumb-placeholder">' + esc((v.title || '内').charAt(0)) + '</div>';
-      // 视频显示播放标记,图文显示常驻「图文」标记,避免让图文卡片看起来像视频
-      var mark = isVideo ? '<span class="play"><i>▶</i></span>' : '<span class="kind-tag">图文</span>';
-      // 编号只对视频展示(BV 号);图文显示平台名
       var idText = v.bv ? (' · ' + v.bv) : '';
+      var plat = platOf(v) + idText;
       var fav = window.Personal ? Personal.starButton({
         unit: id,
         key: v.key || v.bv || v.url || '',
@@ -206,12 +201,13 @@
         kind: v.kind || 'video',
         unitTitle: document.getElementById('topic-title').textContent
       }) : '';
-      return '<a class="video-card" href="' + detailHref(v) + '">' +
-        '<div class="video-thumb">' + cover + mark + '</div>' +
-        fav +
-        '<div class="video-info"><h3>' + esc(v.title) + '</h3>' +
-        (v.desc ? '<p class="desc">' + esc(v.desc) + '</p>' : '') +
-        '<div class="meta"><span>' + esc(v.date) + '</span><span>' + esc(platOf(v) + idText) + '</span></div></div></a>';
+      return Render.videoCard(v, {
+        href: detailHref(v),
+        plat: platOf(v),
+        metaRight: esc(plat),
+        dateText: esc(v.date),
+        starHtml: fav
+      });
     }
 
     function render(list) {

@@ -8,6 +8,7 @@
   4. workflow 引用的清单/脚本存在,且不内嵌重复的采集命令
   5. DEPLOY 覆盖本机 launchd 与「形态 A/B」
   6. 两套内置主题 token 完全对齐(D25/D31)
+  7. 页面只引用 render.js/theme.js,不再各自拼卡片(D21)
 退出码:0 通过,1 有问题。
 """
 import os
@@ -90,6 +91,26 @@ def check_workflow():
 THEME_TOKEN = re.compile(r"--[a-z0-9-]+\s*:")
 
 
+PAGE_FILES = ["index.html", "series.html", "list.html", "single.html"]
+
+
+def check_pages_contract():
+    """视图层收口(D21):页面必须引用 render.js / theme.js,且不再各自拼卡片 HTML。"""
+    if not os.path.exists(os.path.join(ROOT, "assets/render.js")):
+        problems.append("缺少视图层文件: assets/render.js")
+        return
+    for page in PAGE_FILES:
+        path = os.path.join(ROOT, page)
+        if not os.path.exists(path):
+            continue
+        text = open(path, encoding="utf-8").read()
+        for dep in ["assets/render.js", "assets/theme.js"]:
+            if dep not in text:
+                problems.append("%s: 未引用 %s" % (page, dep))
+        if 'class="topic-card" href=' in text or '<div class="video-thumb">' in text:
+            problems.append("%s: 仍在页面内拼卡片 HTML,应改为调用 Render.*" % page)
+
+
 def check_themes():
     """主题契约(D25/D31):两套内置主题的 token 必须完全对齐,避免「半套主题」。"""
     base = os.path.join(ROOT, "assets/themes")
@@ -126,6 +147,7 @@ def main():
     check_wording(texts)
     check_doc_links(texts)
     check_workflow()
+    check_pages_contract()
     check_themes()
     check_deploy()
     for p in problems:

@@ -131,6 +131,7 @@
   </footer>
 
   <script src="assets/data-loader.js"></script>
+  <script src="assets/render.js"></script>
   <script src="assets/personal.js"></script>
   <script>
     var id = CollectionLoader.currentId();
@@ -141,7 +142,6 @@
     var platform = 'all';
     var unitPlatform = 'B站';
     var PLAT = { bilibili: 'B站', wechat: '公众号', xhs: '小红书' };
-    var PLAT_COLORS = { 'B站': 'var(--plat-bilibili)', '公众号': 'var(--plat-wechat)', '小红书': 'var(--plat-xhs)' };
 
     var grid = document.getElementById('grid');
     var pager = document.getElementById('pager');
@@ -273,21 +273,13 @@
     }
 
     // 卡片跳站内详情页(不直接跳源平台)
+    // 路由统一由 assets/render.js 提供(D21)
     function detailHref(v) {
-      var k = v.key || v.bv || v.url || '';
-      return 'single.html?id=' + encodeURIComponent(id) + (k ? '&k=' + encodeURIComponent(k) : '');
+      return Render.detailHref(id, v);
     }
 
     function cardHtml(v) {
       var plat = platOf(v);
-      var isVideo = (v.kind || 'video') === 'video';
-      var cover = v.cover
-        ? '<img src="' + esc(v.cover) + '" alt="' + esc(v.title) + '" loading="lazy" referrerpolicy="no-referrer">'
-        : '<div class="thumb-placeholder">' + esc((v.title || '内').charAt(0)) + '</div>';
-      var mark = isVideo
-        ? '<span class="play"><i>▶</i></span>'
-        : '<span class="kind-tag">图文</span>';
-      var platTag = '<span class="plat-tag" style="background:' + (PLAT_COLORS[plat] || 'rgba(0,0,0,.72)') + '">' + esc(plat) + '</span>';
       var fav = window.Personal ? Personal.starButton({
         unit: id,
         key: v.key || v.bv || v.url || '',
@@ -299,13 +291,14 @@
         kind: v.kind || 'video',
         unitTitle: document.getElementById('unit-title').textContent
       }) : '';
-      return '<a class="video-card" href="' + detailHref(v) + '">' +
-        '<div class="video-thumb">' + cover + mark + platTag + '</div>' +
-        fav +
-        '<div class="video-info"><h3>' + esc(v.title) + '</h3>' +
-        (v.desc ? '<p class="desc">' + esc(v.desc) + '</p>' : '') +
-        '<div class="meta"><span>' + esc(v.date || '—') + '</span><span>' + esc(v.author || plat) + '</span></div>' +
-        '</div></a>';
+      return Render.videoCard(v, {
+        href: detailHref(v),
+        plat: plat,
+        platTag: true,
+        desc: true,
+        metaRight: esc(v.author || plat),
+        starHtml: fav
+      });
     }
 
     // 页码:首尾 + 当前前后各 1 页,其余收起为省略号

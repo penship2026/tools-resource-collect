@@ -1,0 +1,44 @@
+# 定时采集的主题清单(公开)
+#
+# 约定:
+#   - 本文件只放「已公开发布」的主题;未发布/私人关注放 topics.local.yml(不进仓库)。
+#   - 每个主题一行一条记录,字段如下:
+#       keyword   必填,精准匹配标题(必须完整出现在标题里,不拆分)
+#       id        可选,命中已有单元则续采该单元,不新建
+#       title     可选,显示标题;留空时用 keyword
+#       channels  可选,默认 bilibili;可写 [bilibili, wechat, xhs]
+#   - 本清单由 GitHub Actions(每天)与本机 launchd(兜底)共用。
+#   - 本机验证:
+#       python3 collector/generate.py --topics topics.yml --dry-run --pages 1
+#
+# 只收录「按主题采集」的单元;按链接/批量采集的单条内容不在定时清单里。
+
+topics:
+  - keyword: "每天挖掘一个神奇网站"
+    id: daily-website
+    title: "每天挖掘一个神奇网站"
+    channels: [bilibili]
+
+  - keyword: "大模型对比"
+    id: topic-4e6ee53f
+    channels: [bilibili]
+
+  - keyword: "跟着动画学古文"
+    id: guwen-animation
+    channels: [bilibili]
+
+  - keyword: "英语启蒙必备"
+    id: topic-e5b5c763
+    channels: [bilibili]
+
+  - keyword: "SpringAI"
+    id: topic-df282732
+    channels: [bilibili]
+
+  - keyword: "最好的AI数字人项目"
+    id: topic-205064a1
+    channels: [bilibili]
+
+  - keyword: "数学思维启蒙动画"
+    id: topic-621ae722
+    channels: [bilibili]

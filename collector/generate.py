@@ -1643,7 +1643,141 @@ def build_parser():
     parser.add_argument("--on", dest="toggle_on", action="store_true", help="配合 --toggle:开启显示")
     parser.add_argument("--off", dest="toggle_off", action="store_true", help="配合 --toggle:关闭显示")
     parser.add_argument("--migrate", action="store_true", help="从旧格式迁移到采集单元格式")
+    parser.add_argument("--topics", action="append", default=None, metavar="FILE",
+                        help="按主题清单批量采集(如 topics.yml),可多次指定以合并清单")
     return parser
+
+
+def _yaml_value(raw):
+    """解析 topics.yml 里的标量:去引号、去行内注释(引号内的 # 不当作注释)"""
+    value = raw.strip()
+    if not value:
+        return ""
+    if value[0] in ('"', "'"):
+        quote = value[0]
+        end = value.find(quote, 1)
+        if end > 0:
+            return value[1:end]
+        return value[1:]
+    # 无引号时,空格后的 # 视为注释
+    for idx, ch in enumerate(value):
+        if ch == "#" and idx > 0 and value[idx - 1].isspace():
+            value = value[:idx].rstrip()
+            break
+    return value
+
+
+def load_topics_yaml(path):
+    """解析 topics.yml 的受限子集(不引入 PyYAML,保持零依赖)
+
+    支持的结构:
+        topics:
+          - keyword: "关键词"      # 必填,精准匹配标题
+            id: daily-website      # 可选,命中已有单元则续采该单元
+            title: "显示标题"       # 可选
+            channels: [bilibili, wechat, xhs]   # 可选,默认 bilibili
+    不支持嵌套、多行字符串、锚点等高级语法;解析失败会明确报行号。
+    """
+    entries = []
+    current = None
+    started = False
+    with open(path, encoding="utf-8") as fh:
+        lines = fh.read().splitlines()
+    for lineno, line in enumerate(lines, 1):
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        if stripped.rstrip(":") == "topics" and not line.startswith(" "):
+            started = True
+            continue
+        if stripped.startswith("- "):
+            if not started:
+                raise ValueError("%s:%d 列表项必须位于 topics: 之下" % (path, lineno))
+            if current:
+                entries.append(current)
+            current = {}
+            item = stripped[2:].strip()
+            if item:
+                if ":" not in item:
+                    raise ValueError("%s:%d 无法解析列表项: %s" % (path, lineno, item))
+                key, raw = item.split(":", 1)
+                current[key.strip()] = _yaml_value(raw)
+            continue
+        if not started:
+            raise ValueError("%s:%d 无法识别的内容: %s" % (path, lineno, stripped))
+        if current is None or ":" not in stripped:
+            raise ValueError("%s:%d 无法解析字段: %s" % (path, lineno, stripped))
+        key, raw = stripped.split(":", 1)
+        current[key.strip()] = _yaml_value(raw)
+    if current:
+        entries.append(current)
+
+    result = []
+    for idx, item in enumerate(entries, 1):
+        keyword = (item.get("keyword") or "").strip()
+        if not keyword:
+            raise ValueError("%s:第 %d 个主题缺少 keyword" % (path, idx))
+        channel_list = item.get("channels") or "bilibili"
+        if isinstance(channel_list, str):
+            channel_list = [c.strip() for c in channel_list.strip("[]").split(",") if c.strip()]
+        unknown = [c for c in channel_list if c not in channels_valid()]
+        if unknown:
+            raise ValueError("%s:第 %d 个主题的渠道不支持: %s(可选 %s)" % (
+                path, idx, ", ".join(unknown), ", ".join(channels_valid())))
+        result.append({
+            "keyword": keyword,
+            "id": (item.get("id") or "").strip() or None,
+            "title": (item.get("title") or "").strip() or None,
+            "channels": channel_list,
+        })
+    return result
+
+
+def channels_valid():
+    return list(channels.PLATFORMS.keys())
+
+
+def run_topics(paths, pages=30, dry_run=False, log=print):
+    """按 topics.yml 批量采集:逐个主题调用 collect_topic,单条失败不影响其余"""
+    entries = []
+    for path in paths:
+        if not os.path.exists(path):
+            print("错误:主题清单不存在: %s" % path, file=sys.stderr)
+            return {"ok": False, "error": "主题清单不存在: %s" % path}
+        try:
+            entries.extend(load_topics_yaml(path))
+        except ValueError as exc:
+            print("错误:%s" % exc, file=sys.stderr)
+            return {"ok": False, "error": str(exc)}
+    if not entries:
+        return {"ok": False, "error": "主题清单为空"}
+
+    log("按主题清单采集:共 %d 个主题" % len(entries))
+    failed = []
+    for idx, item in enumerate(entries, 1):
+        log("")
+        log("=== [%d/%d] %s ===" % (idx, len(entries), item["keyword"]))
+        try:
+            result = collect_topic(
+                keyword=item["keyword"], pages=pages, title=item["title"],
+                unit_id=item["id"], dry_run=dry_run, log=log,
+                topic_channels=item["channels"],
+            )
+        except Exception as exc:
+            log("采集失败: %s" % exc)
+            failed.append({"keyword": item["keyword"], "error": str(exc)})
+            continue
+        if not result.get("ok"):
+            failed.append({"keyword": item["keyword"], "error": result.get("error", "未知错误")})
+    if failed:
+        log("")
+        log("完成,但 %d 个主题失败:" % len(failed))
+        for f in failed:
+            log("  - %s: %s" % (f["keyword"], f["error"]))
+        return {"ok": False, "failed": failed}
+    log("")
+    log("全部 %d 个主题采集完成" % len(entries))
+    return {"ok": True}
 
 
 def main():
@@ -1667,6 +1801,12 @@ def main():
             enabled = True
         r = set_enabled(args.toggle, enabled)
         print(r.get("error") or ("%s 显示已%s" % (r["id"], "开启" if r["enabled"] else "关闭")))
+        if not r["ok"]:
+            sys.exit(1)
+        return
+
+    if args.topics:
+        r = run_topics(args.topics, pages=args.pages, dry_run=args.dry_run)
         if not r["ok"]:
             sys.exit(1)
         return

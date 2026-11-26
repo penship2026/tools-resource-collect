@@ -410,13 +410,20 @@ load_topic_data = load_collection_data
 
 
 def meta_from_collection(collection, created=None):
-    """从采集单元提取索引元信息(不含视频列表)"""
-    meta = {k: v for k, v in collection.items() if k != "videos"}
+    """从采集单元提取索引元信息(不含视频列表,采集记录也只留摘要,避免索引膨胀)"""
+    meta = {k: v for k, v in collection.items()
+            if k not in ("videos", "runs", "intake")}
     videos = collection.get("videos") or []
     if videos:
         meta["cover"] = videos[0].get("cover", "")
         meta["latest"] = videos[0].get("date", "")
     meta["count"] = len(videos)
+    # 最近一次采集的填写方式与时间:列表里直接显示,不需要再读数据文件
+    intake = collection.get("intake") or {}
+    if intake:
+        meta["last_at"] = intake.get("at", "")
+        meta["last_mode"] = intake.get("mode", "")
+        meta["last_mode_label"] = MODE_LABELS.get(intake.get("mode", ""), "")
     if created:
         meta["created"] = created
     meta["updated"] = datetime.date.today().isoformat()
@@ -463,6 +470,152 @@ def set_enabled(unit_id, enabled, log=print):
             fh.write("window.COLLECTION_DATA[%s] = %s;\n" % (json.dumps(unit_id), js(data)))
     log("%s 显示已%s: %s" % (unit_id, "开启" if enabled else "关闭", target.get("title", "")))
     return {"ok": True, "id": unit_id, "enabled": bool(enabled), "title": target.get("title", "")}
+
+
+# 采集方式的中文名:采集记录、回填提示里统一使用
+MODE_LABELS = {"url": "按链接采集", "batch": "批量链接采集", "keyword": "按主题采集"}
+
+
+def now_stamp():
+    """当前时间,精确到分钟:2026-11-26 08:55"""
+    return datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+
+
+def normalize_intake(raw):
+    """
+    规整本次采集的「填写信息」,字段与采集表单一一对应:
+    采集方式 / 输入内容 / 显示标题 / UP主 / 页数 / 手工补录。
+    存进单元后,下次重新采集可原样回填,不需要用户重新粘贴。
+    """
+    if not raw:
+        return None
+    mode = (raw.get("mode") or "url").strip()
+    if mode not in MODE_LABELS:
+        mode = "url"
+    manual = {}
+    for key in ("title", "author", "desc", "date", "cover"):
+        value = (raw.get("manual_" + key) or "").strip()
+        if value:
+            manual[key] = value
+    try:
+        pages = int(raw.get("pages"))
+    except (TypeError, ValueError):
+        pages = 30
+    if pages <= 0:
+        pages = 30
+    return {
+        "mode": mode,
+        "input": (raw.get("input") or "").strip()[:8000],
+        "title": (raw.get("title") or "").strip(),
+        "up": (raw.get("up") or "").strip(),
+        "pages": pages,
+        "manual": manual,
+        "at": (raw.get("at") or "").strip() or now_stamp(),
+    }
+
+
+def _intake_input_count(intake):
+    """本次输入含几条链接/关键词,记录里显示「3 条链接」"""
+    text = intake.get("input") or ""
+    if intake.get("mode") == "batch":
+        return len(channels.extract_urls(text))
+    return 1 if text else 0
+
+
+def _make_run(intake, title, report):
+    """一条采集记录:什么时候、用什么方式、采了几条、标题是什么"""
+    return {
+        "at": intake.get("at") or now_stamp(),
+        "mode": intake.get("mode", ""),
+        "mode_label": MODE_LABELS.get(intake.get("mode", ""), intake.get("mode", "")),
+        "input_count": _intake_input_count(intake),
+        "title": title or "",
+        "added": report.get("added", 0),
+        "updated": report.get("updated", 0),
+        "kept": report.get("kept", 0),
+        "total": report.get("total", 0),
+    }
+
+
+def attach_intake(collection, existing, intake, report):
+    """把本次采集的填写信息与统计写入单元(保留最近 20 次记录)"""
+    if not intake:
+        return collection
+    runs = list((existing or {}).get("runs") or [])
+    runs.insert(0, _make_run(intake, collection.get("title", ""), report))
+    collection["intake"] = intake
+    collection["runs"] = runs[:20]
+    return collection
+
+
+def record_intake_only(unit_id, intake, report, title=None, log=print):
+    """
+    采集结果没有变化时,仍然记下本次填写信息;顺带允许只改显示标题。
+    返回是否真的写了文件。
+    """
+    data = load_collection_data(unit_id)
+    if data is None or not intake:
+        return False
+    changed = data.get("intake") != intake
+    if title and title != data.get("title"):
+        data["title"] = title
+        changed = True
+    if not changed:
+        return False
+    data["intake"] = intake
+    runs = list(data.get("runs") or [])
+    runs.insert(0, _make_run(intake, data.get("title", ""), report))
+    data["runs"] = runs[:20]
+    write_collection_file(data)
+    # 索引同步标题与最近采集时间,列表不用读数据文件就能显示
+    today = datetime.date.today().isoformat()
+    index = load_index()
+    for t in index:
+        if t.get("id") == unit_id:
+            t["title"] = data.get("title", t.get("title", ""))
+            t["last_at"] = intake.get("at", "")
+            t["last_mode"] = intake.get("mode", "")
+            t["last_mode_label"] = MODE_LABELS.get(intake.get("mode", ""), "")
+            t["updated"] = today
+    write_index(index, today)
+    log("已记录本次采集信息(内容无变化)")
+    return True
+
+
+def update_title(unit_id, title, log=print):
+    """
+    只更新显示标题,不重新采集内容。
+    索引与单元数据文件同时改写,并同步到采集记录里的标题字段。
+    """
+    unit_id = (unit_id or "").strip()
+    title = (title or "").strip()
+    if not unit_id:
+        return {"ok": False, "error": "缺少单元 id"}
+    if not title:
+        return {"ok": False, "error": "标题不能为空"}
+    index = load_index()
+    target = next((t for t in index if t.get("id") == unit_id), None)
+    if not target:
+        return {"ok": False, "error": "未找到采集单元: %s" % unit_id}
+    old_title = target.get("title", "")
+    today = datetime.date.today().isoformat()
+    target["title"] = title
+    target["updated"] = today
+    write_index(index, today)
+    data = load_collection_data(unit_id)
+    if data is not None:
+        data["title"] = title
+        if data.get("intake"):
+            data["intake"] = dict(data["intake"], title=title)
+        if data.get("runs"):
+            # 历史记录保留当时的标题,只有最新一条跟随本次改名
+            runs = list(data["runs"])
+            runs[0] = dict(runs[0], title=title)
+            data["runs"] = runs
+        write_collection_file(data)
+    log("标题已更新: %s → %s" % (old_title or "(空)", title))
+    return {"ok": True, "id": unit_id, "title": title, "old_title": old_title,
+            "page": target.get("page", "")}
 
 
 def merge_videos(existing, incoming):
@@ -520,7 +673,7 @@ def merge_videos(existing, incoming):
 
 def collect_topic(keyword, pages=30, title=None, up=None, slug=None,
                   slogan=None, min_match=2, match_all=False, dry_run=False,
-                  unit_id=None, log=print):
+                  unit_id=None, log=print, intake=None):
     """
     按主题采集一个 series 单元。可被命令行和 Web 服务共同调用。
     只写数据,不生成页面;命中已有 id 时只更新该单元,不动其他单元。
@@ -602,6 +755,8 @@ def collect_topic(keyword, pages=30, title=None, up=None, slug=None,
     )
     if unchanged:
         log("数据无更新,跳过写文件")
+        # 内容没变,但本次的填写信息(以及可能改过的标题)仍要留痕,供下次回填
+        record_intake_only(uid, intake, report, title=title, log=log)
         result["ok"] = True
         result["data_file"] = "assets/data/collections/%s.js" % uid
         result["page_file"] = "series.html?id=%s" % uid
@@ -632,6 +787,7 @@ def collect_topic(keyword, pages=30, title=None, up=None, slug=None,
         "count": len(videos),
         "videos": videos,
     }
+    collection = attach_intake(collection, existing_data, intake, report)
     data_path, index = save_collection(collection, index)
 
     result["ok"] = True
@@ -756,7 +912,7 @@ def fetch_video_tags(bvid, log=print):
 
 
 def collect_by_url(url, title=None, slug=None, slogan=None, dry_run=False,
-                   unit_id=None, log=print, manual=None):
+                   unit_id=None, log=print, manual=None, intake=None):
     """
     按链接采集单条内容,自动识别渠道:
       - B站(含 BV 号、b23.tv 短链、视频页链接)→ 视频详情接口
@@ -767,7 +923,7 @@ def collect_by_url(url, title=None, slug=None, slogan=None, dry_run=False,
     if plat == "bilibili" or (not plat and extract_bvid(url)):
         return _collect_bilibili_single(
             url, title=title, slug=slug, slogan=slogan, dry_run=dry_run,
-            unit_id=unit_id, log=log)
+            unit_id=unit_id, log=log, intake=intake)
     if not plat:
         return {
             "ok": False, "keyword": url, "error":
@@ -778,7 +934,7 @@ def collect_by_url(url, title=None, slug=None, slogan=None, dry_run=False,
         }
     return _collect_article_single(
         url, plat, title=title, slug=slug, slogan=slogan, dry_run=dry_run,
-        unit_id=unit_id, log=log, manual=manual)
+        unit_id=unit_id, log=log, manual=manual, intake=intake)
 
 
 def _unit_id_from_item(item, plat, existing_ids):
@@ -803,7 +959,8 @@ def _unit_id_from_item(item, plat, existing_ids):
 
 
 def _collect_article_single(url, plat, title=None, slug=None, slogan=None,
-                            dry_run=False, unit_id=None, log=print, manual=None):
+                            dry_run=False, unit_id=None, log=print, manual=None,
+                            intake=None):
     """采集单条图文内容(公众号/小红书),写入一个 single 单元"""
     plat_name = channels.platform_name(plat)
     result = {
@@ -871,6 +1028,7 @@ def _collect_article_single(url, plat, title=None, slug=None, slogan=None,
     )
     if unchanged:
         log("数据无更新,跳过写文件")
+        record_intake_only(uid, intake, report, title=final_title, log=log)
         result.update(ok=True, data_file="assets/data/collections/%s.js" % uid,
                       page_file="single.html?id=%s" % uid, topic_count=len(index))
         return result
@@ -894,6 +1052,7 @@ def _collect_article_single(url, plat, title=None, slug=None, slogan=None,
         "count": len(videos),
         "videos": videos,
     }
+    collection = attach_intake(collection, existing_data, intake, report)
     data_path, index = save_collection(collection, index)
     result.update(ok=True, data_file=display_path(data_path),
                   page_file=page_path, topic_count=len(index))
@@ -905,7 +1064,7 @@ def _collect_article_single(url, plat, title=None, slug=None, slogan=None,
 
 
 def collect_batch(text, title=None, slug=None, slogan=None, dry_run=False,
-                  unit_id=None, log=print):
+                  unit_id=None, log=print, intake=None):
     """
     批量链接采集:一次粘贴多条链接(可混合 B站/公众号/小红书),合成一个单元。
       - 1 条成功结果按 single 处理,2 条及以上按 series(合集)处理
@@ -1032,6 +1191,7 @@ def collect_batch(text, title=None, slug=None, slogan=None, dry_run=False,
         "count": len(videos),
         "videos": videos,
     }
+    collection = attach_intake(collection, existing_data, intake, report)
     data_path, index = save_collection(collection, index)
     result.update(ok=True, data_file=display_path(data_path),
                   page_file=page_path, topic_count=len(index))
@@ -1045,7 +1205,7 @@ def collect_batch(text, title=None, slug=None, slogan=None, dry_run=False,
 
 
 def _collect_bilibili_single(url, title=None, slug=None, slogan=None, dry_run=False,
-                             unit_id=None, log=print):
+                             unit_id=None, log=print, intake=None):
     """按 B站 视频链接采集单条视频,写入一个 single 单元。来源是视频详情 API。"""
     result = {
         "ok": False, "keyword": "", "error": None,
@@ -1121,6 +1281,7 @@ def _collect_bilibili_single(url, title=None, slug=None, slogan=None, dry_run=Fa
     )
     if unchanged:
         log("数据无更新,跳过写文件")
+        record_intake_only(uid, intake, report, title=final_title, log=log)
         result["ok"] = True
         result["data_file"] = "assets/data/collections/%s.js" % uid
         result["page_file"] = "single.html?id=%s" % uid
@@ -1150,6 +1311,7 @@ def _collect_bilibili_single(url, title=None, slug=None, slogan=None, dry_run=Fa
         "count": len(videos),
         "videos": videos,
     }
+    collection = attach_intake(collection, existing_data, intake, report)
     data_path, index = save_collection(collection, index)
 
     result["ok"] = True
@@ -1320,22 +1482,35 @@ def main():
         "title": args.manual_title, "author": args.manual_author,
         "desc": args.manual_desc, "date": args.manual_date, "cover": args.manual_cover,
     }
+    # 命令行采集也记录本次填写信息,与网页采集共用同一份回填数据
+    intake = normalize_intake({
+        "mode": "batch" if args.batch else ("url" if args.url else "keyword"),
+        "input": args.keyword,
+        "title": args.title or "",
+        "up": args.up or "",
+        "pages": args.pages,
+        "manual_title": args.manual_title, "manual_author": args.manual_author,
+        "manual_desc": args.manual_desc, "manual_date": args.manual_date,
+        "manual_cover": args.manual_cover,
+    })
     if args.batch:
         result = collect_batch(
             text=args.keyword, title=args.title, slug=args.slug,
             slogan=args.slogan, dry_run=args.dry_run, unit_id=args.unit_id,
+            intake=intake,
         )
     elif args.url:
         result = collect_by_url(
             url=args.keyword, title=args.title, slug=args.slug,
             slogan=args.slogan, dry_run=args.dry_run, unit_id=args.unit_id,
-            manual=manual,
+            manual=manual, intake=intake,
         )
     else:
         result = collect_topic(
             keyword=args.keyword, pages=args.pages, title=args.title, up=args.up,
             slug=args.slug, slogan=args.slogan, min_match=args.min_match,
             match_all=args.match_all, dry_run=args.dry_run, unit_id=args.unit_id,
+            intake=intake,
         )
     if not result["ok"]:
         sys.exit(1)

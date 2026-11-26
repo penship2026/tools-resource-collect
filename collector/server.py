@@ -15,7 +15,9 @@
   GET  /api/health             后端健康检测(供采集页启动时探测)
   POST /api/collect            触发采集(调用 generate.py 的纯规则程序)
                                mode=keyword|url|batch,支持 B站/公众号/小红书
-  GET  /api/topics             列出已有主题
+  GET  /api/topics             列出已有主题(含最近采集时间与方式)
+  GET  /api/intake?id=         读取某单元上次填写的采集信息 + 最近采集记录(重新采集回填用)
+  POST /api/title              只更新显示标题,不重新采集内容
   GET  /*                      静态文件托管(首页/子页/数据)
 
 运行角色(便于采集端与展示端分离部署,同机/同容器下共享数据目录):
@@ -110,8 +112,44 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     "keyword": t.get("keyword", ""),
                     "created": t.get("created", ""),
                     "updated": t.get("updated", ""),
+                    "last_at": t.get("last_at", ""),
+                    "last_mode": t.get("last_mode", ""),
+                    "last_mode_label": t.get("last_mode_label", ""),
                 } for t in index
             ]})
+            return
+        if path.endswith("/api/intake"):
+            # 重新采集前的回填:返回该单元上次填写的采集信息 + 最近几次采集记录
+            qs = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+            unit_id = (qs.get("id") or [""])[0].strip()
+            if not unit_id:
+                self._json({"ok": False, "error": "缺少单元 id"}, 400)
+                return
+            data = generate.load_collection_data(unit_id)
+            if data is None:
+                self._json({"ok": False, "error": "未找到采集单元: %s" % unit_id}, 404)
+                return
+            meta = next((t for t in generate.load_index() if t.get("id") == unit_id), None) or {}
+            videos = data.get("videos") or []
+            self._json({
+                "ok": True,
+                "id": unit_id,
+                "intake": data.get("intake") or {},
+                "runs": data.get("runs") or [],
+                # 老单元没有采集记录时,用现有条目的原链接回填批量输入框
+                "links": [v.get("url", "") for v in videos if v.get("url")][:60],
+                "unit": {
+                    "id": unit_id,
+                    "title": data.get("title", ""),
+                    "type": data.get("type", "series"),
+                    "platform": (data.get("source") or {}).get("platform", ""),
+                    "count": len(data.get("videos") or []),
+                    "page": data.get("page", meta.get("page", "")),
+                    # 老单元没有采集记录时,至少能用当初的关键词/链接回填
+                    "keyword": data.get("keyword") or meta.get("keyword", ""),
+                    "last_at": meta.get("last_at", ""),
+                },
+            })
             return
         # 未知 /api/ 路径一律返回 JSON,避免 Python 默认 HTML 404 让前端 json() 解析失败
         if "/api/" in path:
@@ -155,6 +193,14 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             self._json(result, 200 if result.get("ok") else 404)
             return
 
+        # 只更新显示标题,不重新采集内容
+        if path.endswith("/api/title"):
+            unit_id = (payload.get("id") or "").strip()
+            title = (payload.get("title") or "").strip()
+            result = generate.update_title(unit_id, title)
+            self._json(result, 200 if result.get("ok") else 400)
+            return
+
         if not path.endswith("/api/collect"):
             self._json({"ok": False, "error": "未知接口"}, 404)
             return
@@ -170,6 +216,10 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 hint = "主题关键词不能为空"
             self._json({"ok": False, "error": hint}, 400)
             return
+        # 批量采集的显示标题是必填项(前端已有默认值,这里再兜一层)
+        if mode == "batch" and not (payload.get("title") or "").strip():
+            self._json({"ok": False, "error": "请填写显示标题(批量采集必填,可用自动生成的默认值)"}, 400)
+            return
 
         # 手工补录字段(公众号/小红书抓取被风控时使用)
         manual = {
@@ -179,6 +229,18 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             "date": (payload.get("manual_date") or "").strip() or None,
             "cover": (payload.get("manual_cover") or "").strip() or None,
         }
+
+        # 本次采集的填写信息:写入单元,下次重新采集时原样回填
+        intake = generate.normalize_intake({
+            "mode": mode,
+            "input": keyword,
+            "title": payload.get("title"),
+            "up": payload.get("up"),
+            "pages": payload.get("pages"),
+            "manual_title": manual["title"], "manual_author": manual["author"],
+            "manual_desc": manual["desc"], "manual_date": manual["date"],
+            "manual_cover": manual["cover"],
+        })
 
         # 收集日志,随响应返回给前端展示
         logs = []
@@ -194,6 +256,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     slogan=(payload.get("slogan") or "").strip() or None,
                     dry_run=bool(payload.get("dry_run")),
                     log=log,
+                    intake=intake,
                 )
             elif mode == "url":
                 result = generate.collect_by_url(
@@ -204,6 +267,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     dry_run=bool(payload.get("dry_run")),
                     manual=manual,
                     log=log,
+                    intake=intake,
                 )
             else:
                 result = generate.collect_topic(
@@ -217,6 +281,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     match_all=bool(payload.get("match_all")),
                     dry_run=bool(payload.get("dry_run")),
                     log=log,
+                    intake=intake,
                 )
         except Exception as exc:
             self._json({"ok": False, "error": "采集失败: %s" % exc, "logs": logs}, 500)

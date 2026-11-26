@@ -79,6 +79,42 @@
     .tab { background: none; border: none; border-bottom: 2px solid transparent; padding: 9px 14px; font-size: 14px; color: var(--text-mute); cursor: pointer; }
     .tab.active { color: var(--brand); border-bottom-color: var(--brand); font-weight: 600; }
     .hidden { display: none !important; }
+    /* hidden 属性对 .btn 这类设置了 display 的元素无效,统一兜住 */
+    [hidden] { display: none !important; }
+    /* 重新采集时的回填提示 */
+    .req { color: #e05252; font-size: 12px; }
+    .recall {
+      display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+      background: #eef5ff; border: 1px solid #cfe2ff; color: #1d4ed8;
+      border-radius: var(--radius-sm); padding: 10px 12px; margin-bottom: 16px;
+      font-size: 13px; line-height: 1.7;
+    }
+    .recall[hidden] { display: none; }
+    .recall b { font-weight: 600; }
+    .recall-meta { color: #3b6bc7; font-size: 12px; }
+    .recall-actions { display: flex; align-items: center; gap: 6px; flex: none; }
+    .recall-exit {
+      background: #fff; border: 1px solid #b9d3fb; color: #1d4ed8; font-size: 12px;
+      border-radius: 6px; padding: 4px 9px; cursor: pointer; white-space: nowrap;
+    }
+    .recall-exit:hover { background: #f5f9ff; }
+    .recall-close {
+      background: none; border: none; color: #3b6bc7; font-size: 17px; line-height: 1;
+      cursor: pointer; padding: 0 2px; flex: none;
+    }
+    .run-hist { margin-top: 14px; border-top: 1px dashed var(--border); padding-top: 12px; font-size: 12px; color: var(--text-sub); }
+    .run-hist[hidden] { display: none; }
+    .run-hist summary { cursor: pointer; color: var(--text-sub); list-style: none; user-select: none; }
+    .run-hist summary::-webkit-details-marker { display: none; }
+    .run-hist summary::before { content: '＋'; color: var(--text-mute); font-size: 11px; margin-right: 5px; }
+    .run-hist[open] summary::before { content: '－'; }
+    .run-hist ul { list-style: none; margin: 8px 0 0; padding: 0; }
+    .run-hist li {
+      display: flex; justify-content: space-between; gap: 10px;
+      padding: 6px 0; border-bottom: 1px dashed var(--border);
+    }
+    .run-hist li:last-child { border-bottom: none; }
+    .run-hist .run-at { color: var(--text-mute); white-space: nowrap; font-variant-numeric: tabular-nums; }
   </style>
 </head>
 <body>
@@ -103,7 +139,17 @@
 
     <div class="layout">
       <div class="panel">
-        <h2>新建采集任务</h2>
+        <h2 id="form-title">新建采集任务</h2>
+        <div class="recall" id="recall" hidden>
+          <div>
+            <b id="recall-title">已带出上次采集信息</b>
+            <div class="recall-meta" id="recall-meta"></div>
+          </div>
+          <div class="recall-actions">
+            <button type="button" class="recall-exit" id="recall-exit">退出重新采集</button>
+            <button type="button" class="recall-close" id="recall-close" aria-label="关闭提示">×</button>
+          </div>
+        </div>
         <div class="tabs">
           <button class="tab active" id="tab-url" type="button">按链接采集单条</button>
           <button class="tab" id="tab-batch" type="button">批量链接采集</button>
@@ -127,24 +173,23 @@
             <div class="tip">可一次粘贴多条链接或分享文案,逐条解析后合成一个合集;个别链接失败会跳过,并在日志里说明原因。</div>
           </div>
 
+          <!-- 显示标题:批量采集为必填,粘贴链接后自动生成默认值,可手动修改 -->
+          <div class="field" id="field-title">
+            <label for="title">显示标题 <span class="req" id="title-req">*</span></label>
+            <input type="text" id="title" placeholder="">
+            <div class="tip" id="title-tip"></div>
+          </div>
+
           <button class="btn" id="submit" type="submit">采集这条内容</button>
           <button class="btn ghost" id="reset" type="button">清空</button>
+          <button class="btn ghost" id="btn-title-only" type="button" hidden>仅更新标题(不重新采集)</button>
 
-          <!-- 可选设置:默认折叠,需要改标题/指定单元/手工补录时再展开 -->
+          <!-- 可选设置:默认折叠,需要手工补录时再展开 -->
           <details class="advanced" id="field-advanced">
-            <summary>可选设置 · 标题 / 单元 ID / 手工补录 / 预览模式</summary>
+            <summary>可选设置 · 手工补录 / 预览模式</summary>
             <div class="adv-body">
-              <div class="grid2">
-                <div class="field">
-                  <label for="title">显示标题</label>
-                  <input type="text" id="title" placeholder="留空则同关键词/视频标题">
-                </div>
-                <div class="field">
-                  <label for="slug">单元 ID(可选)</label>
-                  <input type="text" id="slug" placeholder="留空自动生成">
-                  <div class="tip">填写已有单元 ID 即重新采集、只更新该单元的数据;留空则按标题匹配或新建。</div>
-                </div>
-              </div>
+              <!-- 单元 ID 只在「重新采集」时由已采集单元列表带入,新建时留空 -->
+              <input type="hidden" id="slug">
               <div class="field hidden" id="field-up">
                 <label for="up">指定 UP 主(可选)</label>
                 <input type="text" id="up" placeholder="例如:草根的异世界">
@@ -184,14 +229,18 @@
           <div><b id="r-total">0</b><span>合计</span></div>
         </div>
         <div class="logbox" id="log"></div>
+        <details class="run-hist" id="run-hist" hidden>
+          <summary>该单元最近的采集记录</summary>
+          <ul id="run-list"></ul>
+        </details>
       </div>
 
       <div class="panel">
         <h2>已有采集单元</h2>
         <div id="topics"><div class="tip">加载中…</div></div>
         <p class="tip" style="margin-top:18px">
-          每次采集是独立单元,可单独开启/关闭首页显示(关闭后数据保留,只是不展示)。
-          填写单元 ID 重新采集时,只更新该单元,不影响其他单元;按内容唯一键去重(B站=BV 号,公众号=原文地址,小红书=笔记 ID)。
+          点「重新采集」只会把上次填写的采集信息带回左侧表单,确认后再执行,不会自动采集;需要时也可以只改显示标题。
+          采集是独立单元,可单独开启/关闭首页显示(关闭后数据保留,只是不展示);按内容唯一键去重(B站=BV 号,公众号=原文地址,小红书=笔记 ID)。
         </p>
       </div>
     </div>
@@ -213,13 +262,36 @@
     const badgeBox = $('backend-badge');
     // 默认按链接采集:日常最常用的是贴一条链接就入库
     let mode = 'url'; // url(单条链接) | batch(批量链接) | keyword(主题)
+    let titleTouched = false;   // 用户是否手动改过标题(改过就不再被自动生成的默认值覆盖)
+    let lastAutoTitle = '';     // 上一次自动生成的默认标题,切方式时据此判断是否可以清掉
+    let recollectId = '';       // 非空 = 正在重新采集该单元;为空 = 新建采集
 
     function submitLabel() {
+      if (recollectId) return '确认重新采集';
       if (mode === 'batch') return '开始批量采集';
       return mode === 'url' ? '采集这条内容' : '开始采集';
     }
 
-    function setMode(m) {
+    // 标题字段随采集方式变化:批量必填,其余可选
+    function updateTitleField() {
+      const req = mode === 'batch';
+      $('title').required = req;
+      $('title-req').style.display = req ? '' : 'none';
+      $('title').placeholder = req ? '粘贴链接后自动生成,也可直接写'
+        : (mode === 'url' ? '留空则用内容原标题' : '留空则与主题关键词相同');
+      $('title-tip').textContent = req
+        ? '必填。粘贴链接后按链接数自动生成默认标题(如「公众号 · 3 条合集」),可直接改成自己的叫法。'
+        : '可选。留空时:按链接采集用内容原标题,按主题采用主题关键词。';
+    }
+
+    function setMode(m, opts) {
+      const keep = opts && opts.keepStatus;
+      // 手动切换采集方式时,把上次自动填的标题清掉,避免带到新方式里
+      if (!keep && $('title').value && $('title').value === lastAutoTitle) {
+        $('title').value = '';
+        titleTouched = false;
+        lastAutoTitle = '';
+      }
       mode = m;
       const isKeyword = m === 'keyword';
       $('tab-keyword').classList.toggle('active', isKeyword);
@@ -235,9 +307,13 @@
       $('video_url').required = m === 'url';
       $('batch_links').required = m === 'batch';
       $('submit').textContent = submitLabel();
-      statusBox.textContent = '';
-      logBox.textContent = '';
-      reportBox.classList.remove('show');
+      updateTitleField();
+      if (!keep) {
+        statusBox.textContent = '';
+        logBox.textContent = '';
+        reportBox.classList.remove('show');
+      }
+      if (m === 'batch') refreshTitleSuggestion();
     }
     $('tab-keyword').addEventListener('click', () => setMode('keyword'));
     $('tab-url').addEventListener('click', () => setMode('url'));
@@ -247,6 +323,174 @@
     const API_COLLECT = 'api/collect';
     const API_TOPICS  = 'api/topics';
     const API_TOGGLE  = 'api/toggle';
+    const API_INTAKE  = 'api/intake';
+    const API_TITLE   = 'api/title';
+
+    // ---- 批量采集默认标题:按粘贴的链接数与渠道生成,如「公众号 / 小红书 · 3 条合集」 ----
+    const LINK_RULES = [
+      [/bilibili\.com|b23\.tv/i, 'B站'],
+      [/mp\.weixin\.qq\.com|weixin\.qq\.com/i, '公众号'],
+      [/xiaohongshu\.com|xhslink\.com/i, '小红书'],
+    ];
+    const MODE_NAMES = { url: '按链接采集', batch: '批量链接采集', keyword: '按主题采集' };
+    function modeName(m) { return MODE_NAMES[m] || m || '未知方式'; }
+    // 采集时间统一成 yyyy.mm.dd HH:MM,与全站日期格式一致
+    function fmtStamp(s) { return (s || '').replace(/^(\d{4})-(\d{2})-(\d{2})/, '$1.$2.$3'); }
+    function linksIn(text) {
+      return (text || '').match(/https?:\/\/[^\s"'<>，。、；]+/gi) || [];
+    }
+    function suggestBatchTitle() {
+      const links = linksIn($('batch_links').value);
+      if (!links.length) return '';
+      const names = [];
+      links.forEach(u => {
+        const hit = LINK_RULES.find(r => r[0].test(u));
+        const name = hit ? hit[1] : '链接';
+        if (names.indexOf(name) < 0) names.push(name);
+      });
+      const label = names.length === 1 ? names[0] : (names.length >= 3 ? '多平台' : names.join(' / '));
+      return links.length === 1 ? label + ' · 单条内容' : label + ' · ' + links.length + ' 条合集';
+    }
+    function refreshTitleSuggestion() {
+      if (mode !== 'batch' || titleTouched) return;
+      lastAutoTitle = suggestBatchTitle();
+      $('title').value = lastAutoTitle;
+    }
+    $('batch_links').addEventListener('input', refreshTitleSuggestion);
+    $('title').addEventListener('input', () => { titleTouched = true; });
+
+    // ---- 采集信息回填:带出上次填写内容,等用户确认后再采集(绝不自动提交) ----
+    function showRecall(head, meta) {
+      $('recall').hidden = false;
+      $('recall-title').textContent = head;
+      $('recall-meta').textContent = meta || '';
+    }
+    function hideRecall() { $('recall').hidden = true; }
+    $('recall-close').addEventListener('click', hideRecall);
+
+    // 退出重新采集:回到「新建采集」,只改标题的入口一并收起
+    function exitRecollect() {
+      recollectId = '';
+      $('slug').value = '';
+      $('btn-title-only').hidden = true;
+      hideRecall();
+      renderRuns([]);
+      $('form-title').textContent = '新建采集任务';
+      $('submit').textContent = submitLabel();
+    }
+    $('recall-exit').addEventListener('click', () => {
+      exitRecollect();
+      statusBox.className = 'status';
+      statusBox.textContent = '已退出重新采集,当前为新建采集';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    function renderRuns(runs) {
+      const box = $('run-hist');
+      if (!runs || !runs.length) { box.hidden = true; $('run-list').innerHTML = ''; return; }
+      $('run-list').innerHTML = runs.slice(0, 10).map(r => {
+        const bits = [];
+        const label = r.mode_label || MODE_NAMES[r.mode] || r.mode;
+        if (label) bits.push(label);
+        if (r.input_count) bits.push(r.input_count + ' 条输入');
+        if (r.added || r.updated) bits.push('新增 ' + (r.added || 0) + ' / 更新 ' + (r.updated || 0));
+        return '<li><span>' + bits.join(' · ') + '</span><span class="run-at">' + fmtStamp(r.at) + '</span></li>';
+      }).join('');
+      box.hidden = false;
+      box.open = true;
+    }
+
+    async function fillFromUnit(unitId) {
+      statusBox.className = 'status';
+      statusBox.textContent = '正在读取采集记录…';
+      let d;
+      try {
+        d = await readJSON(await fetch(API_INTAKE + '?id=' + encodeURIComponent(unitId), { cache: 'no-store' }));
+        if (!d.ok) throw new Error(d.error || '读取失败');
+      } catch (err) {
+        statusBox.className = 'status err';
+        statusBox.textContent = '读取采集记录失败: ' + err.message;
+        return;
+      }
+      const it = d.intake || {};
+      const unit = d.unit || {};
+      const m = it.mode || (unit.type === 'series' ? 'keyword' : 'url');
+
+      recollectId = unitId;
+      $('slug').value = unitId;
+      $('form-title').textContent = '重新采集 · ' + (unit.title || unitId);
+      $('btn-title-only').hidden = false;
+
+      setMode(m, { keepStatus: true });
+      // 老单元没有采集记录时:批量按现有条目链接回填,其余用当初的关键词/链接
+      let input = it.input || '';
+      if (!input && m === 'batch') input = (d.links || []).join('\n');
+      if (!input && unit.keyword && unit.keyword !== 'batch') input = unit.keyword;
+      if (m === 'batch') $('batch_links').value = input;
+      else if (m === 'keyword') $('keyword').value = input;
+      else $('video_url').value = input;
+      $('up').value = it.up || '';
+      $('pages').value = it.pages || 30;
+      const manual = it.manual || {};
+      $('manual_title').value = manual.title || '';
+      $('manual_author').value = manual.author || '';
+      $('manual_date').value = manual.date || '';
+      $('manual_cover').value = manual.cover || '';
+      $('manual_desc').value = manual.desc || '';
+
+      $('title').value = it.title || unit.title || '';
+      titleTouched = !!$('title').value;
+      renderRuns(d.runs || []);
+      $('submit').textContent = submitLabel();
+
+      const metaBits = [];
+      if (it.at) metaBits.push('上次 ' + fmtStamp(it.at));
+      metaBits.push(modeName(it.mode || m));
+      if (m === 'batch') {
+        const n = linksIn(it.input || '').length;
+        if (n) metaBits.push(n + ' 条链接');
+      }
+      metaBits.push('单元 id: ' + unitId);
+      showRecall('已带出上次采集信息,确认无误后点「确认重新采集」', metaBits.join(' · '));
+      if (!it.at) {
+        $('recall-meta').textContent = '该单元没有采集记录,已按现有数据回填(批量采集按现有条目链接回填),可自行调整';
+      }
+      statusBox.className = 'status';
+      statusBox.textContent = '';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // 只更新显示标题,不重新采集内容(仅重新采集状态可用)
+    $('btn-title-only').addEventListener('click', async () => {
+      if (!recollectId) return;
+      const title = $('title').value.trim();
+      if (!title) {
+        statusBox.className = 'status err';
+        statusBox.textContent = '标题不能为空';
+        return;
+      }
+      if (!confirm('确认只更新「' + recollectId + '」的显示标题?\n\n新标题: ' + title + '\n\n不会重新采集内容。')) return;
+      const btn = $('btn-title-only');
+      btn.disabled = true;
+      try {
+        const resp = await fetch(API_TITLE, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: recollectId, title: title })
+        });
+        const r = await readJSON(resp);
+        statusBox.className = 'status ' + (r.ok ? 'ok' : 'err');
+        statusBox.textContent = r.ok
+          ? '标题已更新为「' + r.title + '」(未重新采集)'
+          : (r.error || '更新失败');
+        if (r.ok) {
+          $('form-title').textContent = '重新采集 · ' + r.title;
+          loadTopics();
+        }
+      } catch (err) {
+        statusBox.className = 'status err';
+        statusBox.textContent = '更新失败: ' + err.message;
+      } finally { btn.disabled = false; }
+    });
 
     // 统一读取响应:若返回的不是 JSON(例如被静态托管接管、或服务端为旧版本),给出明确诊断
     async function readJSON(resp) {
@@ -290,17 +534,21 @@
             ? '<span class="topic-type single">单条</span>'
             : '<span class="topic-type">合集</span>';
           const enabled = t.enabled !== false;
+          const last = t.last_at
+            ? `<small title="${t.last_mode_label || ''}">上次采集 ${fmtStamp(t.last_at)}</small>`
+            : '';
           return `
           <div class="topic-item ${enabled ? '' : 'off'}">
             <div>
               ${typeTag}<a href="${t.page}" target="_blank">${t.title}</a>
               <small>${t.count} 条 · ${t.platform || 'B站'}${t.author ? ' · ' + t.author : ''} · id: ${t.id}</small>
+              ${last}
             </div>
             <div class="topic-actions">
               <button class="toggle-btn ${enabled ? '' : 'off'}" data-id="${t.id}" data-enabled="${enabled}">
                 ${enabled ? '显示中' : '已关闭'}
               </button>
-              <button class="toggle-btn" data-fill-id="${t.id}">重采此单元</button>
+              <button class="toggle-btn" data-fill-id="${t.id}">重新采集</button>
             </div>
           </div>`;
         }).join('');
@@ -331,14 +579,9 @@
             } finally { btn.disabled = false; }
           });
         });
-        // 点击「重采此单元」回填 id
+        // 「重新采集」:带出上次采集信息并切到重新采集状态,不自动采集,等用户确认
         box.querySelectorAll('[data-fill-id]').forEach(btn => {
-          btn.addEventListener('click', () => {
-            $('slug').value = btn.getAttribute('data-fill-id');
-            statusBox.className = 'status';
-            statusBox.textContent = '已填入单元 ID「' + $('slug').value + '」,填写关键词后采集即只更新该单元';
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          });
+          btn.addEventListener('click', () => fillFromUnit(btn.getAttribute('data-fill-id')));
         });
       }).catch(err => { $('topics').innerHTML = '<div class="tip">加载失败: ' + err.message + '</div>'; });
     }
@@ -389,7 +632,11 @@
           $('r-kept').textContent = d.kept;
           $('r-total').textContent = d.total;
           reportBox.classList.add('show');
-          if (!d.dry_run) loadTopics();
+          if (!d.dry_run) {
+            // 重新采集完成后回到新建状态,避免误以为还能继续改同一单元
+            if (recollectId) exitRecollect();
+            loadTopics();
+          }
         } else {
           statusBox.className = 'status err';
           statusBox.textContent = '失败: ' + (d.error || '未知错误');
@@ -406,8 +653,11 @@
     });
 
     $('reset').addEventListener('click', () => {
+      exitRecollect();
       form.reset();
       $('pages').value = 30;
+      $('title').value = '';
+      titleTouched = false;
       setMode(mode); // 恢复当前模式的按钮文字与必填状态
       statusBox.textContent = '';
       logBox.textContent = '';

@@ -299,3 +299,10 @@ Chrome 无头截图三页面全部正常:首页卡片标签独立行两行截断
 - **损坏识别**:新增 `IndexCorrupt`、`load_index(strict=)`、`index_status()`;`/api/health` 上报 `index_ok/index_count/index_error`;`/api/topics` 在索引损坏时返回 500 与具体原因,采集页据此显示原因,不再伪装成「暂无采集单元」。
 - **忽略项**:`backups/` 整体忽略,并预置个人收藏导出与 `topics.local.yml`。
 - **验证**:`py_compile` 通过;`--list` 11 个单元;临时数据目录实测索引正常/损坏两态、严格模式抛 `IndexCorrupt`、写入后无 `.tmp`、快照上限 10;`escHtml` 对 `<img onerror>` 与属性引号转义正确;5 个页面内联脚本 `node --check` 全通过;`/api/health` 返回 `index_ok:true,index_count:11`。
+
+### 13:30–13:50 M1 安全(默认仅本机 / 公网口令 / 静态白名单)
+- **启动方式**:`server.py` 改为 argparse,默认 `127.0.0.1:8765`;监听非本机地址但未设口令时打提示;`--api-only` 保留。
+- **公网模式**:`--public` 绑定 `0.0.0.0` 且必须提供口令(`--token` / `COLLECT_TOKEN`),否则启动即退出;写接口统一校验 `X-Collect-Token`(兼容 `?token=`),无效返回 401;`/api/health` 增加 `auth` 字段,公网模式不回显本机目录。
+- **静态白名单**:只放行 5 个展示页、采集页与 `assets/**`;`/.git`、`backups/`、`docs/`、`*.py`、`.github` 等返回 JSON 404。此前实测这些路径均为 200(源码、备份、git 配置可直接下载),本次已封堵。
+- **采集页**:新增口令输入框(仅 `auth=token` 时显示),所有请求改走 `apiFetch` 自动附带头;遇到 401 自动露出输入框。
+- **验证**:默认模式 4 个敏感路径 404、3 个正常页面 200;`--public` 无口令 exit 2;带口令时无头/错口令 401、正确口令正常;`py_compile` 与 `node --check` 通过。

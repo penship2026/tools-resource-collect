@@ -114,6 +114,19 @@
 
 ---
 
+### ✅ 9. M1 安全:默认仅本机 / 公网口令 / 静态白名单(2026-11-26 13:30–13:50)
+
+- **决策来源**:PLAN 的 D1、D2、D3、D17(顺带)
+- **落点**:
+  1. `server.py` 改 argparse:`--port/--host/--public/--token/--api-only`,保留数字位置参数;默认 `127.0.0.1`,监听非本机地址且无口令时给出提示。
+  2. `--public` 强制口令(`--token` 或 `COLLECT_TOKEN`),缺失直接退出(exit 2);所有 POST 接口校验 `X-Collect-Token`(兼容 `?token=`),失败 401。
+  3. 静态白名单:只放行 5 个展示页、`collector/collect.html`、`assets/**`,其余(含 `.git`/`backups`/`docs`/`*.py`/`.github`)一律 JSON 404。
+  4. `/api/health` 增加 `auth` 字段;公网模式不回显本机数据目录。
+  5. 采集页新增口令输入(仅 `auth=token` 时出现),所有接口调用走 `apiFetch` 自动带头;401 时自动露出一行提示。
+- **验证**:默认模式探测 `/.git/config`、`/backups/`、`/collector/generate.py`、`/docs/DEPLOY.md` 均 404,`index.html`/`style.css`/`collect.html` 均 200;`--public` 无口令 exit 2;`--public --token` 下无头 401、错口令 401、正确口令正常返回;`py_compile` 与 collect.html `node --check` 通过。
+
+---
+
 ## 新增待办
 
 - [ ] **清理旧架构遗留文件**:`topics/*.html`(9 个)与 `assets/data/*.js`(9 个旧根数据文件)已不被任何页面引用,建议确认后删除,减少仓库噪音(删除后可从 git 历史恢复)。

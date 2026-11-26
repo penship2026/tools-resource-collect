@@ -123,11 +123,13 @@ python3 collector/generate.py --migrate                              # 从旧版
 采集功能依赖一个**真实运行的 Python 进程**,不能只把 HTML 当静态站点托管,否则点「开始采集」会报 `Unexpected token '<' ... is not valid JSON`——因为 `/api/collect` 被静态服务器接走返回了 HTML。
 
 ```bash
-PORT=8080 python3 collector/server.py          # 监听 0.0.0.0;端口也可命令行传入
+python3 collector/server.py                    # 默认只监听 127.0.0.1:8765(仅本机)
+python3 collector/server.py --port 8080        # 改端口
 python3 collector/server.py 8080 --api-only    # 采集端专用:只提供 API + 采集页,静态展示交给独立 Web 服务
+python3 collector/server.py --public --token <口令>   # 对外访问:绑定 0.0.0.0,写接口必须带 X-Collect-Token
 ```
 
-部署后自检 `<地址>/api/health`,应返回 JSON 且 `writable: true`。反向代理需把 `/api/*` 转发到该进程,并用 `location /` 整体转发;详见 `docs/DEPLOY.md`。静态站托管到 GitHub Pages 见 `docs/GITHUB-PAGES.md`。
+部署后自检 `<地址>/api/health`,应返回 JSON 且 `writable: true`、`index_ok: true`。反向代理需把 `/api/*` 转发到该进程,并用 `location /` 整体转发;只要该地址能从公网访问,就应使用 `--public --token` 启动,详见 `docs/DEPLOY.md` 的「安全基线」。静态站托管到 GitHub Pages 见 `docs/GITHUB-PAGES.md`。
 
 采集端与展示端可分离部署(同机/同容器共享数据目录,或不同机器挂载同一共享卷),两端用相同的环境变量 `VIDEO_DATA_DIR` 指向共享目录即可。
 

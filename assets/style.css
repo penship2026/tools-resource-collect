@@ -249,16 +249,17 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 .mine-hero-copy { flex: 1; min-width: 0; }
 .mine-hero-title {
   position: relative; display: block; padding-right: 30px;
-  font-family: var(--font-display); font-size: clamp(26px, 3.2vw, 36px);
-  line-height: 1.3; font-weight: 680; letter-spacing: -.4px;
-  white-space: pre-line;
+  font-family: var(--font-display); font-size: var(--fs-hero);
+  line-height: 1.22; font-weight: 680; letter-spacing: -.8px;
 }
+/* 只让标题文本保留换行;放在 h2 上会把 HTML 缩进里的换行也渲染成空行 */
+.mine-hero-title #mine-title { white-space: pre-line; }
 .mine-hero-title .mine-title-input {
   font-family: var(--font-display); font-size: 22px; max-width: 420px;
   line-height: 1.35; resize: vertical;
 }
 .mine-hero-sub {
-  margin-top: 12px; font-size: 16px; line-height: 1.7;
+  margin-top: 14px; font-size: 16px; line-height: 1.65;
   color: var(--text-sub); max-width: 640px;
   white-space: pre-line;
 }

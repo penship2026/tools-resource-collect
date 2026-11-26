@@ -261,6 +261,12 @@
 - hero 用 `white-space: pre-line` 保留换行;✎ 改为绝对定位到标题右上,避免多行时图标错位;行内编辑 Enter 换行、⌘/Ctrl+Enter 保存。
 - `document.title` 自动压成单行;存储键和导出包结构不变。34 Python + 10 node 用例、docs-check 通过;仅本地提交,不推送。
 
+### ✅ 27. 我的页 hero 与公开首页对齐(D49)(2026-11-26)
+
+- 修复标题/副标题间隙过大:根因是 `pre-line` 挂在 `h2` 上把 HTML 缩进保留成空行;改为只作用于 `#mine-title` 文本。
+- 标题字号/行高/字距对齐 `.hero h1`(`var(--fs-hero)` / 1.22 / -.8px),副标题对齐 `.hero .sub`(14px 间距、16px/1.65)。
+- 与公开首页并排截图验证一致;34 Python + 10 node 用例、docs-check 通过。仅本地提交,不推送。
+
 ---
 
 ## 新增待办

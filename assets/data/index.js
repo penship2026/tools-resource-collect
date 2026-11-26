@@ -7,59 +7,64 @@ window.SITE = {
 };
 window.COLLECTION_INDEX = [
   {
-    "id": "bv1j4w16reys",
-    "title": "不上班靠AI提车买房！",
+    "id": "bv1uks66oeeh",
+    "type": "single",
+    "title": "2027吃透SpringAI2.0+Agent-utils全套系统教程，3天仿一个Claude Code代码助手项目实战，让你少走99%的弯路！",
     "slogan": "单条视频精选 · 点击进入详情页",
     "source": {
       "platform": "bilibili",
-      "name": "椰子酱的AI日常",
-      "url": "https://space.bilibili.com/3546380240947989/video"
+      "name": "图灵官方",
+      "url": "https://space.bilibili.com/478728117/video"
     },
-    "count": 1,
-    "cover": "http://i2.hdslb.com/bfs/archive/ca6323ceae54d29f7f5068dd8a98053d34fdc5c3.jpg",
-    "latest": "2026.11.11",
-    "type": "single",
-    "enabled": true,
-    "created": "",
-    "updated": "2026-11-25",
-    "keyword": "",
+    "keyword": "https://www.bilibili.com/video/BV1UKs66oEeh/?trackid=web_pegasus_0.router-web-pegasus-2479516-gfll4.1795678968904.781&spm_id_from=333.1007.tianma.5-2-16.click",
     "tags": [
-      "B站AI无限竞技场",
-      "创业",
-      "日常",
       "人工智能",
-      "生活记录",
-      "学习",
+      "程序员",
       "AI",
-      "素人",
-      "AI绘画",
-      "AI副业"
-    ]
+      "计算机",
+      "SpringAI",
+      "Claude Code",
+      "Java",
+      "大模型",
+      "Agent"
+    ],
+    "count": 1,
+    "updated": "2026-11-26",
+    "latest": "2026.11.17",
+    "cover": "http://i2.hdslb.com/bfs/archive/4da6ca7a7f48bc0135a58ef20c4f1af98f87cb24.jpg",
+    "last_at": "2026-11-26 16:50",
+    "last_mode": "url",
+    "last_mode_label": "按链接采集",
+    "created": "2026-11-26",
+    "enabled": true
   },
   {
-    "id": "daily-website",
+    "id": "topic-4e6ee53f",
     "type": "series",
-    "title": "每天挖掘一个神奇网站",
-    "slogan": "共收录 24 期,点击分集在当前页播放",
+    "title": "大模型对比",
+    "slogan": "共收录 2 期,点击分集在当前页播放",
     "source": {
       "platform": "bilibili",
-      "name": "草根的异世界",
-      "url": "https://space.bilibili.com/3690973370517975/video"
+      "name": "解压秘境",
+      "url": "https://space.bilibili.com/3747567349271037/video"
     },
-    "keyword": "每天挖掘一个神奇网站",
-    "count": 24,
-    "cover": "https://i2.hdslb.com/bfs/archive/2a2da89665dc1cc8f21f1837861f833731fb51df.png",
-    "latest": "2026.11.19",
-    "updated": "2026-11-25",
-    "enabled": true,
-    "created": "",
+    "keyword": "大模型对比",
     "tags": [
-      "拼音拼读",
-      "拼音识字",
-      "实用工具",
-      "汉语拼音",
-      "网站推荐"
-    ]
+      "B站AI无限竞技场",
+      "AI",
+      "大模型对比",
+      "AI大模型对比",
+      "创作灵感"
+    ],
+    "count": 2,
+    "updated": "2026-11-26",
+    "latest": "2026.11.24",
+    "cover": "https://i0.hdslb.com/bfs/archive/cd52743195fa9e690f91595ccd588976ae7790cc.jpg",
+    "last_at": "2026-11-26 09:42",
+    "last_mode": "keyword",
+    "last_mode_label": "按主题采集",
+    "enabled": true,
+    "created": ""
   },
   {
     "id": "wx-nxpxhhghan9dvfzoat5avg",
@@ -284,63 +289,58 @@ window.COLLECTION_INDEX = [
     ]
   },
   {
-    "id": "topic-4e6ee53f",
-    "type": "series",
-    "title": "大模型对比",
-    "slogan": "共收录 2 期,点击分集在当前页播放",
-    "source": {
-      "platform": "bilibili",
-      "name": "解压秘境",
-      "url": "https://space.bilibili.com/3747567349271037/video"
-    },
-    "keyword": "大模型对比",
-    "tags": [
-      "B站AI无限竞技场",
-      "AI",
-      "大模型对比",
-      "AI大模型对比",
-      "创作灵感"
-    ],
-    "count": 2,
-    "updated": "2026-11-26",
-    "latest": "2026.11.24",
-    "cover": "https://i0.hdslb.com/bfs/archive/cd52743195fa9e690f91595ccd588976ae7790cc.jpg",
-    "last_at": "2026-11-26 09:42",
-    "last_mode": "keyword",
-    "last_mode_label": "按主题采集",
-    "enabled": true,
-    "created": ""
-  },
-  {
-    "id": "bv1uks66oeeh",
-    "type": "single",
-    "title": "2027吃透SpringAI2.0+Agent-utils全套系统教程，3天仿一个Claude Code代码助手项目实战，让你少走99%的弯路！",
+    "id": "bv1j4w16reys",
+    "title": "不上班靠AI提车买房！",
     "slogan": "单条视频精选 · 点击进入详情页",
     "source": {
       "platform": "bilibili",
-      "name": "图灵官方",
-      "url": "https://space.bilibili.com/478728117/video"
+      "name": "椰子酱的AI日常",
+      "url": "https://space.bilibili.com/3546380240947989/video"
     },
-    "keyword": "https://www.bilibili.com/video/BV1UKs66oEeh/?trackid=web_pegasus_0.router-web-pegasus-2479516-gfll4.1795678968904.781&spm_id_from=333.1007.tianma.5-2-16.click",
-    "tags": [
-      "人工智能",
-      "程序员",
-      "AI",
-      "计算机",
-      "SpringAI",
-      "Claude Code",
-      "Java",
-      "大模型",
-      "Agent"
-    ],
     "count": 1,
-    "updated": "2026-11-26",
-    "latest": "2026.11.17",
-    "cover": "http://i2.hdslb.com/bfs/archive/4da6ca7a7f48bc0135a58ef20c4f1af98f87cb24.jpg",
-    "last_at": "2026-11-26 16:50",
-    "last_mode": "url",
-    "last_mode_label": "按链接采集",
-    "created": "2026-11-26",
-    "enabled": true
+    "cover": "http://i2.hdslb.com/bfs/archive/ca6323ceae54d29f7f5068dd8a98053d34fdc5c3.jpg",
+    "latest": "2026.11.11",
+    "type": "single",
+    "enabled": true,
+    "created": "",
+    "updated": "2026-11-25",
+    "keyword": "",
+    "tags": [
+      "B站AI无限竞技场",
+      "创业",
+      "日常",
+      "人工智能",
+      "生活记录",
+      "学习",
+      "AI",
+      "素人",
+      "AI绘画",
+      "AI副业"
+    ]
+  },
+  {
+    "id": "daily-website",
+    "type": "series",
+    "title": "每天挖掘一个神奇网站",
+    "slogan": "共收录 24 期,点击分集在当前页播放",
+    "source": {
+      "platform": "bilibili",
+      "name": "草根的异世界",
+      "url": "https://space.bilibili.com/3690973370517975/video"
+    },
+    "keyword": "每天挖掘一个神奇网站",
+    "count": 24,
+    "cover": "https://i2.hdslb.com/bfs/archive/2a2da89665dc1cc8f21f1837861f833731fb51df.png",
+    "latest": "2026.11.19",
+    "updated": "2026-11-25",
+    "enabled": true,
+    "created": "",
+    "tags": [
+      "拼音拼读",
+      "拼音识字",
+      "实用工具",
+      "汉语拼音",
+      "网站推荐"
+    ]
   }
 ];

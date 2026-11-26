@@ -537,8 +537,18 @@ def write_text_atomic(path, text, snapshot=False):
     return path
 
 
+def unit_sort_key(item):
+    """索引排序键:采集时间(last_at)优先,缺失时退回更新日期;降序展示,新采集在前"""
+    stamp = str(item.get("last_at") or "").strip()
+    if not stamp:
+        updated = str(item.get("updated") or "").strip()
+        stamp = (updated + " 00:00") if updated else ""
+    return (stamp, str(item.get("created") or "").strip())
+
+
 def write_index(items, updated):
-    """重写采集单元索引文件"""
+    """重写采集单元索引文件(按采集时间降序,新采集的排最前)"""
+    items = sorted(items, key=unit_sort_key, reverse=True)
     lines = [
         "// 采集单元索引,由 generate.py 自动生成",
         "// 挂到 window 上,页面中用 window.COLLECTION_INDEX 读取(const 不会挂到 window)",
@@ -586,7 +596,7 @@ load_topic_data = load_collection_data
 def meta_from_collection(collection, created=None):
     """从采集单元提取索引元信息(不含视频列表,采集记录也只留摘要,避免索引膨胀)"""
     meta = {k: v for k, v in collection.items()
-            if k not in ("videos", "runs", "intake")}
+            if k not in ("videos", "runs", "intake", "season")}
     videos = collection.get("videos") or []
     if videos:
         meta["cover"] = videos[0].get("cover", "")
@@ -627,7 +637,7 @@ def save_collection(collection, index):
 
 
 def _finalize_unit(uid, unit_type, title, slogan, source, videos, tags, keyword,
-                   existing_data, intake, report, index, platforms=None):
+                   existing_data, intake, report, index, platforms=None, season=None):
     """D15:采集单元收口的唯一实现。
 
     组装字段(id/type/title/slogan/source/keyword/tags/count/videos,可选 platforms)
@@ -645,6 +655,8 @@ def _finalize_unit(uid, unit_type, title, slogan, source, videos, tags, keyword,
         "count": len(videos),
         "videos": videos,
     }
+    if season:
+        collection["season"] = season
     if platforms:
         collection["platforms"] = list(platforms)
     collection = attach_intake(collection, existing_data, intake, report)
@@ -1103,6 +1115,8 @@ def collect_topic(keyword, pages=30, title=None, up=None, slug=None,
     result.update(report)
     result["sample_url"] = videos[0]["url"] if videos else ""
 
+    unit_type = "series" if len(videos) > 1 else "single"
+    result["type"] = unit_type
     log("%s: 新增 %d / 更新 %d / 未变 %d / 合计 %d 期" % (
         "覆盖采集" if replace else "去重合并",
         report["added"], report["updated"], report["kept"], report["total"]))
@@ -1173,6 +1187,7 @@ def collect_topic(keyword, pages=30, title=None, up=None, slug=None,
         platforms=plat_list)
 
     result["ok"] = True
+    result["type"] = unit_type
     result["data_file"] = display_path(data_path)
     result["page_file"] = page_path
     result["topic_count"] = len(index)
@@ -1279,6 +1294,53 @@ def bili_season(x):
     return {"title": sg.get("title") or "", "id": sg.get("id"), "episodes": eps}
 
 
+def bili_season_records(x):
+    """把合集里的每一集都转成站点视频条目(不额外请求详情接口)
+
+    ugc_season 的 episodes[].arc 已带标题/封面/发布时间/时长/播放数/作者,
+    一条 view 响应即可补齐整个合集,避免逐集请求触发风控。
+    """
+    sg = x.get("ugc_season") or {}
+    out = []
+    for sec in sg.get("sections") or []:
+        for e in sec.get("episodes") or []:
+            arc = e.get("arc") or {}
+            bvid = e.get("bvid") or ""
+            if not bvid:
+                continue
+            cover = arc.get("pic") or ""
+            if cover.startswith("//"):
+                cover = "https:" + cover
+            pub = arc.get("pubdate") or 0
+            try:
+                date = datetime.datetime.fromtimestamp(pub).strftime("%Y.%m.%d")
+            except Exception:
+                date = "—"
+            author = ((arc.get("author") or {}).get("name")
+                      or (x.get("owner") or {}).get("name") or "")
+            pages = e.get("pages") or []
+            item = {
+                "platform": "bilibili",
+                "kind": "video",
+                "key": "bilibili:%s" % bvid,
+                "title": clean_html(arc.get("title") or e.get("title") or ""),
+                "bv": bvid,
+                "url": "https://www.bilibili.com/video/%s/" % bvid,
+                "cover": cover,
+                "views": str((arc.get("stat") or {}).get("view", 0)),
+                "date": date,
+                "ts": pub,
+                "author": author,
+                "desc": clean_html(arc.get("desc") or "")[:160],
+            }
+            if len(pages) > 1:
+                item["parts"] = [{"p": p.get("page"), "title": clean_html(p.get("part") or ""),
+                                  "duration": p.get("duration") or 0, "cid": p.get("cid")}
+                                 for p in pages]
+            out.append(item)
+    return out
+
+
 def fetch_video_by_bvid(bvid, log=print):
     """调用 B站 视频详情 API 获取单条视频,返回搜索API同构的 dict,供 normalize 复用"""
     url = "https://api.bilibili.com/x/web-interface/view?" + urllib.parse.urlencode({"bvid": bvid})
@@ -1302,6 +1364,8 @@ def fetch_video_by_bvid(bvid, log=print):
         # 详情页扩展:多分P目录 / 所属合集(没有则为空)
         "parts": bili_parts(x),
         "season": bili_season(x),
+        # 原始合集结构(不落库):单条采集时用来一次补齐所有分集记录
+        "ugc_season": x.get("ugc_season"),
     }
 
 
@@ -1638,6 +1702,17 @@ def _collect_bilibili_single(url, title=None, slug=None, slogan=None, dry_run=Fa
         video["tags"] = tags
         log("标签: %s" % " / ".join(tags[:6]))
     incoming = [video] if video.get("bv") else []
+    # 单条采集命中所属合集时,把合集内每一集也作为记录一并入库(一次 view 响应即可)
+    season_items = bili_season_records(raw) if raw.get("ugc_season") else []
+    if season_items:
+        known = {video.get("key")}
+        for item in season_items:
+            if item.get("key") not in known:
+                known.add(item.get("key"))
+                incoming.append(item)
+        log("所属合集「%s」共 %d 集,一并采集 %d 条记录" % (
+            (video.get("season") or {}).get("title") or "B站合集",
+            len((video.get("season") or {}).get("episodes") or []), len(incoming)))
     if not incoming:
         result["error"] = "视频数据不完整,无法生成单元"
         return result
@@ -1663,6 +1738,8 @@ def _collect_bilibili_single(url, title=None, slug=None, slogan=None, dry_run=Fa
                                     incoming, replace)
     result.update(report)
     result["sample_url"] = videos[0]["url"] if videos else ""
+    unit_type = "series" if len(videos) > 1 else "single"
+    result["type"] = unit_type
     log("%s: 新增 %d / 更新 %d / 未变 %d / 合计 %d 期" % (
         "覆盖采集" if replace else "去重合并",
         report["added"], report["updated"], report["kept"], report["total"]))
@@ -1688,21 +1765,28 @@ def _collect_bilibili_single(url, title=None, slug=None, slogan=None, dry_run=Fa
         result["topic_count"] = len(index)
         return result
 
-    page_path = "single.html?id=%s" % uid
-    final_slogan = slogan or "单条视频精选 · 点击进入详情页"
+    unit_type = "series" if len(videos) > 1 else "single"
+    page_path = "%s.html?id=%s" % (unit_type, uid)
+    final_slogan = slogan or (
+        "共收录 %d 集 · 点击分集在当前页播放" % len(videos) if len(videos) > 1
+        else "单条视频精选 · 点击进入详情页")
     # 单元标签:视频标签优先;没有标签时退回标题关键词,保证首页筛选有内容
     unit_tags = list(tags)
     if not unit_tags:
         kw = re.sub(r"\s+", "", final_title or "")
         unit_tags = [kw] if kw else []
+    if season_items and not (title or "").strip():
+        final_title = (video.get("season") or {}).get("title") or final_title
     data_path, index = _finalize_unit(
-        uid, "single", final_title, final_slogan,
+        uid, unit_type, final_title, final_slogan,
         {"platform": "bilibili", "name": video["author"],
          "url": ("https://space.bilibili.com/%s/video" % raw.get("mid"))
                 if raw.get("mid") else video["url"]},
-        videos, unit_tags, url, existing_data, intake, report, index)
+        videos, unit_tags, url, existing_data, intake, report, index,
+        season=(video.get("season") if season_items else None))
 
     result["ok"] = True
+    result["type"] = unit_type
     result["data_file"] = display_path(data_path)
     result["page_file"] = page_path
     result["topic_count"] = len(index)

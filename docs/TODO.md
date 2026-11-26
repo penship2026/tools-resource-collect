@@ -317,6 +317,13 @@
 - `mountPartsPlayer()` 支持点分集/分P 直接改 iframe src 切播,高亮当前集,兜底外链与「正在播放」文案同步。
 - `guwen-animation` 12 P 与「鬼畜热点」53 集截图验证滑动/展开/切播;node 12 例、Python 36 例、verify 0 问题、docs-check 通过。
 
+### ✅ 36. 索引按采集时间排序 + 单条采集展开合集(D57)(2026-11-26)
+
+- `unit_sort_key()` + `write_index()` 统一按 `last_at` 降序,新采集排最前;无时间老单元按 updated 兜底。
+- `bili_season_records()` 从一次 view 响应的 `ugc_season` 直接生成全集合集记录,单条采集命中合集时自动入库并转为 series。
+- 合集目录提升为单元级 `season`(索引不含该字段),每集详情页通过 `opts.season` 兜底展示目录。
+- 实测 53 集合集单链采集;补全 `bv1uks66oeeh` 的 21 P;38 Python + 12 node、verify/docs-check 全通过。仅本地提交,不推送。
+
 ---
 
 ## 新增待办

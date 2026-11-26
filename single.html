@@ -380,7 +380,7 @@
         document.body.setAttribute('data-tpl', out.tpl);
         // 多集内容:详情下方追加「上一集 / 下一集」与全集列表
         // 分集目录:放在播放区下方;有目录时不再重复渲染底部的全集列表
-        var dir = Render.parts(v, { unitId: id, videos: all });
+        var dir = Render.parts(v, { unitId: id, videos: all, season: topic.season });
         root.innerHTML = out.html + (dir ? '' : Render.episodes(v, all, topic.title, id));
         var slot = root.querySelector('.parts-slot');
         if (slot) slot.innerHTML = dir;

@@ -290,7 +290,7 @@
   function parts(video, opts) {
     opts = opts || {};
     var parts = (video && video.parts) || [];
-    var season = video && video.season;
+    var season = (video && video.season) || opts.season || null;
     var out = '';
 
     function strip(heading, note, chips) {

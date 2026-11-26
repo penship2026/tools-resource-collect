@@ -439,3 +439,9 @@ Chrome 无头截图三页面全部正常:首页卡片标签独立行两行截断
 - 重写 Render.parts 为横向 chip 条(序号/标题/时长 + data-play-*),B站模板播放器下方插入 parts-slot;有目录时不再渲染页底全集列表。
 - single.html 增加 mountPartsPlayer:点分集改 iframe src 切播、当前集高亮、兜底链接与「正在播放」同步,history 记 pen;「展开全部」切两列网格。
 - 12 P 与 53 集两条真实数据截图验证滑动/展开/切播;parts 的 node 用例改为 chip 断言;顺带把 3 处旧 slogan 文案改掉,并 normalize 掉一个未归一化的本地单元。仅本地改动,未推送。
+
+### 09:10–10:05 索引排序与单条采集展开合集
+- 索引写入前按 last_at 降序(缺省用 updated),新采集单元置顶;现有 12 个单元重排一次。
+- 单链采集 B站 命中 ugc_season 时,用同一次 view 响应的 arc 字段生成全集合集记录,不额外请求;单元转 series、标题取合集名。
+- 合集目录改存单元根 season(索引剔除),详情页用 opts.season 兜底,保证每集都能看到目录。
+- 实测 53 集单链采集无重复;补全新单元 21 个分P;测试/verify/docs-check 通过。仅本地提交,未推送。

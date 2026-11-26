@@ -130,6 +130,11 @@ ok('parts 渲染分P目录与所属合集', () => {
   assert(html.includes('1:00:00'));
   // 不再跳站内详情页
   assert(!html.includes('single.html?id='));
+  // 单元级合集:视频自身没 season 时,用 opts.season 兜底
+  const html2 = R.parts({ bv: 'BV1zz', parts: [{ p: 1, title: 'A', duration: 60 }] },
+    { season: { title: '单元合集', episodes: [{ bvid: 'BV1aa', title: '合集A', duration: 61 }] } });
+  assert(html2.includes('所属合集 · 单元合集'));
+  assert(html2.includes('data-play-bvid="BV1aa"'));
 });
 
 ok('episodes 单条时不渲染导航', () => {

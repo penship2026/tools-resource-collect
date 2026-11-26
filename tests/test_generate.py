@@ -49,6 +49,35 @@ class GenerateDataTest(unittest.TestCase):
     def write_index(self, items):
         generate.write_index(items, "2026-11-26")
 
+    def test_index_sorted_by_last_at_desc(self):
+        items = [
+            {"id": "old", "type": "single", "count": 1, "last_at": "2026-11-25 08:00", "updated": "2026-11-25"},
+            {"id": "new", "type": "series", "count": 2, "last_at": "2026-11-26 16:50", "updated": "2026-11-26"},
+            {"id": "mid", "type": "single", "count": 1, "last_at": "2026-11-26 09:42", "updated": "2026-11-26"},
+            {"id": "legacy", "type": "single", "count": 1, "updated": "2026-11-24"},
+        ]
+        self.write_index(items)
+        self.assertEqual([t["id"] for t in generate.load_index()], ["new", "mid", "old", "legacy"])
+
+    def test_season_records_from_view_payload(self):
+        x = {"owner": {"name": "默认作者"}, "ugc_season": {
+            "title": "测试合集", "sections": [{"title": "第一节", "episodes": [
+                {"bvid": "BV1aa", "title": "第一集", "arc": {
+                    "title": "第一集", "pic": "//i0.hdslb.com/a.jpg", "pubdate": 1744472674,
+                    "duration": 402, "stat": {"view": 1163419},
+                    "author": {"name": "作者甲"}, "desc": "简介"}},
+                {"bvid": "BV1bb", "title": "第二集", "arc": {
+                    "title": "第二集", "pic": "http://i0.hdslb.com/b.jpg", "pubdate": 1744559074},
+                    "pages": [{"page": 1, "part": "上", "duration": 60, "cid": 1},
+                              {"page": 2, "part": "下", "duration": 61, "cid": 2}]}
+            ]}]}}
+        items = generate.bili_season_records(x)
+        self.assertEqual([i["key"] for i in items], ["bilibili:BV1aa", "bilibili:BV1bb"])
+        self.assertEqual(items[0]["cover"], "https://i0.hdslb.com/a.jpg")
+        self.assertEqual(items[0]["author"], "作者甲")
+        self.assertEqual(items[0]["views"], "1163419")
+        self.assertEqual(len(items[1]["parts"]), 2)
+
     def test_missing_index_is_not_corrupt(self):
         self.assertEqual(generate.load_index(strict=True), [])
         self.assertTrue(generate.index_status()["ok"] is False)

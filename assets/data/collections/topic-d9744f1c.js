@@ -1,8 +1,8 @@
-// 采集单元数据: 央广网 · 4 条合集 (由 generate.py 生成)
+// 采集单元数据: 黄仁勋辞退风波 (由 generate.py 生成)
 window.COLLECTION_DATA["topic-d9744f1c"] = {
   "id": "topic-d9744f1c",
   "type": "series",
-  "title": "央广网 · 4 条合集",
+  "title": "黄仁勋辞退风波",
   "slogan": "共收录 4 条内容 · 公众号",
   "source": {
     "platform": "公众号",

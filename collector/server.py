@@ -148,6 +148,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     # 老单元没有采集记录时,至少能用当初的关键词/链接回填
                     "keyword": data.get("keyword") or meta.get("keyword", ""),
                     "last_at": meta.get("last_at", ""),
+                    # 当前是否在首页显示:重新采集态据此显示「下线不显示 / 重新上线显示」
+                    "enabled": meta.get("enabled", True) is not False,
                 },
             })
             return

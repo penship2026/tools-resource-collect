@@ -45,6 +45,9 @@
     }
     .btn:disabled { opacity: .55; cursor: not-allowed; }
     .btn.ghost { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+    /* 下线 / 破坏性动作:用低饱和红色区分,避免误点 */
+    .btn.ghost.danger { color: #c0392b; border-color: #efd6d2; }
+    .btn.ghost.danger:hover { background: #fdf4f2; }
     .logbox {
       background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm);
       padding: 14px; margin-top: 20px; font-family: var(--font-mono); font-size: 12px;
@@ -183,6 +186,7 @@
           <button class="btn" id="submit" type="submit">采集这条内容</button>
           <button class="btn ghost" id="reset" type="button">清空</button>
           <button class="btn ghost" id="btn-title-only" type="button" hidden>仅更新标题(不重新采集)</button>
+          <button class="btn ghost danger" id="btn-offline" type="button" hidden>下线不显示</button>
 
           <!-- 可选设置:默认折叠,需要手工补录时再展开 -->
           <details class="advanced" id="field-advanced">
@@ -239,7 +243,8 @@
         <h2>已有采集单元</h2>
         <div id="topics"><div class="tip">加载中…</div></div>
         <p class="tip" style="margin-top:18px">
-          点「重新采集」只会把上次填写的采集信息带回左侧表单,确认后再执行,不会自动采集;需要时也可以只改显示标题。
+          点「重新采集」只会把上次填写的采集信息带回左侧表单(并默认展开全部可选设置),确认后再执行,不会自动采集;
+          需要时也可以只改显示标题,或直接「下线不显示」(数据保留,可随时重新上线)。
           采集是独立单元,可单独开启/关闭首页显示(关闭后数据保留,只是不展示);按内容唯一键去重(B站=BV 号,公众号=原文地址,小红书=笔记 ID)。
         </p>
       </div>
@@ -265,6 +270,7 @@
     let titleTouched = false;   // 用户是否手动改过标题(改过就不再被自动生成的默认值覆盖)
     let lastAutoTitle = '';     // 上一次自动生成的默认标题,切方式时据此判断是否可以清掉
     let recollectId = '';       // 非空 = 正在重新采集该单元;为空 = 新建采集
+    let recollectEnabled = true; // 该单元当前是否在首页显示(重新采集态用于「下线 / 重新上线」)
 
     function submitLabel() {
       if (recollectId) return '确认重新采集';
@@ -368,15 +374,24 @@
     function hideRecall() { $('recall').hidden = true; }
     $('recall-close').addEventListener('click', hideRecall);
 
-    // 退出重新采集:回到「新建采集」,只改标题的入口一并收起
+    // 退出重新采集:回到「新建采集」,只改标题/下线入口一并收起,可选设置恢复默认折叠
     function exitRecollect() {
       recollectId = '';
+      recollectEnabled = true;
       $('slug').value = '';
       $('btn-title-only').hidden = true;
+      $('btn-offline').hidden = true;
+      $('btn-offline').textContent = '下线不显示';
+      $('field-advanced').open = false;
       hideRecall();
       renderRuns([]);
       $('form-title').textContent = '新建采集任务';
       $('submit').textContent = submitLabel();
+    }
+
+    // 下线按钮:上线中显示「下线不显示」,已下线显示「重新上线显示」
+    function syncOfflineButton() {
+      $('btn-offline').textContent = recollectEnabled ? '下线不显示' : '重新上线显示';
     }
     $('recall-exit').addEventListener('click', () => {
       exitRecollect();
@@ -417,14 +432,20 @@
       const m = it.mode || (unit.type === 'series' ? 'keyword' : 'url');
 
       recollectId = unitId;
+      recollectEnabled = unit.enabled !== false;
       $('slug').value = unitId;
       $('form-title').textContent = '重新采集 · ' + (unit.title || unitId);
       $('btn-title-only').hidden = false;
+      $('btn-offline').hidden = false;
+      syncOfflineButton();
+      // 重新采集时默认展开全部可选设置,方便核对上次的补录信息后再执行
+      $('field-advanced').open = true;
 
       setMode(m, { keepStatus: true });
       // 老单元没有采集记录时:批量按现有条目链接回填,其余用当初的关键词/链接
       let input = it.input || '';
       if (!input && m === 'batch') input = (d.links || []).join('\n');
+      if (!input && m === 'url') input = (d.links || [])[0] || '';
       if (!input && unit.keyword && unit.keyword !== 'batch') input = unit.keyword;
       if (m === 'batch') $('batch_links').value = input;
       else if (m === 'keyword') $('keyword').value = input;
@@ -489,6 +510,39 @@
       } catch (err) {
         statusBox.className = 'status err';
         statusBox.textContent = '更新失败: ' + err.message;
+      } finally { btn.disabled = false; }
+    });
+
+    // 下线 / 重新上线:只切首页显示开关,不采集、不动内容(仅重新采集状态可用)
+    $('btn-offline').addEventListener('click', async () => {
+      if (!recollectId) return;
+      const next = !recollectEnabled; // true=重新上线,false=下线
+      const msg = next
+        ? '确认把「' + recollectId + '」重新上线显示?\n\n数据原样保留,首页会重新出现该单元。'
+        : '确认把「' + recollectId + '」下线不显示?\n\n数据会保留,只是首页与聚合列表不再展示,\n之后在「重新采集」里可随时重新上线。';
+      if (!confirm(msg)) return;
+      const btn = $('btn-offline');
+      btn.disabled = true;
+      try {
+        const resp = await fetch(API_TOGGLE, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: recollectId, enabled: next })
+        });
+        const r = await readJSON(resp);
+        statusBox.className = 'status ' + (r.ok ? 'ok' : 'err');
+        if (r.ok) {
+          recollectEnabled = r.enabled !== false;
+          syncOfflineButton();
+          statusBox.textContent = recollectEnabled
+            ? '「' + (r.title || recollectId) + '」已重新上线,首页恢复显示'
+            : '「' + (r.title || recollectId) + '」已下线,首页不再显示(数据保留,可点「重新上线显示」恢复)';
+          loadTopics();
+        } else {
+          statusBox.textContent = r.error || '操作失败';
+        }
+      } catch (err) {
+        statusBox.className = 'status err';
+        statusBox.textContent = '操作失败: ' + err.message;
       } finally { btn.disabled = false; }
     });
 

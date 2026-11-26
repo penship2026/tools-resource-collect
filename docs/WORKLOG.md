@@ -340,3 +340,6 @@ Chrome 无头截图三页面全部正常:首页卡片标签独立行两行截断
 - **四页改写**:删掉各自的卡片与详情模板、`row`/`pills`/`shortTitle`/`buildEpisodeNav`、重复的 `PLAT_COLORS`/`fmtDate`,只留容器、路由、数据加载;`detailHref` 统一走 `Render.detailHref`。
 - **回归**:新增 `tests/test_render.js`(10 个视图层用例)与 `tests/test_pages.py`(渲染层引用/无重复实现/内联脚本语法/node 用例);`docs_check.py` 增加页面契约检查。
 - **验证**:26 个 Python 用例 + 10 个 node 用例通过;`--verify` 通过;8894 端口 9 个路径 200。
+
+### 18:00 launchd 兜底暂停
+- 按用户要求暂停本机定时任务:`launchctl bootout gui/501/com.jiye.collect` + `launchctl disable gui/501/com.jiye.collect`(持久禁用,登录不再自动加载);plist 保留,恢复方式写入 `docs/DEPLOY.md`。

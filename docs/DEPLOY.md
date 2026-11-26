@@ -376,6 +376,15 @@ python3 collector/backup_data.py backup --out /mnt/nas/backup            # 备�
 
 ## 十、本机 macOS 定时采集（launchd，形态 A 的兜底）
 
+> **当前状态（2026-11-26）**：本机 launchd 任务已按要求**暂停**——已从 `gui/501` 卸载并 `disable`，下次登录不会自动恢复。需要重启时执行：
+>
+> ```bash
+> launchctl enable gui/$UID/com.jiye.collect
+> launchctl bootstrap gui/$UID ~/Library/LaunchAgents/com.jiye.collect.plist
+> ```
+>
+> plist 文件仍保留在 `~/Library/LaunchAgents/com.jiye.collect.plist`，无需重新生成。
+
 GitHub Actions 是主力调度（每天 07:00），本机 launchd 作为兜底（默认 08:10），两者**错开时间、不要同时跑**——它们写同一份 `assets/data`，约定「先提交者为准」。
 
 ### 1. 安装

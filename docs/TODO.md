@@ -174,11 +174,16 @@
 ### ✅ 14. D21 视图层收口:`assets/render.js`(2026-11-26 17:00–18:00)
 
 - **新增 `assets/render.js`**(唯一渲染实现,约 380 行):`topicCard`(首页主题卡片)、`videoCard`(合集/列表条目卡片,支持平台标签、摘要、右侧元信息、收藏按钮插槽)、`detail`(B站/公众号/小红书/兜底四模板,返回 `{tpl, label, html}`)、`episodes`(上一集/下一集 + 全集列表)、`detailHref`/`itemKey`/`fmtDate`/`shortTitle`/`platColor`/`esc`。
-- **页面变化**:四个页面删掉各自的 `cardHtml`/四套详情模板/`row`/`pills`/`shortTitle`/`buildEpisodeNav`/重复的 `PLAT_COLORS` 与 `fmtDate`,只保留容器、路由与数据加载;`index`/`series`/`list`/`single` 依次改为调用 `Render.*`。
+- **页面变化**:四个展示页删掉各自的 `cardHtml`/四套详情模板/`row`/`pills`/`shortTitle`/`buildEpisodeNav`/重复的 `PLAT_COLORS` 与 `fmtDate`,只保留容器、路由与数据加载;`index`/`series`/`list`/`single` 依次改为调用 `Render.*`。
 - **顺带的收益**:`detailHref` 收敛到一处(站内路由只允许一处实现,天然满足"D24 路由属表现层")；模板/卡片 HTML 不再和页面混写。
 - **契约检查**:新增 `tests/test_pages.py`(页面必须在页面脚本前加载 `render.js`、必须调用 `Render.*`、页面内不得再出现卡片 HTML 片段、5 页必须加载 `theme.js`、5 页内联脚本 `node --check`、跑 `tests/test_render.js`)与 `tests/test_render.js`(10 个视图层用例:四模板结构、转义、上/下一集、路由编码、日期格式);`scripts/docs_check.py` 增加页面契约检查。
 - **验证**:26 个 Python 用例 + 10 个 node 用例全部通过;`--verify` 通过;本地 8894 端口 9 个路径全 200(`single.html?id=daily-website&k=BV1JUs86EESY` 含详情键)。
 - **仍未做**:D24 数据侧解耦(去掉数据里的 `page` 字段、`source.platform` 改存稳定 key)以及 D15/D16 剩余项,按计划放到下一轮。
+
+### ⏸ 15. 本机 launchd 兜底:按用户要求暂停(2026-11-26 18:00)
+
+- 已执行 `launchctl bootout gui/501/com.jiye.collect` 卸载,并 `launchctl disable gui/501/com.jiye.collect` 持久禁用(登录不再自动加载);`~/Library/LaunchAgents/com.jiye.collect.plist` 保留,恢复命令见 `docs/DEPLOY.md` 第十章开头。
+- 调度侧仅保留 GitHub Actions(每天北京 07:00);`scripts/launchd/collect.sh` 与 `install.sh` 仍作为可选项留在仓库,代码不做改动。
 
 ---
 

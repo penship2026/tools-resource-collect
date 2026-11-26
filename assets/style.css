@@ -239,7 +239,30 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 .fav-detail .fav-btn { position: static; width: 28px; height: 28px; background: var(--surface); color: var(--text-sub); border-color: var(--border); }
 .fav-detail .fav-btn.on { color: #e0a800; border-color: #e0a800; background: var(--brand-soft); }
 
-.mine-panel { margin: 18px 0 40px; }
+.mine-panel { margin: 6px 0 40px; }
+/* 我的页顶部:与公开首页 hero 对齐,标题/副标题可在「设置」里改 */
+.mine-hero {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 24px; padding: 46px 0 26px; margin-bottom: 22px;
+  border-bottom: 1px solid var(--border);
+}
+.mine-hero-copy { flex: 1; min-width: 0; }
+.mine-hero-title {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 8px;
+  font-family: var(--font-display); font-size: clamp(26px, 3.2vw, 36px);
+  line-height: 1.25; font-weight: 680; letter-spacing: -.4px;
+}
+.mine-hero-title .mine-title-input { font-size: 22px; max-width: 320px; }
+.mine-hero-sub {
+  margin-top: 12px; font-size: 16px; line-height: 1.65;
+  color: var(--text-sub); max-width: 640px;
+}
+.mine-hero-stat { display: inline-block; margin-top: 14px; font-size: var(--fs-xs); color: var(--text-mute); }
+.mine-tools { flex-wrap: wrap; justify-content: flex-end; flex: 0 0 auto; }
+@media (max-width: 720px) {
+  .mine-hero { flex-direction: column; gap: 16px; padding-top: 30px; }
+  .mine-tools { justify-content: flex-start; }
+}
 .mine-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
 .mine-head h2 { font-size: 18px; display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
 .mine-title-btn {

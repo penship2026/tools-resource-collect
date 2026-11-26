@@ -13,6 +13,10 @@
   var TITLE_KEY = 'jiye.mine.title.v1';
   var TITLE_MAX = 20;
   var DEFAULT_TITLE = '我的收藏';
+  // 我的页顶部副标题(与公开首页 hero 对齐,只存本机)
+  var SUB_KEY = 'jiye.mine.subtitle.v1';
+  var SUB_MAX = 60;
+  var DEFAULT_SUB = '只保存在这台设备的收藏,不上传、不同步。';
   var LIMIT = 800;
 
   function esc(v) {
@@ -38,6 +42,24 @@
       else global.localStorage.removeItem(TITLE_KEY);
     } catch (e) { /* 隐私模式忽略 */ }
     return t || DEFAULT_TITLE;
+  }
+
+  function mineSubtitle() {
+    try {
+      var t = String(global.localStorage.getItem(SUB_KEY) || '').trim();
+      return t ? t.slice(0, SUB_MAX) : DEFAULT_SUB;
+    } catch (e) {
+      return DEFAULT_SUB;
+    }
+  }
+
+  function setMineSubtitle(value) {
+    var t = String(value || '').trim().slice(0, SUB_MAX);
+    try {
+      if (t) global.localStorage.setItem(SUB_KEY, t);
+      else global.localStorage.removeItem(SUB_KEY);
+    } catch (e) { /* 隐私模式忽略 */ }
+    return t || DEFAULT_SUB;
   }
 
   function uid(unit, key) { return String(unit || '') + '|' + String(key || ''); }
@@ -311,6 +333,8 @@
     var body = panel.querySelector('#mine-body');
     var titleEl = panel.querySelector('#mine-title');
     if (titleEl) titleEl.textContent = mineTitle();
+    var subEl = panel.querySelector('#mine-sub');
+    if (subEl) subEl.textContent = mineSubtitle();
     // 我的视图只渲染本机收藏(localStorage),不混入公开数据
     var items = list();
     var units = unitsEnabledMap();
@@ -384,6 +408,8 @@
       var btn = panel.querySelector('#mine-settings');
       var box = panel.querySelector('#mine-settings-panel');
       var titleInput = panel.querySelector('#mine-set-title');
+      var subInput = panel.querySelector('#mine-set-sub');
+      var subReset = panel.querySelector('#mine-set-sub-reset');
       var themeSel = panel.querySelector('#mine-set-theme');
       var saveBtn = panel.querySelector('#mine-set-save');
       var cancelBtn = panel.querySelector('#mine-set-cancel');
@@ -403,6 +429,10 @@
       function fill() {
         titleInput.value = mineTitle() === DEFAULT_TITLE ? '' : mineTitle();
         titleInput.placeholder = DEFAULT_TITLE;
+        if (subInput) {
+          subInput.value = mineSubtitle() === DEFAULT_SUB ? '' : mineSubtitle();
+          subInput.placeholder = DEFAULT_SUB;
+        }
         themeSel.value = theme && theme.mineChoice ? theme.mineChoice() : 'inherit';
       }
 
@@ -427,10 +457,19 @@
         titleInput.value = '';
         titleInput.focus();
       });
+      if (subReset && subInput) {
+        subReset.addEventListener('click', function () {
+          subInput.value = '';
+          subInput.focus();
+        });
+      }
       saveBtn.addEventListener('click', function () {
         setMineTitle(titleInput.value);
+        if (subInput) setMineSubtitle(subInput.value);
         var titleEl = panel.querySelector('#mine-title');
         if (titleEl) titleEl.textContent = mineTitle();
+        var subEl = panel.querySelector('#mine-sub');
+        if (subEl) subEl.textContent = mineSubtitle();
         document.title = mineTitle() + ' · 集页';
         if (theme && theme.setMineChoice) theme.setMineChoice(themeSel.value);
         close();
@@ -501,6 +540,8 @@
     syncStars: syncStars,
     mineTitle: mineTitle,
     setMineTitle: setMineTitle,
+    mineSubtitle: mineSubtitle,
+    setMineSubtitle: setMineSubtitle,
     renderMineContent: renderMineContent
   };
 })(window);

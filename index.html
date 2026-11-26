@@ -111,13 +111,16 @@
 
     <!-- 个人收藏视图(?view=mine):数据只在本机 localStorage,不上传、不采集 -->
     <section class="mine-panel" id="mine-panel" hidden>
-      <div class="mine-head">
-        <h2>
-          <span id="mine-title">我的收藏</span>
-          <button type="button" id="mine-title-edit" class="mine-title-btn" title="自定义标题" aria-label="自定义标题">✎</button>
-          <input type="text" id="mine-title-input" class="mine-title-input" maxlength="20" placeholder="给这一页起个名字" hidden>
-          <small id="mine-stat"></small>
-        </h2>
+      <div class="mine-hero">
+        <div class="mine-hero-copy">
+          <h2 class="mine-hero-title">
+            <span id="mine-title">我的收藏</span>
+            <button type="button" id="mine-title-edit" class="mine-title-btn" title="自定义标题" aria-label="自定义标题">✎</button>
+            <input type="text" id="mine-title-input" class="mine-title-input" maxlength="20" placeholder="给这一页起个名字" hidden>
+          </h2>
+          <p class="mine-hero-sub" id="mine-sub">只保存在这台设备的收藏,不上传、不同步。</p>
+          <small id="mine-stat" class="mine-hero-stat"></small>
+        </div>
         <div class="mine-tools">
           <button type="button" id="mine-export" class="mine-btn">导出备份</button>
           <button type="button" id="mine-import" class="mine-btn">导入</button>
@@ -131,6 +134,11 @@
           <label for="mine-set-title">收藏页名称</label>
           <input type="text" id="mine-set-title" maxlength="20" placeholder="我的收藏">
           <button type="button" id="mine-set-title-reset" class="mine-set-link">恢复默认</button>
+        </div>
+        <div class="mine-set-row">
+          <label for="mine-set-sub">页面副标题</label>
+          <input type="text" id="mine-set-sub" maxlength="60" placeholder="只保存在这台设备的收藏,不上传、不同步。">
+          <button type="button" id="mine-set-sub-reset" class="mine-set-link">恢复默认</button>
         </div>
         <div class="mine-set-row">
           <label for="mine-set-theme">我的主题</label>

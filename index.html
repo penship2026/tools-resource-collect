@@ -116,7 +116,7 @@
           <h2 class="mine-hero-title">
             <span id="mine-title">我的收藏</span>
             <button type="button" id="mine-title-edit" class="mine-title-btn" title="自定义标题" aria-label="自定义标题">✎</button>
-            <input type="text" id="mine-title-input" class="mine-title-input" maxlength="20" placeholder="给这一页起个名字" hidden>
+            <textarea id="mine-title-input" class="mine-title-input" rows="2" maxlength="40" placeholder="给这一页起个名字(可换行)" hidden></textarea>
           </h2>
           <p class="mine-hero-sub" id="mine-sub">只保存在这台设备的收藏,不上传、不同步。</p>
           <small id="mine-stat" class="mine-hero-stat"></small>
@@ -132,12 +132,12 @@
       <div class="mine-settings" id="mine-settings-panel" hidden>
         <div class="mine-set-row">
           <label for="mine-set-title">收藏页名称</label>
-          <input type="text" id="mine-set-title" maxlength="20" placeholder="我的收藏">
+          <textarea id="mine-set-title" rows="2" maxlength="40" placeholder="我的收藏"></textarea>
           <button type="button" id="mine-set-title-reset" class="mine-set-link">恢复默认</button>
         </div>
         <div class="mine-set-row">
           <label for="mine-set-sub">页面副标题</label>
-          <input type="text" id="mine-set-sub" maxlength="60" placeholder="只保存在这台设备的收藏,不上传、不同步。">
+          <textarea id="mine-set-sub" rows="3" maxlength="120" placeholder="只保存在这台设备的收藏,不上传、不同步。"></textarea>
           <button type="button" id="mine-set-sub-reset" class="mine-set-link">恢复默认</button>
         </div>
         <div class="mine-set-row">

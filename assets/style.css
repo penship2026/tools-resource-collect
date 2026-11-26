@@ -248,14 +248,19 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 }
 .mine-hero-copy { flex: 1; min-width: 0; }
 .mine-hero-title {
-  display: flex; align-items: center; flex-wrap: wrap; gap: 8px;
+  position: relative; display: block; padding-right: 30px;
   font-family: var(--font-display); font-size: clamp(26px, 3.2vw, 36px);
-  line-height: 1.25; font-weight: 680; letter-spacing: -.4px;
+  line-height: 1.3; font-weight: 680; letter-spacing: -.4px;
+  white-space: pre-line;
 }
-.mine-hero-title .mine-title-input { font-size: 22px; max-width: 320px; }
+.mine-hero-title .mine-title-input {
+  font-family: var(--font-display); font-size: 22px; max-width: 420px;
+  line-height: 1.35; resize: vertical;
+}
 .mine-hero-sub {
-  margin-top: 12px; font-size: 16px; line-height: 1.65;
+  margin-top: 12px; font-size: 16px; line-height: 1.7;
   color: var(--text-sub); max-width: 640px;
+  white-space: pre-line;
 }
 .mine-hero-stat { display: inline-block; margin-top: 14px; font-size: var(--fs-xs); color: var(--text-mute); }
 .mine-tools { flex-wrap: wrap; justify-content: flex-end; flex: 0 0 auto; }
@@ -269,6 +274,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   border: 0; background: transparent; color: var(--text-mute);
   font-size: 13px; cursor: pointer; padding: 2px 4px; line-height: 1;
 }
+.mine-hero-title .mine-title-btn { position: absolute; top: 8px; right: 0; }
 .mine-title-btn:hover { color: var(--brand); }
 .mine-title-input {
   font: inherit; font-size: 15px; color: var(--text);
@@ -289,14 +295,16 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow);
   display: flex; flex-direction: column; gap: 12px;
 }
-.mine-set-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.mine-set-row { display: flex; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+.mine-set-row label { padding-top: 7px; }
 .mine-set-row label { font-size: var(--fs-sm); color: var(--text-sub); min-width: 84px; }
-.mine-set-row input, .mine-set-row select {
-  flex: 1; min-width: 180px; max-width: 320px; padding: 7px 10px;
+.mine-set-row textarea { min-height: 58px; line-height: 1.6; resize: vertical; }
+.mine-set-row input, .mine-set-row textarea, .mine-set-row select {
+  flex: 1; min-width: 180px; max-width: 420px; padding: 7px 10px;
   font-size: var(--fs-sm); color: var(--text); background: var(--surface);
   border: 1px solid var(--border); border-radius: var(--radius-sm); outline: none;
 }
-.mine-set-row input:focus, .mine-set-row select:focus {
+.mine-set-row input:focus, .mine-set-row textarea:focus, .mine-set-row select:focus {
   border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-soft);
 }
 .mine-set-row small { font-size: var(--fs-xs); color: var(--text-mute); }

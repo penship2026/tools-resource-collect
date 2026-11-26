@@ -11,11 +11,11 @@
 
   var STORE_KEY = 'jiye.mine.v1';
   var TITLE_KEY = 'jiye.mine.title.v1';
-  var TITLE_MAX = 20;
+  var TITLE_MAX = 40;   // 支持换行,两行约 20 字/行
   var DEFAULT_TITLE = '我的收藏';
   // 我的页顶部副标题(与公开首页 hero 对齐,只存本机)
   var SUB_KEY = 'jiye.mine.subtitle.v1';
-  var SUB_MAX = 60;
+  var SUB_MAX = 120;
   var DEFAULT_SUB = '只保存在这台设备的收藏,不上传、不同步。';
   var LIMIT = 800;
 
@@ -42,6 +42,11 @@
       else global.localStorage.removeItem(TITLE_KEY);
     } catch (e) { /* 隐私模式忽略 */ }
     return t || DEFAULT_TITLE;
+  }
+
+  // 浏览器标签不支持换行,压成单行
+  function docTitle() {
+    return mineTitle().replace(/\s+/g, ' ') + ' · 集页';
   }
 
   function mineSubtitle() {
@@ -366,7 +371,7 @@
       m.content = 'noindex, nofollow';
       document.head.appendChild(m);
     }
-    document.title = mineTitle() + ' · 集页';
+    document.title = docTitle();
 
     // 自定义页面标题:点击 ✎ 变输入框,回车/失焦保存,Esc 取消(只存本机)
     (function () {
@@ -389,11 +394,12 @@
         edit.hidden = false;
         titleEl.hidden = false;
         titleEl.textContent = mineTitle();
-        document.title = mineTitle() + ' · 集页';
+        document.title = docTitle();
       }
       edit.addEventListener('click', showInput);
       input.addEventListener('keydown', function (e) {
-        if (e.key === 'Enter') { e.preventDefault(); commit(true); }
+        // 多行编辑:Enter 换行,⌘/Ctrl+Enter 保存,Esc 取消
+        if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); commit(true); }
         else if (e.key === 'Escape') { e.preventDefault(); cancelled = true; commit(false); }
       });
       // Esc 取消后隐藏输入框还会触发一次 blur,用标记避免把已取消的值写回
@@ -470,7 +476,7 @@
         if (titleEl) titleEl.textContent = mineTitle();
         var subEl = panel.querySelector('#mine-sub');
         if (subEl) subEl.textContent = mineSubtitle();
-        document.title = mineTitle() + ' · 集页';
+        document.title = docTitle();
         if (theme && theme.setMineChoice) theme.setMineChoice(themeSel.value);
         close();
       });

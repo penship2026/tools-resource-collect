@@ -15,16 +15,16 @@ topics:
   - id: topic-4e6ee53f
     section: ai
     title: "大模型对比"
-    must_keywords: ["大模型对比"]
-    any_keywords: []
+    must_keywords: ["大模型"]
+    any_keywords: ["对比", "评测", "横评"]
     channels: ["bilibili"]
     enabled: true
 
   - id: guwen-animation
     section: k12
     title: "跟着动画学古文"
-    must_keywords: ["跟着动画学古文"]
-    any_keywords: []
+    must_keywords: ["古文"]
+    any_keywords: ["动画", "小古文", "动画片"]
     channels: ["bilibili"]
     enabled: true
 
@@ -47,8 +47,8 @@ topics:
   - id: topic-205064a1
     section: ai
     title: "最好的AI数字人项目"
-    must_keywords: ["最好的AI数字人项目"]
-    any_keywords: []
+    must_keywords: ["AI数字人"]
+    any_keywords: ["项目", "虚拟人", "数字人"]
     channels: ["bilibili"]
     enabled: true
 

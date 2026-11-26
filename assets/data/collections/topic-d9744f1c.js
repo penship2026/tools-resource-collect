@@ -5,7 +5,7 @@ window.COLLECTION_DATA["topic-d9744f1c"] = {
   "title": "黄仁勋辞退风波",
   "slogan": "共收录 4 条内容 · 公众号",
   "source": {
-    "platform": "公众号",
+    "platform": "wechat",
     "name": "央广网",
     "url": "https://mp.weixin.qq.com/s/dg888doDqpYrOsDvdyx6DQ"
   },
@@ -18,7 +18,6 @@ window.COLLECTION_DATA["topic-d9744f1c"] = {
     "黄仁勋辞职",
     "英伟达股票开盘大跌→"
   ],
-  "page": "series.html?id=topic-d9744f1c",
   "count": 4,
   "videos": [
     {

@@ -11,11 +11,10 @@ window.COLLECTION_INDEX = [
     "title": "跟着动画学古文",
     "slogan": "共收录 10 期,点击卡片跳转 B站观看",
     "source": {
-      "platform": "B站",
+      "platform": "bilibili",
       "name": "宋歌资源库",
       "url": "https://space.bilibili.com/420996230/video"
     },
-    "page": "series.html?id=guwen-animation",
     "count": 10,
     "cover": "https://i0.hdslb.com/bfs/archive/7f02dcd6b7f7e4acfd0d1d82f4b6114c07ac9ce8.jpg",
     "latest": "2026.07.30",
@@ -40,11 +39,10 @@ window.COLLECTION_INDEX = [
     "title": "英语启蒙必备",
     "slogan": "共收录 1 期,点击卡片跳转 B站观看",
     "source": {
-      "platform": "B站",
+      "platform": "bilibili",
       "name": "爱学习的柒影",
       "url": "https://space.bilibili.com/3546645132216606/video"
     },
-    "page": "series.html?id=topic-e5b5c763",
     "count": 1,
     "cover": "https://i0.hdslb.com/bfs/archive/ebcd3c7807fb70574d651216cc4063b7e109c305.jpg",
     "latest": "2024.03.14",
@@ -69,11 +67,10 @@ window.COLLECTION_INDEX = [
     "title": "SpringAI",
     "slogan": "共收录 3 期,点击卡片跳转 B站观看",
     "source": {
-      "platform": "B站",
+      "platform": "bilibili",
       "name": "徐庶AI实战",
       "url": "https://space.bilibili.com/3493131121068547/video"
     },
-    "page": "series.html?id=topic-df282732",
     "count": 3,
     "cover": "https://i2.hdslb.com/bfs/archive/7f4ef0ca45c592134ca812cbbeb587835e60b5a9.jpg",
     "latest": "2026.11.24",
@@ -100,11 +97,10 @@ window.COLLECTION_INDEX = [
     "title": "最好的AI数字人项目",
     "slogan": "共收录 1 期,点击卡片跳转 B站观看",
     "source": {
-      "platform": "B站",
+      "platform": "bilibili",
       "name": "小全栈",
       "url": "https://space.bilibili.com/3546724574431272/video"
     },
-    "page": "series.html?id=topic-205064a1",
     "count": 1,
     "cover": "https://i1.hdslb.com/bfs/archive/af3019f2d3d7066581996e4440caf9c9c20a7282.jpg",
     "latest": "2025.11.10",
@@ -131,11 +127,10 @@ window.COLLECTION_INDEX = [
     "title": "数学思维启蒙动画",
     "slogan": "共收录 3 期,点击卡片跳转 B站观看",
     "source": {
-      "platform": "B站",
+      "platform": "bilibili",
       "name": "乐乐的知识百宝箱",
       "url": "https://space.bilibili.com/3546621136603862/video"
     },
-    "page": "series.html?id=topic-621ae722",
     "count": 3,
     "cover": "https://i1.hdslb.com/bfs/archive/5fc2a47aa3ec4373d3206d1fb653d283ec61155c.jpg",
     "latest": "2026.03.30",
@@ -162,11 +157,10 @@ window.COLLECTION_INDEX = [
     "title": "不上班靠AI提车买房！",
     "slogan": "单条视频精选 · 点击卡片跳转 B站观看",
     "source": {
-      "platform": "B站",
+      "platform": "bilibili",
       "name": "椰子酱的AI日常",
       "url": "https://space.bilibili.com/3546380240947989/video"
     },
-    "page": "single.html?id=bv1j4w16reys",
     "count": 1,
     "cover": "http://i2.hdslb.com/bfs/archive/ca6323ceae54d29f7f5068dd8a98053d34fdc5c3.jpg",
     "latest": "2026.11.11",
@@ -193,11 +187,10 @@ window.COLLECTION_INDEX = [
     "title": "全158集【影子跟读英语新概念第一册动画",
     "slogan": "单条视频精选 · 点击卡片跳转 B站观看",
     "source": {
-      "platform": "B站",
+      "platform": "bilibili",
       "name": "学霸动画加油站",
       "url": "https://space.bilibili.com/3546927981398077/video"
     },
-    "page": "single.html?id=bv1wg39zpetl",
     "count": 1,
     "cover": "http://i2.hdslb.com/bfs/archive/b7fbf328a3897152dd482db5028b57726521e692.png",
     "latest": "2025.07.05",
@@ -224,12 +217,11 @@ window.COLLECTION_INDEX = [
     "title": "每天挖掘一个神奇网站",
     "slogan": "共收录 24 期,点击卡片跳转 B站观看",
     "source": {
-      "platform": "B站",
+      "platform": "bilibili",
       "name": "草根的异世界",
       "url": "https://space.bilibili.com/3690973370517975/video"
     },
     "keyword": "每天挖掘一个神奇网站",
-    "page": "series.html?id=daily-website",
     "count": 24,
     "cover": "https://i2.hdslb.com/bfs/archive/2a2da89665dc1cc8f21f1837861f833731fb51df.png",
     "latest": "2026.11.19",
@@ -250,7 +242,7 @@ window.COLLECTION_INDEX = [
     "title": "一座城市的纬度密码！《沿着纬度听中国》第二季城市篇从福建将乐启程",
     "slogan": "单条内容精选 · 前往公众号阅读原文",
     "source": {
-      "platform": "公众号",
+      "platform": "wechat",
       "name": "央广网",
       "url": "https://mp.weixin.qq.com/s/nxpXHhgHan9dVfZOAt5avg"
     },
@@ -258,7 +250,6 @@ window.COLLECTION_INDEX = [
     "tags": [
       "央广网"
     ],
-    "page": "single.html?id=wx-nxpxhhghan9dvfzoat5avg",
     "count": 1,
     "cover": "https://mmbiz.qpic.cn/mmbiz_jpg/eT2Hxs8JQmMYuUGAPiaibwuBm9JslsPRcDz78NnibsEBKY89feEvibT0Qkf4BT2F0SXsnnGsA6VVa0NSn1IiajTvwkUicMo9ekQ3XFVHzonAZduzo/0?wx_fmt=jpeg",
     "latest": "2026.11.24",
@@ -272,7 +263,7 @@ window.COLLECTION_INDEX = [
     "title": "黄仁勋辞退风波",
     "slogan": "共收录 4 条内容 · 公众号",
     "source": {
-      "platform": "公众号",
+      "platform": "wechat",
       "name": "央广网",
       "url": "https://mp.weixin.qq.com/s/dg888doDqpYrOsDvdyx6DQ"
     },
@@ -285,7 +276,6 @@ window.COLLECTION_INDEX = [
       "黄仁勋辞职",
       "英伟达股票开盘大跌→"
     ],
-    "page": "series.html?id=topic-d9744f1c",
     "count": 4,
     "cover": "https://mmbiz.qpic.cn/sz_mmbiz_jpg/eT2Hxs8JQmMDJ5Krh3jU9mnd8osccsDd06wUGcxe5hiaicx3dHZuDNz63PRfk89Ozf5DVThyibRuyQ1dibibtu5My0wo9Dmle04uia8p5MnT9agwU/0?wx_fmt=jpeg",
     "latest": "2026.11.24",
@@ -299,7 +289,7 @@ window.COLLECTION_INDEX = [
     "title": "大模型对比",
     "slogan": "共收录 2 期,点击卡片跳转 B站观看",
     "source": {
-      "platform": "B站",
+      "platform": "bilibili",
       "name": "解压秘境",
       "url": "https://space.bilibili.com/3747567349271037/video"
     },
@@ -311,7 +301,6 @@ window.COLLECTION_INDEX = [
       "AI大模型对比",
       "创作灵感"
     ],
-    "page": "series.html?id=topic-4e6ee53f",
     "count": 2,
     "updated": "2026-11-26",
     "latest": "2026.11.24",

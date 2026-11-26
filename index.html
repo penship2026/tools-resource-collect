@@ -18,8 +18,10 @@
     .filter-bar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 18px; }
     .chip {
       border: 1px solid var(--border); background: var(--surface); color: var(--text-sub);
-      border-radius: 20px; padding: 6px 14px; font-size: 13px; cursor: pointer;
+      border-radius: var(--radius-pill); padding: 7px 15px; font-size: var(--fs-sm);
+      cursor: pointer; transition: color .15s, border-color .15s, background .15s;
     }
+    .chip:hover { color: var(--brand); border-color: var(--brand); }
     .chip.active { background: var(--brand); color: #fff; border-color: var(--brand); }
 
     .topic-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 18px; }
@@ -35,16 +37,17 @@
       /* 显式覆盖公共样式(style.css)的 top:14px 与圆角,否则 top+bottom 同时生效会把徽标拉成竖条 */
       position: absolute; left: 10px; bottom: 10px; top: auto;
       background: rgba(0,0,0,.72); color: #fff;
-      font-size: 11px; padding: 4px 9px; border-radius: 6px;
-      white-space: nowrap; backdrop-filter: none;
+      font-size: 11px; padding: 4px 10px; border-radius: var(--radius-pill);
+      white-space: nowrap; backdrop-filter: none; letter-spacing: .2px;
     }
     .topic-cover .type-tag {
       position: absolute; right: 10px; top: 10px; font-size: 11px; padding: 4px 9px;
-      border-radius: 6px; color: #fff; background: var(--brand);
+      border-radius: var(--radius-pill); color: #fff; background: var(--brand);
+      letter-spacing: .2px; box-shadow: 0 2px 6px rgba(0,0,0,.18);
     }
     .topic-cover .type-tag.single { background: #7a5cd6; }
-    .topic-body { padding: 14px 16px 16px; }
-    .topic-body h3 { font-size: 15px; font-weight: 600; margin: 0 0 6px; }
+    .topic-body { padding: 16px 18px 18px; }
+    .topic-body h3 { font-size: 16px; font-weight: 600; margin: 0 0 6px; letter-spacing: -.2px; }
     .topic-body .slogan { font-size: 12px; color: var(--text-sub); margin: 0 0 12px; line-height: 1.5; }
     .topic-body .foot { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-mute); }
     .topic-body .count { color: var(--brand); }
@@ -147,8 +150,10 @@
 
     // 多平台合集同时出现在它包含的每个渠道筛选下
     function platformsOf(t) {
-      if (Array.isArray(t.platforms) && t.platforms.length) return t.platforms;
-      return [(t.source && t.source.platform) || 'B站'];
+      var list = Array.isArray(t.platforms) && t.platforms.length
+        ? t.platforms
+        : [(t.source && t.source.platform) || 'bilibili'];
+      return list.map(function (p) { return Render.platKey(p); });
     }
     function platformOf(t) { return platformsOf(t)[0]; }
     function tagsOf(t) {
@@ -174,7 +179,7 @@
       pWrap.style.display = '';
       var chipsHtml = '<button class="chip active" data-platform="all">全平台</button>';
       platforms.forEach(function (p) {
-        chipsHtml += '<button class="chip" data-platform="' + esc(p) + '">' + esc(p) + '</button>';
+        chipsHtml += '<button class="chip" data-platform="' + esc(p) + '">' + esc(Render.platLabel(p)) + '</button>';
       });
       pWrap.innerHTML = chipsHtml;
       pWrap.querySelectorAll('.chip').forEach(function (chip) {
@@ -239,7 +244,7 @@
         return Render.topicCard(t, {
           href: cardHref(t),
           updated: updated,
-          platName: (t.source && t.source.platform) || platformOf(t),
+          platName: platformOf(t),
           tags: tagsOf(t)
         });
       }).join('') : '<div class="empty">没有匹配的主题</div>';

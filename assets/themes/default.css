@@ -16,6 +16,20 @@
   --shadow: 0 1px 3px rgba(16, 24, 40, .04), 0 8px 24px rgba(16, 24, 40, .04);
   --radius: 14px;
   --radius-sm: 9px;
+  --radius-pill: 999px;
+  /* 排版与节奏(M6 样式优化):所有页面共用一套字号/间距,避免各页各写一份 */
+  --fs-hero: clamp(30px, 4.2vw, 42px);
+  --fs-title: 19px;
+  --fs-body: 15px;
+  --fs-sm: 13px;
+  --fs-xs: 12px;
+  --gap-card: 18px;
+  --pad-card: 18px;
+  /* 悬停/焦点反馈 */
+  --shadow-hover: 0 14px 32px rgba(16, 24, 40, .12), 0 2px 6px rgba(16, 24, 40, .06);
+  --brand-2: #6aa8ff;
+  --hero-wash: radial-gradient(1200px 380px at 12% -10%, rgba(45, 127, 249, .16), rgba(45, 127, 249, 0) 70%);
+  --header-bg: rgba(255, 255, 255, .86);
   /* 渠道徽标配色(前端 PLAT_COLORS 直接引用变量,主题可整体换色) */
   --plat-bilibili: #fb7299;
   --plat-wechat: #07c160;

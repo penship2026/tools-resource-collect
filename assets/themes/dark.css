@@ -14,6 +14,18 @@
   --shadow: 0 1px 3px rgba(0, 0, 0, .3), 0 8px 24px rgba(0, 0, 0, .25);
   --radius: 14px;
   --radius-sm: 9px;
+  --radius-pill: 999px;
+  --fs-hero: clamp(30px, 4.2vw, 42px);
+  --fs-title: 19px;
+  --fs-body: 15px;
+  --fs-sm: 13px;
+  --fs-xs: 12px;
+  --gap-card: 18px;
+  --pad-card: 18px;
+  --shadow-hover: 0 16px 36px rgba(0, 0, 0, .45), 0 2px 8px rgba(0, 0, 0, .3);
+  --brand-2: #8fbcff;
+  --hero-wash: radial-gradient(1200px 380px at 12% -10%, rgba(91, 157, 255, .22), rgba(91, 157, 255, 0) 70%);
+  --header-bg: rgba(15, 17, 21, .86);
   --plat-bilibili: #fb7299;
   --plat-wechat: #07c160;
   --plat-xhs: #ff2442;

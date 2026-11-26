@@ -128,6 +128,52 @@ class GenerateDataTest(unittest.TestCase):
         self.assertLessEqual(len(snaps), generate.SNAPSHOT_KEEP)
 
 
+    def test_platform_key_mapping(self):
+        self.assertEqual(generate.platform_key("B站"), "bilibili")
+        self.assertEqual(generate.platform_key("公众号"), "wechat")
+        self.assertEqual(generate.platform_key("小红书"), "xhs")
+        self.assertEqual(generate.platform_key("多平台"), "multi")
+        self.assertEqual(generate.platform_key("bilibili"), "bilibili")
+        self.assertEqual(generate.platform_key(""), "bilibili")
+        self.assertEqual(generate.platform_key("未知"), "未知")
+
+    def test_verify_flags_legacy_page_and_platform(self):
+        path = write_unit("u1", [video(0)])
+        with open(path, "w", encoding="utf-8") as fh:
+            fh.write("window.COLLECTION_DATA[\"u1\"] = %s;\n" % json.dumps({
+                "id": "u1", "type": "series", "title": "旧单元", "count": 1,
+                "page": "series.html?id=u1", "platforms": ["B站"],
+                "source": {"platform": "B站"}, "videos": [video(0)]}, ensure_ascii=False))
+        self.write_index([{"id": "u1", "count": 1, "enabled": True, "type": "series",
+                           "page": "series.html?id=u1", "source": {"platform": "B站"}}])
+        r = generate.verify_data(log=lambda *a: None)
+        self.assertFalse(r["ok"])
+        self.assertTrue(any("page" in p for p in r["problems"]), r["problems"])
+        self.assertTrue(any("platform" in p for p in r["problems"]), r["problems"])
+
+    def test_normalize_strips_page_and_keys_platform(self):
+        path = write_unit("u1", [video(0)])
+        with open(path, "w", encoding="utf-8") as fh:
+            fh.write("window.COLLECTION_DATA[\"u1\"] = %s;\n" % json.dumps({
+                "id": "u1", "type": "series", "title": "旧单元", "count": 1,
+                "page": "series.html?id=u1", "platforms": ["B站", "公众号"],
+                "source": {"platform": "多平台"}, "videos": [video(0)]}, ensure_ascii=False))
+        self.write_index([{"id": "u1", "count": 1, "enabled": True, "type": "series",
+                           "page": "series.html?id=u1", "source": {"platform": "B站"}}])
+        r = generate.normalize_dataset(log=lambda *a: None)
+        self.assertEqual(r["changed"], 1)
+        data = generate.load_collection_data("u1")
+        self.assertNotIn("page", data)
+        self.assertEqual(data["platforms"], ["bilibili", "wechat"])
+        self.assertEqual(data["source"]["platform"], "multi")
+        meta = generate.load_index()[0]
+        self.assertNotIn("page", meta)
+        self.assertEqual(meta["source"]["platform"], "bilibili")
+        self.assertTrue(generate.verify_data(log=lambda *a: None)["ok"])
+        # 幂等:再跑一次不改动
+        self.assertEqual(generate.normalize_dataset(log=lambda *a: None)["changed"], 0)
+
+
 class CliSmokeTest(unittest.TestCase):
     """在真实仓库数据上跑 CLI(只读)"""
 

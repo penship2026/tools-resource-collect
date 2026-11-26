@@ -4,11 +4,10 @@ window.COLLECTION_DATA["topic-df282732"] = {
   "title": "SpringAI",
   "slogan": "共收录 3 期,点击卡片跳转 B站观看",
   "source": {
-    "platform": "B站",
+    "platform": "bilibili",
     "name": "徐庶AI实战",
     "url": "https://space.bilibili.com/3493131121068547/video"
   },
-  "page": "series.html?id=topic-df282732",
   "count": 3,
   "videos": [
     {

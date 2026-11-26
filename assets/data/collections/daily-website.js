@@ -5,12 +5,11 @@ window.COLLECTION_DATA["daily-website"] = {
   "title": "每天挖掘一个神奇网站",
   "slogan": "共收录 24 期,点击卡片跳转 B站观看",
   "source": {
-    "platform": "B站",
+    "platform": "bilibili",
     "name": "草根的异世界",
     "url": "https://space.bilibili.com/3690973370517975/video"
   },
   "keyword": "每天挖掘一个神奇网站",
-  "page": "series.html?id=daily-website",
   "count": 24,
   "videos": [
     {

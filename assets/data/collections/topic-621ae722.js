@@ -4,11 +4,10 @@ window.COLLECTION_DATA["topic-621ae722"] = {
   "title": "数学思维启蒙动画",
   "slogan": "共收录 3 期,点击卡片跳转 B站观看",
   "source": {
-    "platform": "B站",
+    "platform": "bilibili",
     "name": "乐乐的知识百宝箱",
     "url": "https://space.bilibili.com/3546621136603862/video"
   },
-  "page": "series.html?id=topic-621ae722",
   "count": 3,
   "videos": [
     {

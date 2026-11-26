@@ -33,7 +33,7 @@
       flex: 1; min-width: 200px; background: var(--bg); border: 1px solid var(--border);
       border-radius: var(--radius-sm); padding: 9px 12px; color: var(--text); font-size: 13px; outline: none;
     }
-    .filters input[type=text]:focus { border-color: var(--brand); }
+    .filters input[type=text]:focus { border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-soft); }
     .filters select {
       background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm);
       padding: 9px 10px; color: var(--text); font-size: 13px; outline: none; max-width: 190px;
@@ -41,8 +41,10 @@
     .chip-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; width: 100%; }
     .chip {
       border: 1px solid var(--border); background: var(--surface); color: var(--text-sub);
-      border-radius: 20px; padding: 5px 13px; font-size: 12px; cursor: pointer; white-space: nowrap;
+      border-radius: var(--radius-pill); padding: 6px 14px; font-size: var(--fs-xs);
+      cursor: pointer; white-space: nowrap; transition: color .15s, border-color .15s;
     }
+    .chip:hover { color: var(--brand); border-color: var(--brand); }
     .chip.active { background: var(--brand); color: #fff; border-color: var(--brand); }
     .chip-row .label { font-size: 12px; color: var(--text-mute); margin-right: 2px; }
 
@@ -53,7 +55,8 @@
     /* 卡片:复用公共 .video-grid / .video-card,只补平台角标 */
     .video-thumb .plat-tag {
       position: absolute; left: 10px; top: 10px;
-      color: #fff; font-size: 11px; padding: 3px 9px; border-radius: 20px;
+      color: #fff; font-size: 11px; padding: 3px 10px; border-radius: var(--radius-pill);
+      letter-spacing: .2px;
     }
     .video-thumb .kind-tag {
       position: absolute; right: 10px; top: 10px;
@@ -140,14 +143,14 @@
     var list = [];          // 当前筛选后的结果
     var page = 1;
     var platform = 'all';
-    var unitPlatform = 'B站';
-    var PLAT = { bilibili: 'B站', wechat: '公众号', xhs: '小红书' };
+    var unitPlatform = 'bilibili';
 
     var grid = document.getElementById('grid');
     var pager = document.getElementById('pager');
 
+    // 条目渠道展示名:platform 现为稳定 key(D24),旧中文名由 Render.platLabel 兼容
     function platOf(v) {
-      return PLAT[v.platform] || unitPlatform || 'B站';
+      return Render.platLabel(v.platform || unitPlatform || 'bilibili');
     }
     var esc = window.escHtml;  // 统一转义:assets/data-loader.js 提供
     // 日期统一 yyyy.mm.dd
@@ -173,7 +176,7 @@
         document.getElementById('crumb-series').textContent = topic.title;
         document.getElementById('crumb-series').href = 'series.html?id=' + encodeURIComponent(id);
 
-        unitPlatform = (topic.source && topic.source.platform) || 'B站';
+        unitPlatform = Render.platKey(topic.source && topic.source.platform);
         vids = (topic.videos || []).slice();
 
         document.getElementById('stat-total').textContent = vids.length;

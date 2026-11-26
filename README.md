@@ -71,7 +71,7 @@
 | `type` | `series`(主题合集) / `single`(单链接) |
 | `title` / `slogan` | 标题 / 副标题 |
 | `enabled` | 是否在首页显示(true/false) |
-| `source` | 来源平台、UP 主名称与主页 |
+| `source` | 来源平台、UP 主名称与主页。`platform` 只存稳定 key(`bilibili`/`wechat`/`xhs`/`multi`),中文展示名由前端 `Render.platLabel` 映射;详情路由不存数据,由页面按 `type` 推导 |
 | `keyword` | 采集关键词或原链接(便于重新采集) |
 | `intake` | 最近一次采集的**填写信息**(方式 / 原始输入 / 显示标题 / UP 主 / 页数 / 手工补录 / 时间),用于重新采集时回填 |
 | `runs` | 最近 20 次采集记录(时间、方式、输入条数、本次新增/更新/未变/合计) |
@@ -145,7 +145,7 @@ python3 collector/server.py --public --token <口令>   # 对外访问:绑定 0.
 
 ### 定时采集(推荐)与本机采集台
 
-- **定时采集**:主题清单在仓库根目录 `topics.yml`(`--topics` 批量执行),由 GitHub Actions 每天 07:00 跑一次,本机 launchd 08:10 兜底(安装见 `scripts/launchd/install.sh`)。展示端始终是纯静态,不需要 `server.py` 常驻。
+- **定时采集**:主题清单在仓库根目录 `topics.yml`(`--topics` 批量执行),由 GitHub Actions 每天 07:00 跑一次;本机 launchd 兜底自 2026-11-26 起**暂停**(脚本与 plist 保留,恢复见 `docs/DEPLOY.md` 第十章)。展示端始终是纯静态,不需要 `server.py` 常驻。
 - **本机采集台**:需要表单交互、重新采集回填、下线开关时,临时运行 `python3 collector/server.py`(默认只听 `127.0.0.1`),用完关掉即可。
 
 ```bash
@@ -204,7 +204,8 @@ python3 collector/backup_data.py backup --out /mnt/nas/backup            # 备�
 ## 自检与测试(不需要联网)
 
 ```bash
-python3 collector/generate.py --verify    # 索引/数据文件/count/key/日期/开关 六项一致性
+python3 collector/generate.py --verify    # 索引/数据文件/count/key/日期/开关/page/platform 合法性
+python3 collector/generate.py --normalize # 数据侧解耦:剥离 page、platform 统一为稳定 key(幂等,可加 --dry-run 预览)
 python3 scripts/docs_check.py             # 文档口径与引用有效性
 python3 -m unittest discover -s tests -v  # 解析器 fixtures + 数据层回归 + CLI 冒烟
 ```

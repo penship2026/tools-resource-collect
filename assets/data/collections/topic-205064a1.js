@@ -4,11 +4,10 @@ window.COLLECTION_DATA["topic-205064a1"] = {
   "title": "最好的AI数字人项目",
   "slogan": "共收录 1 期,点击卡片跳转 B站观看",
   "source": {
-    "platform": "B站",
+    "platform": "bilibili",
     "name": "小全栈",
     "url": "https://space.bilibili.com/3546724574431272/video"
   },
-  "page": "series.html?id=topic-205064a1",
   "count": 1,
   "videos": [
     {

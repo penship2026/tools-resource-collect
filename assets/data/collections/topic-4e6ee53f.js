@@ -5,7 +5,7 @@ window.COLLECTION_DATA["topic-4e6ee53f"] = {
   "title": "大模型对比",
   "slogan": "共收录 2 期,点击卡片跳转 B站观看",
   "source": {
-    "platform": "B站",
+    "platform": "bilibili",
     "name": "解压秘境",
     "url": "https://space.bilibili.com/3747567349271037/video"
   },
@@ -17,7 +17,6 @@ window.COLLECTION_DATA["topic-4e6ee53f"] = {
     "AI大模型对比",
     "创作灵感"
   ],
-  "page": "series.html?id=topic-4e6ee53f",
   "count": 2,
   "videos": [
     {

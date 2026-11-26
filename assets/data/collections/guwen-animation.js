@@ -4,11 +4,10 @@ window.COLLECTION_DATA["guwen-animation"] = {
   "title": "跟着动画学古文",
   "slogan": "共收录 10 期,点击卡片跳转 B站观看",
   "source": {
-    "platform": "B站",
+    "platform": "bilibili",
     "name": "宋歌资源库",
     "url": "https://space.bilibili.com/420996230/video"
   },
-  "page": "series.html?id=guwen-animation",
   "count": 10,
   "videos": [
     {

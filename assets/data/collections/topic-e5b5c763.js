@@ -4,11 +4,10 @@ window.COLLECTION_DATA["topic-e5b5c763"] = {
   "title": "英语启蒙必备",
   "slogan": "共收录 1 期,点击卡片跳转 B站观看",
   "source": {
-    "platform": "B站",
+    "platform": "bilibili",
     "name": "爱学习的柒影",
     "url": "https://space.bilibili.com/3546645132216606/video"
   },
-  "page": "series.html?id=topic-e5b5c763",
   "count": 1,
   "videos": [
     {

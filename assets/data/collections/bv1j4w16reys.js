@@ -4,11 +4,10 @@ window.COLLECTION_DATA["bv1j4w16reys"] = {
   "title": "不上班靠AI提车买房！",
   "slogan": "单条视频精选 · 点击卡片跳转 B站观看",
   "source": {
-    "platform": "B站",
+    "platform": "bilibili",
     "name": "椰子酱的AI日常",
     "url": "https://space.bilibili.com/3546380240947989/video"
   },
-  "page": "single.html?id=bv1j4w16reys",
   "count": 1,
   "videos": [
     {

@@ -185,6 +185,22 @@
 - 已执行 `launchctl bootout gui/501/com.jiye.collect` 卸载,并 `launchctl disable gui/501/com.jiye.collect` 持久禁用(登录不再自动加载);`~/Library/LaunchAgents/com.jiye.collect.plist` 保留,恢复命令见 `docs/DEPLOY.md` 第十章开头。
 - 调度侧仅保留 GitHub Actions(每天北京 07:00);`scripts/launchd/collect.sh` 与 `install.sh` 仍作为可选项留在仓库,代码不做改动。
 
+### ✅ 16. D24 数据侧解耦:去掉 `page`,platform 存稳定 key(2026-11-26)
+
+- **数据侧**:`collector/generate.py` 新增 `platform_key()`/`PLATFORM_KEYS`(`bilibili|wechat|xhs|multi`);四个写入点(合集、单条、批量、B站单条)把 `source.platform`、`platforms` 改为 key,不再写 `"page"`;`migrate_legacy` 顺带清理旧 page。
+- **一次性归一**:新增 `--normalize`(幂等,`--dry-run` 可预览):剥离数据与索引里的 `page`、把中文 platform 翻成 key;本次实跑 11 个单元全部完成,`--verify` 0 问题。
+- **展示侧**:`server.py` 新增 `unit_page()` 按 `type` 推导详情路由,`/api/topics`、`/api/intake` 的 `platform` 由 key 翻成中文;`Render` 新增 `platKey`/`platLabel`,`platColor` 同时接受 key 与旧中文名;首页 chips 用 key 作筛选值、中文作显示;`series`/`list`/`single` 的平台判断改走 `Render`.
+- **自检与测试**:`--verify` 增「数据/索引不得含 page」「platform 必须为合法 key」;新增 3 个用例(映射、旧字段检出、归一幂等),Python 用例 26 → 29。
+- **验证**:29 个 unittest + 10 个 node 用例通过;`--verify` 11 单元 0 问题;本地 6 个路径 200。
+
+### ◑ 17. M5 样式优化(第二段:统一排版与视觉节奏)(2026-11-26)
+
+- **token 层**:两套主题同步补 `--fs-hero/--fs-title/--fs-body/--fs-sm/--fs-xs`、`--gap-card`、`--pad-card`、`--radius-pill`、`--shadow-hover`、`--brand-2`、`--hero-wash`、`--header-bg`;`docs_check.py` 的主题 token 对齐检查通过。
+- **全局样式**:顶部导航改半透明毛玻璃 + 品牌渐变标;hero 字号改 `clamp`、字重/字距收紧;卡片 hover 抬升 + 阴影/边框/封面轻微放大;输入框聚焦加柔和外环;`focus-visible` 统一轮廓;补 `prefers-reduced-motion` 与移动端断点;页脚改为纵向两行紧凑排版。
+- **页面内联**:首页 chips 改 pill + hover、徽标统一 pill;列表页 chips/filters 聚焦环、平台角标对齐;详情页主按钮 hover 反馈。
+- **修掉的实际问题**:收藏星标与卡片右下角日期/作者重叠 → `.video-info .meta` 右侧预留 34px。
+- **验证**:Chrome 无头截图(首页/列表页/首页深色)目视检查通过;29 个 unittest + 10 个 node 用例 + docs-check 全通过。
+
 ---
 
 ## 新增待办

@@ -17,16 +17,31 @@
     return String(value == null ? '' : value).replace(/[&<>"']/g, function (ch) { return ESC_MAP[ch]; });
   }
 
-  var PLAT = { bilibili: 'B站', wechat: '公众号', xhs: '小红书' };
+  // 渠道稳定 key → 展示名(D24:数据里只存 key,中文名由视图层映射)
+  var PLAT = { bilibili: 'B站', wechat: '公众号', xhs: '小红书', multi: '多平台' };
+  var PLAT_TO_KEY = { 'B站': 'bilibili', '公众号': 'wechat', '小红书': 'xhs', '多平台': 'multi' };
   var PLAT_COLORS = {
-    'B站': 'var(--plat-bilibili)',
-    '公众号': 'var(--plat-wechat)',
-    '小红书': 'var(--plat-xhs)',
-    '多平台': 'var(--plat-multi)'
+    bilibili: 'var(--plat-bilibili)',
+    wechat: 'var(--plat-wechat)',
+    xhs: 'var(--plat-xhs)',
+    multi: 'var(--plat-multi)'
   };
 
-  function platColor(name) {
-    return PLAT_COLORS[name] || 'rgba(0,0,0,.72)';
+  // 兼容三种取值:稳定 key(bilibili)/旧中文名(B站)/空(历史 B站 数据)
+  function platKey(value) {
+    var v = String(value || '').trim();
+    if (!v) return 'bilibili';
+    if (PLAT[v]) return v;
+    return PLAT_TO_KEY[v] || v;
+  }
+
+  function platLabel(value) {
+    var k = platKey(value);
+    return PLAT[k] || String(value || '');
+  }
+
+  function platColor(value) {
+    return PLAT_COLORS[platKey(value)] || 'rgba(0,0,0,.72)';
   }
 
   function fmtDate(iso) {
@@ -58,7 +73,7 @@
       : '<div class="topic-ph" style="width:100%;height:100%;display:grid;place-items:center;background:linear-gradient(135deg,#1e3a5f,#2d7ff9);color:#fff;font-size:42px">' +
         esc((t.title || '内').charAt(0)) + '</div>';
     var platName = opts.platName || (t.source && t.source.platform) || 'B站';
-    var badge = '<span class="badge" style="background:' + platColor(platName) + '">' + esc(platName) + '</span>';
+    var badge = '<span class="badge" style="background:' + platColor(platName) + '">' + esc(platLabel(platName)) + '</span>';
     var typeTag = type === 'single'
       ? '<span class="type-tag single">单条</span>'
       : '<span class="type-tag">合集</span>';
@@ -86,7 +101,7 @@
       : '<div class="thumb-placeholder">' + esc((v.title || '内').charAt(0)) + '</div>';
     var mark = isVideo ? '<span class="play"><i>▶</i></span>' : '<span class="kind-tag">图文</span>';
     var badge = opts.platTag
-      ? '<span class="plat-tag" style="background:' + platColor(opts.plat || '') + '">' + esc(opts.plat || '') + '</span>'
+      ? '<span class="plat-tag" style="background:' + platColor(opts.plat) + '">' + esc(platLabel(opts.plat)) + '</span>'
       : '';
     var metaRight = opts.metaRight != null
       ? opts.metaRight
@@ -311,6 +326,8 @@
     esc: esc,
     PLAT: PLAT,
     PLAT_COLORS: PLAT_COLORS,
+    platKey: platKey,
+    platLabel: platLabel,
     platColor: platColor,
     fmtDate: fmtDate,
     itemKey: itemKey,

@@ -343,3 +343,11 @@ Chrome 无头截图三页面全部正常:首页卡片标签独立行两行截断
 
 ### 18:00 launchd 兜底暂停
 - 按用户要求暂停本机定时任务:`launchctl bootout gui/501/com.jiye.collect` + `launchctl disable gui/501/com.jiye.collect`(持久禁用,登录不再自动加载);plist 保留,恢复方式写入 `docs/DEPLOY.md`。
+
+### 18:30–19:30 D24 数据侧解耦 + 样式优化一轮
+- **D24 生产端**:`generate.py` 增 `platform_key()`(中文名/旧值 → `bilibili|wechat|xhs|multi`);四个采集分支写 key,不再写 `page`;`migrate_legacy` 清理旧 page 字段。
+- **D24 归一**:新增 `--normalize`(幂等 + `--dry-run`),对现有 11 个单元/索引执行一次,剥离 page、platform 转 key;`--verify` 增「不得含 page」「platform 必须合法 key」两类检查。
+- **D24 展示端**:`server.py` 用 `unit_page()` 按 type 推导路由、API 把 key 翻成中文;`render.js` 增 `platKey`/`platLabel`,`platColor` 同时兼容 key 与旧中文;首页 chips 值用 key、显示用中文;`series`/`list`/`single` 平台判断全部走 `Render.*`。
+- **样式优化(M5 第二段)**:两套主题补字号/间距/圆角/悬停阴影/顶栏底色/hero 光晕 token;`style.css` 改毛玻璃顶栏、渐变品牌标、hero `clamp` 排版、卡片 hover(阴影+封面轻微放大)、聚焦外环、`prefers-reduced-motion` 与移动端断点、页脚紧凑化;四页内联样式同步 chips/徽标/角标/主按钮;修复收藏星标压住卡片右下日期的问题(`.video-info .meta` 预留 34px)。
+- **验证**:29 个 Python 用例、10 个 node 用例、`--verify`(11 单元 0 问题)、`docs_check.py` 全通过;Chrome 无头截图检查首页/列表页/深色模式渲染正常;本地 6 个路径 200。
+

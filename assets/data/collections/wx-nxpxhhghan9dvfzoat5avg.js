@@ -5,7 +5,7 @@ window.COLLECTION_DATA["wx-nxpxhhghan9dvfzoat5avg"] = {
   "title": "一座城市的纬度密码！《沿着纬度听中国》第二季城市篇从福建将乐启程",
   "slogan": "单条内容精选 · 前往公众号阅读原文",
   "source": {
-    "platform": "公众号",
+    "platform": "wechat",
     "name": "央广网",
     "url": "https://mp.weixin.qq.com/s/nxpXHhgHan9dVfZOAt5avg"
   },
@@ -13,7 +13,6 @@ window.COLLECTION_DATA["wx-nxpxhhghan9dvfzoat5avg"] = {
   "tags": [
     "央广网"
   ],
-  "page": "single.html?id=wx-nxpxhhghan9dvfzoat5avg",
   "count": 1,
   "videos": [
     {

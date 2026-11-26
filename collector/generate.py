@@ -279,6 +279,21 @@ def platform_label(key):
     return channels.platform_name(key) or key
 
 
+# 渠道稳定 key(D24):数据里只存 key,中文展示名由前端映射
+PLATFORM_KEYS = ("bilibili", "wechat", "xhs", "multi")
+_PLATFORM_LABEL_TO_KEY = {"B站": "bilibili", "公众号": "wechat", "小红书": "xhs", "多平台": "multi"}
+
+
+def platform_key(value):
+    """展示名/旧值 → 稳定 key;未知值原样返回(由 --verify 报出)"""
+    v = str(value or "").strip()
+    if not v:
+        return "bilibili"
+    if v in PLATFORM_KEYS:
+        return v
+    return _PLATFORM_LABEL_TO_KEY.get(v, v)
+
+
 def normalize_date(text):
     """把各种日期写法统一成 yyyy.mm.dd,无法识别时原样返回"""
     m = re.match(r"(\d{4})[-./年](\d{1,2})[-./月](\d{1,2})", (text or "").strip())
@@ -398,6 +413,15 @@ DATE_RE = re.compile(r"^\d{4}[.\-]\d{2}[.\-]\d{2}$")
 THEME_NAMES = ("default", "dark")  # 数据里的标准格式是 yyyy.mm.dd,旧数据允许 yyyy-mm-dd
 
 
+def _bad_platform(value):
+    """platform 取值是否非稳定 key(列表逐项检查)"""
+    if isinstance(value, list):
+        return any(_bad_platform(v) for v in value)
+    if value is None or value == "":
+        return False
+    return str(value) not in PLATFORM_KEYS
+
+
 def verify_data(log=print):
     """数据一致性自检(D13):索引与数据文件一一对应、count 与 videos 一致、
     key 唯一、日期格式、开关两处一致。返回 {"ok", "problems", "units"}。"""
@@ -439,6 +463,16 @@ def verify_data(log=print):
                 problems.append("%s: 第 %d 条日期格式异常(%s)" % (uid, i + 1, d))
             if not str(v.get("title") or "").strip():
                 problems.append("%s: 第 %d 条缺少标题" % (uid, i + 1))
+        # D24:数据里不得再出现表现层 page 字段;platform 只允许稳定 key
+        for label, obj in (("索引", t), ("数据", data)):
+            if "page" in obj:
+                problems.append("%s: %s 仍含表现层 page 字段(应运行 --normalize)" % (uid, label))
+        dirty_plats = [p for p in ((data.get("source") or {}).get("platform"),
+                                   (t.get("source") or {}).get("platform"),
+                                   data.get("platforms"), t.get("platforms"))
+                       if _bad_platform(p)]
+        if dirty_plats:
+            problems.append("%s: platform 存在非稳定 key 取值(%s)" % (uid, dirty_plats))
         if data.get("theme") and data.get("theme") not in THEME_NAMES:
             problems.append("%s: theme 取值不在主题注册表内(%s)" % (uid, data.get("theme")))
         if "enabled" in data and bool(data.get("enabled")) != bool(t.get("enabled", True)):
@@ -755,8 +789,10 @@ def update_title(unit_id, title, log=print):
             data["runs"] = runs
         write_collection_file(data)
     log("标题已更新: %s → %s" % (old_title or "(空)", title))
+    page = ("single.html?id=%s" if (target.get("type") or "series") == "single"
+            else "series.html?id=%s") % unit_id
     return {"ok": True, "id": unit_id, "title": title, "old_title": old_title,
-            "page": target.get("page", "")}
+            "page": page}
 
 
 def merge_videos(existing, incoming):
@@ -1021,8 +1057,9 @@ def collect_topic(keyword, pages=30, title=None, up=None, slug=None,
     actual = set((v.get("platform") or "bilibili") for v in videos)
     # 按 B站 / 公众号 / 小红书的固定顺序生成渠道清单,首页可按任一渠道筛到多平台合集
     plat_order = [k for k in ("bilibili", "wechat", "xhs") if k in actual]
-    plat_list = [channels.platform_name(k) for k in plat_order]
-    plat_name = plat_list[0] if len(plat_list) == 1 else "多平台"
+    plat_list = list(plat_order)  # 存稳定 key,首页按 key 筛选、前端映射中文名
+    plat_key = plat_list[0] if len(plat_list) == 1 else "multi"
+    plat_name = channels.platform_name(plat_key) if plat_key != "multi" else "多平台"
     if mid:
         source_url = "https://space.bilibili.com/%s/video" % mid
     else:
@@ -1033,14 +1070,13 @@ def collect_topic(keyword, pages=30, title=None, up=None, slug=None,
         "title": title,
         "slogan": final_slogan,
         "source": {
-            "platform": plat_name,
+            "platform": plat_key,
             "name": author or plat_name,
             "url": source_url,
         },
         "platforms": plat_list,
         "keyword": keyword,
         "tags": unit_tags[:10],
-        "page": page_path,
         "count": len(videos),
         "videos": videos,
     }
@@ -1299,13 +1335,12 @@ def _collect_article_single(url, plat, title=None, slug=None, slogan=None,
         "title": final_title,
         "slogan": final_slogan,
         "source": {
-            "platform": plat_name,
+            "platform": platform_key(plat_name),
             "name": item.get("author") or plat_name,
             "url": item["url"],
         },
         "keyword": url,
         "tags": unit_tags[:10],
-        "page": page_path,
         "count": len(videos),
         "videos": videos,
     }
@@ -1438,13 +1473,12 @@ def collect_batch(text, title=None, slug=None, slogan=None, dry_run=False,
         "title": final_title,
         "slogan": final_slogan,
         "source": {
-            "platform": plat_label,
+            "platform": platform_key(plat_label),
             "name": source_name,
             "url": items[0].get("url", ""),
         },
         "keyword": "batch",
         "tags": unit_tags,
-        "page": page_path,
         "count": len(videos),
         "videos": videos,
     }
@@ -1558,13 +1592,12 @@ def _collect_bilibili_single(url, title=None, slug=None, slogan=None, dry_run=Fa
         "title": final_title,
         "slogan": final_slogan,
         "source": {
-            "platform": "B站",
+            "platform": "bilibili",
             "name": video["author"],
             "url": ("https://space.bilibili.com/%s/video" % raw.get("mid")) if raw.get("mid") else video["url"],
         },
         "keyword": url,
         "tags": unit_tags[:10],
-        "page": page_path,
         "count": len(videos),
         "videos": videos,
     }
@@ -1608,10 +1641,8 @@ def migrate_legacy(log=print):
             if data.get("type") != expected_type:
                 data["type"] = expected_type
                 changed = True
-            expected_page = ("single.html?id=%s" if expected_type == "single"
-                             else "series.html?id=%s") % uid
-            if data.get("page") != expected_page:
-                data["page"] = expected_page
+            if "page" in data:  # D24:路由属表现层,数据里不再保留
+                data.pop("page")
                 changed = True
             for key in ("enabled", "created", "updated", "keyword", "count", "cover", "latest"):
                 if key not in data and key in meta:
@@ -1648,8 +1679,7 @@ def migrate_legacy(log=print):
         if not data.get("tags"):
             data["tags"] = [data["title"]] if data.get("title") else []
         videos = data.get("videos") or []
-        # 旧 single 单元的 page 指向 topics/<id>.html,改为 single.html?id=
-        data["page"] = ("single.html?id=%s" if data["type"] == "single" else "series.html?id=%s") % uid
+        data.pop("page", None)  # 旧 single 的 page 指向 topics/<id>.html,这里直接丢掉
         data["count"] = len(videos)
         if videos and not data.get("cover"):
             data["cover"] = videos[0].get("cover", "")
@@ -1675,11 +1705,71 @@ def migrate_legacy(log=print):
         # 标签缺失则用标题关键词兜底,与数据文件保持一致
         if not meta.get("tags"):
             meta["tags"] = [meta["title"]] if meta.get("title") else []
-        meta["page"] = ("single.html?id=%s" if t == "single" else "series.html?id=%s") % uid
+        meta.pop("page", None)
         new_index.append(meta)
     write_index(new_index, datetime.date.today().isoformat())
     log("迁移完成: 新增 %d 个单元数据文件,索引共 %d 个单元" % (migrated, len(new_index)))
     return {"ok": True, "migrated": migrated, "total": len(new_index)}
+
+
+def normalize_dataset(log=print, dry_run=False):
+    """D24 数据侧解耦(幂等):
+    1. 去掉数据与索引里的 page 字段(路由由前端按 type 推导);
+    2. source.platform / platforms 统一为稳定 key(bilibili/wechat/xhs/multi)。
+    返回 {"ok", "units", "changed"}。
+    """
+    index = load_index()
+    changed_units = 0
+    index_changed = False
+
+    for meta in index:
+        if "page" in meta:
+            meta.pop("page")
+            index_changed = True
+        src = meta.get("source")
+        if isinstance(src, dict) and "platform" in src:
+            key = platform_key(src.get("platform"))
+            if key != src.get("platform"):
+                src["platform"] = key
+                index_changed = True
+        plats = meta.get("platforms")
+        if isinstance(plats, list):
+            new = [platform_key(x) for x in plats]
+            if new != plats:
+                meta["platforms"] = new
+                index_changed = True
+
+        uid = meta.get("id")
+        if not uid:
+            continue
+        data = load_collection_data(uid)
+        if not data:
+            continue
+        dirty = False
+        if "page" in data:
+            data.pop("page")
+            dirty = True
+        src = data.get("source")
+        if isinstance(src, dict) and "platform" in src:
+            key = platform_key(src.get("platform"))
+            if key != src.get("platform"):
+                src["platform"] = key
+                dirty = True
+        plats = data.get("platforms")
+        if isinstance(plats, list):
+            new = [platform_key(x) for x in plats]
+            if new != plats:
+                data["platforms"] = new
+                dirty = True
+        if dirty:
+            changed_units += 1
+            if not dry_run:
+                write_collection_file(data)
+
+    if index_changed and not dry_run:
+        write_index(index, datetime.date.today().isoformat())
+    log("归一完成: %d 个单元有改动%s" % (changed_units, "(预览,未写盘)" if dry_run else ""))
+    return {"ok": True, "units": len(index), "changed": changed_units}
 
 
 def build_parser():
@@ -1705,6 +1795,8 @@ def build_parser():
     parser.add_argument("--manual-cover", default=None, help="手工补录封面图地址")
     parser.add_argument("--dry-run", action="store_true", help="只预览不写文件")
     parser.add_argument("--list", action="store_true", help="列出所有采集单元")
+    parser.add_argument("--normalize", action="store_true",
+                        help="数据侧解耦:去掉 page 字段,platform 统一为稳定 key(幂等)")
     parser.add_argument("--verify", action="store_true",
                         help="数据一致性自检(索引/数据文件/count/key/日期/开关),有问题返回非 0")
     parser.add_argument("--toggle", metavar="ID", default=None, help="开启/关闭某单元显示,配合 --on/--off")
@@ -1856,6 +1948,9 @@ def main():
         if not r["ok"]:
             sys.exit(1)
         return
+    if args.normalize:
+        r = normalize_dataset(dry_run=args.dry_run)
+        sys.exit(0 if r["ok"] else 1)
     if args.verify:
         r = verify_data()
         print("自检%s" % ("通过" if r["ok"] else "未通过"))

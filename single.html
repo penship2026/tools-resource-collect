@@ -45,7 +45,10 @@
     .watch-btn {
       display: inline-block; margin-top: 22px; background: var(--brand); color: #fff;
       text-decoration: none; border-radius: var(--radius-sm); padding: 12px 22px; font-size: 14px;
+      font-weight: 550; box-shadow: 0 6px 18px rgba(45, 127, 249, .22);
+      transition: transform .15s ease, box-shadow .15s ease;
     }
+    .watch-btn:hover { transform: translateY(-1px); box-shadow: 0 10px 24px rgba(45, 127, 249, .28); }
     .side-link { margin-top: 14px; }
     .side-link a { font-size: 12px; color: var(--text-mute); }
     .tag-chips { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -275,8 +278,9 @@
           return;
         }
 
-        var platKey = v.platform || (topic.source && topic.source.platform === 'B站' ? 'bilibili' : '');
-        var plat = PLAT[platKey] || (topic.source && topic.source.platform) || 'B站';
+        // platform 现为稳定 key(D24);旧数据的中文名交给 Render.platKey 兼容
+        var platKey = v.platform || Render.platKey(topic.source && topic.source.platform);
+        var plat = Render.platLabel(platKey);
         var ctx = {
           v: v,
           topic: topic,

@@ -743,5 +743,6 @@ window.COLLECTION_DATA["guwen-animation"] = {
     "高中文言文",
     "实词",
     "虚词"
-  ]
+  ],
+  "section": "k12"
 };

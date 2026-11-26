@@ -406,5 +406,6 @@ window.COLLECTION_DATA["topic-4e6ee53f"] = {
     }
   ],
   "updated": "2026-11-26",
-  "latest": "2026.11.24"
+  "latest": "2026.11.24",
+  "section": "ai"
 };

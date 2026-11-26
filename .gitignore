@@ -16,6 +16,7 @@ personal-*.json
 
 # 本机调度用的未公开主题清单
 topics.local.yml
+schedule.local.yml
 
 # 本机定时任务的运行日志
 logs/

@@ -257,5 +257,6 @@ window.COLLECTION_DATA["topic-e5b5c763"] = {
     "学习视频",
     "学前",
     "英语启蒙"
-  ]
+  ],
+  "section": "k12"
 };

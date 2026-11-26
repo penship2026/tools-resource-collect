@@ -360,5 +360,6 @@ window.COLLECTION_DATA["daily-website"] = {
     "实用工具",
     "汉语拼音",
     "网站推荐"
-  ]
+  ],
+  "section": "tools"
 };

@@ -200,5 +200,6 @@ window.COLLECTION_DATA["bv1uks66oeeh"] = {
     }
   ],
   "updated": "2026-11-26",
-  "latest": "2026.11.17"
+  "latest": "2026.11.17",
+  "section": "ai"
 };

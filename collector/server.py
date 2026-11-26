@@ -30,14 +30,21 @@
 import argparse
 import hmac
 import http.server
+import ipaddress
 import json
 import os
 import re
+import secrets
+import socket
 import socketserver
 import sys
+import threading
+import uuid
 import urllib.parse
 
 import generate
+import git_sync
+import settings_store
 
 # 采集代码位于 <项目根>/collector/,展示页面与数据在项目根。
 # ROOT 指向项目根用于静态托管;COLLECTOR_DIR 指向本目录用于定位采集页。
@@ -51,6 +58,67 @@ API_ONLY = False
 # 公网模式:绑定 0.0.0.0 且所有写接口必须带访问口令;默认本机模式不校验
 PUBLIC_MODE = False
 TOKEN = ""
+# 本机设置页 CSRF token：每次启动生成，GET /api/settings 下发，写接口回传
+CSRF_TOKEN = secrets.token_urlsafe(24)
+
+
+def origin_host_allowed(host):
+    """设置页 Origin 白名单：本机、内网 IP 与 .local 主机名。"""
+    host = (host or "").strip().strip("[]").lower()
+    if not host:
+        return False
+    if host in ("127.0.0.1", "localhost", "::1"):
+        return True
+    if host.endswith(".local"):
+        return True
+    try:
+        ip = ipaddress.ip_address(host)
+    except ValueError:
+        return False
+    return ip.is_private or ip.is_loopback
+
+
+def lan_ip():
+    """尽力获取本机一个局域网 IPv4 地址；失败返回空串。"""
+    try:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        sock.connect(("8.8.8.8", 80))
+        addr = sock.getsockname()[0]
+        sock.close()
+        if ipaddress.ip_address(addr).is_link_local:
+            return ""
+        return addr
+    except (OSError, ValueError):
+        return ""
+JOBS = {}
+JOBS_LOCK = threading.Lock()
+
+
+def _new_job(kind):
+    job_id = uuid.uuid4().hex[:12]
+    with JOBS_LOCK:
+        JOBS[job_id] = {
+            "id": job_id, "kind": kind, "state": "running",
+            "progress": "", "logs": [], "result": None, "created": generate.now_stamp(),
+        }
+    return job_id
+
+
+def _job_update(job_id, *, state=None, progress=None, log=None, result=None):
+    with JOBS_LOCK:
+        job = JOBS.get(job_id)
+        if not job:
+            return
+        if state:
+            job["state"] = state
+        if progress is not None:
+            job["progress"] = progress
+        if log:
+            job["logs"].append(str(log))
+            job["logs"] = job["logs"][-200:]
+        if result is not None:
+            job["result"] = result
+
 
 
 class Handler(http.server.SimpleHTTPRequestHandler):
@@ -58,6 +126,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
     STATIC_EXACT = {
         "/", "/index.html", "/series.html", "/list.html", "/single.html",
         "/collector/collect.html", "/collect.html",
+        "/collector/settings.html", "/settings.html",
     }
 
     def __init__(self, *args, **kwargs):
@@ -78,13 +147,30 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             supplied = (qs.get("token") or [""])[0]
         return bool(TOKEN) and hmac.compare_digest(supplied, TOKEN)
 
+    def _settings_origin_ok(self):
+        origin = self.headers.get("Origin") or ""
+        if not origin:
+            return True
+        try:
+            parsed = urllib.parse.urlparse(origin)
+        except ValueError:
+            return False
+        if parsed.scheme not in ("http", "https"):
+            return False
+        port = parsed.port or (443 if parsed.scheme == "https" else 80)
+        return origin_host_allowed(parsed.hostname) and port == self.server.server_address[1]
+
+    def _csrf_ok(self):
+        supplied = self.headers.get("X-CSRF-Token") or ""
+        return self._settings_origin_ok() and bool(supplied) and hmac.compare_digest(supplied, CSRF_TOKEN)
+
     def translate_path(self, path):
         # 兼容旧访问路径:/collect.html 现在实际位于 collector/collect.html。
         # 同时保留 /collector/collect.html 的自然路径。
         clean = (path or "").split("?", 1)[0].split("#", 1)[0]
         tail = clean.rstrip("/").split("/")[-1]
-        if tail == "collect.html" and not clean.startswith("/collector/"):
-            return os.path.join(COLLECTOR_DIR, "collect.html")
+        if tail in ("collect.html", "settings.html") and not clean.startswith("/collector/"):
+            return os.path.join(COLLECTOR_DIR, tail)
         return super().translate_path(path)
 
     def log_message(self, fmt, *args):
@@ -113,6 +199,11 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def _read_json(self):
+        length = int(self.headers.get("Content-Length", 0))
+        body = self.rfile.read(length).decode("utf-8") if length else "{}"
+        return json.loads(body)
+
     def do_GET(self):
         path = urllib.parse.urlparse(self.path).path
         if path.endswith("/api/health"):
@@ -137,6 +228,40 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 info["data_dir"] = generate.DATA_DIR
                 info["collections_dir"] = generate.COLLECTIONS_DIR
             self._json(info)
+            return
+        if path.endswith("/api/settings"):
+            try:
+                data = settings_store.public_settings()
+                data["csrf_token"] = CSRF_TOKEN
+                data["git"] = git_sync.status()
+            except ValueError as exc:
+                self._json({"ok": False, "error": {"code": "VALIDATION_ERROR", "message": str(exc)}}, 400)
+            else:
+                self._json(data)
+            return
+        if path.endswith("/api/actions/export"):
+            self._json(settings_store.export_cron())
+            return
+        if path.endswith("/api/git/status"):
+            self._json(git_sync.status())
+            return
+        if "/api/jobs/" in path:
+            job_id = path.rsplit("/", 1)[-1]
+            with JOBS_LOCK:
+                job = JOBS.get(job_id)
+            if not job:
+                self._json({"ok": False, "error": {"code": "NOT_FOUND", "message": "任务不存在"}}, 404)
+                return
+            self._json({"ok": True, **job})
+            return
+        if "/api/git/jobs/" in path:
+            job_id = path.rsplit("/", 1)[-1]
+            with JOBS_LOCK:
+                job = JOBS.get(job_id)
+            if not job:
+                self._json({"ok": False, "error": {"code": "NOT_FOUND", "message": "任务不存在"}}, 404)
+                return
+            self._json({"ok": True, **job})
             return
         if path.endswith("/api/topics"):
             status = generate.index_status()
@@ -213,7 +338,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         # 采集端专用模式:只放行采集页本身和它依赖的样式表,其他静态文件由展示端 Web 服务器提供
         if API_ONLY:
             tail = path.rstrip("/").split("/")[-1]
-            if tail in ("collect.html", "style.css"):
+            if tail in ("collect.html", "settings.html", "style.css"):
                 return super().do_GET()
             self._json({
                 "ok": False,
@@ -230,6 +355,25 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             return
         return super().do_GET()
 
+    def do_PUT(self):
+        path = urllib.parse.urlparse(self.path).path
+        if not path.endswith("/api/settings"):
+            self._json({"ok": False, "error": {"code": "NOT_FOUND", "message": "未知接口"}}, 404)
+            return
+        if not self._csrf_ok():
+            self._json({"ok": False, "error": {"code": "CSRF_FAILED", "message": "CSRF token 或 Origin 校验失败"}}, 403)
+            return
+        try:
+            payload = self._read_json()
+            result = settings_store.save_settings(payload)
+        except ValueError as exc:
+            self._json({"ok": False, "error": {"code": "VALIDATION_ERROR", "message": str(exc)}}, 400)
+            return
+        except Exception as exc:
+            self._json({"ok": False, "error": {"code": "INTERNAL", "message": str(exc)}}, 500)
+            return
+        self._json(result)
+
     def do_POST(self):
         path = urllib.parse.urlparse(self.path).path
         # 公网模式:所有写接口都必须带访问口令;本机默认不校验
@@ -242,6 +386,65 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             payload = json.loads(body)
         except Exception as exc:
             self._json({"ok": False, "error": "请求参数错误: %s" % exc}, 400)
+            return
+
+        # 开启/关闭某采集单元的显示
+        if path.endswith("/api/scheduler/toggle"):
+            if not self._csrf_ok():
+                self._json({"ok": False, "error": {"code": "CSRF_FAILED", "message": "CSRF token 或 Origin 校验失败"}}, 403)
+                return
+            # v1：Actions schedule 已固定运行，本机调度默认关闭
+            self._json({"ok": False, "error": {
+                "code": "CONFLICT",
+                "message": "Actions schedule 已启用，本机调度默认关闭；停用线上 cron 后才能开启本机调度",
+            }}, 409)
+            return
+        if path.endswith("/api/run-now"):
+            if not self._csrf_ok():
+                self._json({"ok": False, "error": {"code": "CSRF_FAILED", "message": "CSRF token 或 Origin 校验失败"}}, 403)
+                return
+            pages = int(payload.get("pages") or settings_store.actions_schedule().get("pages") or 3)
+            job_id = _new_job("collect")
+            def run():
+                logs = []
+                def log(msg):
+                    logs.append(str(msg))
+                    _job_update(job_id, progress=str(msg), log=msg)
+                try:
+                    result = generate.run_topics([generate.TOPICS_FILE], pages=pages, log=log)
+                    state = "success" if result.get("ok") else "failed"
+                    _job_update(job_id, state=state, result=result, progress="完成")
+                except Exception as exc:
+                    _job_update(job_id, state="failed", progress="失败",
+                                log="采集异常: %s" % exc, result={"ok": False, "error": str(exc)})
+            threading.Thread(target=run, daemon=True).start()
+            self._json({"ok": True, "job_id": job_id}, 202)
+            return
+        if path.endswith("/api/git/preview"):
+            if not self._csrf_ok():
+                self._json({"ok": False, "error": {"code": "CSRF_FAILED", "message": "CSRF token 或 Origin 校验失败"}}, 403)
+                return
+            self._json(git_sync.preview())
+            return
+        if path.endswith("/api/git/push"):
+            if not self._csrf_ok():
+                self._json({"ok": False, "error": {"code": "CSRF_FAILED", "message": "CSRF token 或 Origin 校验失败"}}, 403)
+                return
+            job_id = _new_job("git")
+            def push():
+                logs = []
+                def log(msg):
+                    _job_update(job_id, progress=str(msg), log=msg)
+                # git_sync.push 内部已有日志；这里只做状态收口
+                try:
+                    result = git_sync.push()
+                    state = "success" if result.get("ok") else result.get("state", "failed")
+                    _job_update(job_id, state=state, result=result, progress="完成")
+                except Exception as exc:
+                    _job_update(job_id, state="failed", progress="失败",
+                                log="推送异常: %s" % exc, result={"ok": False, "error": str(exc)})
+            threading.Thread(target=push, daemon=True).start()
+            self._json({"ok": True, "job_id": job_id}, 202)
             return
 
         # 开启/关闭某采集单元的显示
@@ -390,6 +593,7 @@ def main():
     ap.add_argument("--port", type=int, default=None, help="端口,默认 8765(或环境变量 PORT)")
     ap.add_argument("--host", default=None, help="监听地址,默认 127.0.0.1")
     ap.add_argument("--public", action="store_true", help="公网模式:绑定 0.0.0.0,写接口必须带访问口令")
+    ap.add_argument("--lan", action="store_true", help="局域网模式:绑定 0.0.0.0,供同一 Wi-Fi 下手机访问")
     ap.add_argument("--token", default=None, help="访问口令,也可用环境变量 COLLECT_TOKEN")
     ap.add_argument("--api-only", action="store_true", help="采集端专用模式:只提供接口与采集页")
     args = ap.parse_args()
@@ -408,18 +612,26 @@ def main():
         print("错误:--public 公网模式必须提供访问口令(用 --token 或设置 COLLECT_TOKEN)", file=sys.stderr)
         sys.exit(2)
 
-    host = args.host or ("0.0.0.0" if PUBLIC_MODE else "127.0.0.1")
+    host = args.host or ("0.0.0.0" if (PUBLIC_MODE or args.lan) else "127.0.0.1")
     if host not in ("127.0.0.1", "localhost") and not PUBLIC_MODE and not TOKEN:
         print("提示:当前监听了非本机地址但未设口令,写接口对本网段开放;需要对外请改用 --public --token",
               file=sys.stderr)
 
     with ReusableTCPServer((host, port), Handler) as httpd:
         role = "采集端专用(api-only)" if API_ONLY else "全功能(静态+接口)"
-        mode = "公网+口令" if PUBLIC_MODE else ("口令" if TOKEN else "本机无口令")
+        mode = "公网+口令" if PUBLIC_MODE else ("局域网" if args.lan else ("口令" if TOKEN else "本机无口令"))
         print("采集服务已启动 [%s / %s]:" % (role, mode))
         print("  http://%s:%d/collect.html" % (host, port))
         if not API_ONLY:
             print("  http://%s:%d/index.html" % (host, port))
+            print("  http://%s:%d/collector/settings.html" % (host, port))
+            if args.lan and host == "0.0.0.0":
+                addr = lan_ip()
+                if addr:
+                    print("局域网访问(手机与电脑需同一 Wi-Fi):")
+                    print("  http://%s:%d/collector/settings.html" % (addr, port))
+                else:
+                    print("未自动识别局域网 IP,请用系统网络设置里的本机 IP 拼出访问地址")
         print("数据目录: %s" % generate.DATA_DIR)
         print("采集单元目录: %s" % generate.COLLECTIONS_DIR)
         if PUBLIC_MODE:

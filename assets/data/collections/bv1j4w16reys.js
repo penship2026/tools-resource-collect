@@ -43,5 +43,6 @@ window.COLLECTION_DATA["bv1j4w16reys"] = {
     "素人",
     "AI绘画",
     "AI副业"
-  ]
+  ],
+  "section": "ai"
 };

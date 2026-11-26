@@ -1199,5 +1199,6 @@ window.COLLECTION_DATA["topic-621ae722"] = {
     "数学思维",
     "数学基础",
     "小学数学思维"
-  ]
+  ],
+  "section": "k12"
 };

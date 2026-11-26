@@ -1,0 +1,53 @@
+name: pages
+
+# 只发布展示站；collector/、docs/、tests/、topics.yml、sections.yml 都不进入 artifact。
+# 验收：部署后 /collector/settings.html 与 /collector/collect.html 都应 404。
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出仓库
+        uses: actions/checkout@v4
+
+      - name: 生成展示站 artifact
+        run: |
+          mkdir -p _site/assets
+          cp index.html series.html list.html single.html _site/
+          cp -R assets/. _site/assets/
+          cp CNAME _site/CNAME
+          touch _site/.nojekyll
+          # 双重保险：即使上游多拷了目录，也在这里移除
+          rm -rf _site/collector _site/docs _site/tests _site/scripts _site/.github _site/backups
+          rm -f _site/README.md _site/topics.yml _site/sections.yml _site/docker-compose.yml _site/Dockerfile
+          find _site -maxdepth 2 -type f | sort
+
+      - name: 上传 Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: 部署 Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

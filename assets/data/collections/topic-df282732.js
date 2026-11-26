@@ -525,5 +525,6 @@ window.COLLECTION_DATA["topic-df282732"] = {
     "Java",
     "Agent",
     "AI开发"
-  ]
+  ],
+  "section": "ai"
 };

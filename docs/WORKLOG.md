@@ -475,3 +475,32 @@ Chrome 无头截图三页面全部正常:首页卡片标签独立行两行截断
 - 新增 `docs/CREATION-STORY-20261126.md`：600 字小红书文案、9 图分镜、完整创作过程、排期理由、做对/踩坑、资料依据。
 - 新增同名单文件 HTML：阅读进度、吸顶目录、统计卡、一键复制文案、时间线、里程碑表；Playwright 1280/390 实测无横向溢出，复制按钮通过。
 - README 文档索引补充；docs-check 通过。
+
+### 15:20–17:00 设置页与板块体系开发启动（D63）
+- 拍板 `pages=3`、`humanities` 默认关闭、Actions 保持 `0 23 * * *`；`run_topics` 增加 `ok/partial/failed` 契约。
+- 新增 `sections.yml`（7 板块）与 `topics.yml` v2（section + must/any + enabled）；12 个存量单元补 `section` 并重建索引。
+- 实现 `keyword_match` / `pick_series_multi`：must 全命中 + any 任一命中；B站与图文渠道共用。
+- 新增设置页 `collector/settings.html` 及 API：保存配置、CSRF/Origin、cron 导出、立即执行、Git 预览/推送、任务查询；Actions schedule 生效时本机调度 409。
+- 新增 `git_sync.py`：白名单只提交 `assets/data`，固定 `origin/main`，fetch 后 fast-forward，不 force/reset/clean。
+- 新增 `pages.yml` artifact；Pages 不再直出 `collector/`，线上设置页/采集页 404。
+- 验收：Python 54 例、node 12 例、verify 12 单元 0 问题、docs-check 通过；本机 HTTP 冒烟通过；Playwright 390/1280 无横向溢出、无 JS 报错。
+
+### 17:10–17:40 真实 dry-run 联调（D63.1）
+- `pages=1`：3 成功 / 4 失败；发现 `daily-website` 命中另一个 UP 主，存在作者漂移风险。
+- 修复：已有单元重采时从 `source.name` 取原作者并锁定；原作者无命中时本次不更新，不切换到其他作者。
+- `pages=3` 复跑：3 成功 / 4 失败，作者漂移已阻止；`daily-website`、`英语启蒙必备`、`SpringAI` 均锁定原作者。
+- 仍失败：`大模型对比`、`跟着动画学古文`、`最好的AI数字人项目`（60 条候选中无 must 全命中）；`数学思维启蒙动画` 原作者无命中，按作者锁阻止更新。
+- 全程 `--dry-run`，未写数据；Python 55 例通过。
+
+### 18:05–18:20 放宽三个主题关键词（D63.2）
+- `大模型对比` → must `大模型` + any `对比/评测/横评`；`跟着动画学古文` → must `古文` + any `动画/小古文/动画片`；`最好的AI数字人项目` → must `AI数字人` + any `项目/虚拟人/数字人`。
+- 数学主题关键词不动，作者锁保持严格，不提供解锁入口。
+- `pages=3` 复跑：仍是 3 成功 / 4 失败；4 个失败均变为“原作者本次无命中，作者锁阻止切换”，关键词不再是唯一原因。
+- 结论：在作者锁严格模式下，这 4 个存量单元只能等原作者更新；未写盘。
+
+### 18:35–18:50 设置页支持局域网访问（D64）
+- 新增 `--lan`：绑定 `0.0.0.0`，启动时打印局域网 IP 与设置页地址。
+- 修复设置页 Origin 白名单：原来只允许 127.0.0.1/localhost，手机用局域网 IP 打开后会保存/执行 403；现允许内网 IP 和 `.local` 主机名。
+- 更新设置页提示、README 与部署文档；新增 `tests/test_server.py`，共 59 例通过。
+- 冒烟：`GET /api/settings` 7 板块/7 主题；带 `Origin: http://192.168.1.23:8765` 的 `POST /api/git/preview` 正常返回。
+- 安全边界：`--lan` 无口令，只适合可信 Wi-Fi 临时使用；公网仍用 `--public --token`。

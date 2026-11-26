@@ -18,8 +18,9 @@ os.environ["VIDEO_DATA_DIR"] = TMP  # 必须在 import generate 之前设置
 import generate  # noqa: E402
 
 
-def unit_js(uid, videos, enabled=True):
+def unit_js(uid, videos, enabled=True, section="tools"):
     data = {"id": uid, "type": "series", "title": "测试单元 " + uid,
+            "section": section,
             "count": len(videos), "videos": videos}
     if enabled is not None:
         data["enabled"] = enabled
@@ -47,6 +48,8 @@ class GenerateDataTest(unittest.TestCase):
         os.makedirs(generate.COLLECTIONS_DIR, exist_ok=True)
 
     def write_index(self, items):
+        for item in items:
+            item.setdefault("section", "tools")
         generate.write_index(items, "2026-11-26")
 
     def test_server_unit_page_routes(self):
@@ -145,7 +148,7 @@ class GenerateDataTest(unittest.TestCase):
     def test_verify_unknown_theme(self):
         # 单元级 theme 字段(D32):只做提示与校验,不启用渲染分支
         data = {"id": "u1", "type": "series", "title": "主题单元", "count": 1,
-                "theme": "magazine", "videos": [video(0)]}
+                "section": "tools", "theme": "magazine", "videos": [video(0)]}
         with open(os.path.join(generate.COLLECTIONS_DIR, "u1.js"), "w", encoding="utf-8") as fh:
             fh.write("window.COLLECTION_DATA[\"u1\"] = %s;\n" % json.dumps(data, ensure_ascii=False))
         self.write_index([{"id": "u1", "count": 1, "enabled": True}])
@@ -181,6 +184,7 @@ class GenerateDataTest(unittest.TestCase):
         with open(path, "w", encoding="utf-8") as fh:
             fh.write("window.COLLECTION_DATA[\"u1\"] = %s;\n" % json.dumps({
                 "id": "u1", "type": "series", "title": "旧单元", "count": 1,
+                "section": "tools",
                 "page": "series.html?id=u1", "platforms": ["B站"],
                 "source": {"platform": "B站"}, "videos": [video(0)]}, ensure_ascii=False))
         self.write_index([{"id": "u1", "count": 1, "enabled": True, "type": "series",
@@ -195,6 +199,7 @@ class GenerateDataTest(unittest.TestCase):
         with open(path, "w", encoding="utf-8") as fh:
             fh.write("window.COLLECTION_DATA[\"u1\"] = %s;\n" % json.dumps({
                 "id": "u1", "type": "series", "title": "旧单元", "count": 1,
+                "section": "tools",
                 "page": "series.html?id=u1", "platforms": ["B站", "公众号"],
                 "source": {"platform": "多平台"}, "videos": [video(0)]}, ensure_ascii=False))
         self.write_index([{"id": "u1", "count": 1, "enabled": True, "type": "series",
@@ -240,6 +245,7 @@ class GenerateDataTest(unittest.TestCase):
     def test_rebuild_index_from_units(self):
         """索引只是派生缓存:期数/标题/开关/创建日期都以单元文件为准"""
         data = {"id": "u1", "type": "series", "title": "文件里的标题", "count": 99,
+                "section": "tools",
                 "videos": [video(0), video(1)], "enabled": False,
                 "updated": "2026-11-20", "intake": {"at": "2026-11-20 10:00", "mode": "url"}}
         with open(os.path.join(generate.COLLECTIONS_DIR, "u1.js"), "w", encoding="utf-8") as fh:
@@ -273,6 +279,120 @@ class GenerateDataTest(unittest.TestCase):
         got = generate.normalize_intake(raw)
         self.assertTrue(got["input"].startswith("…(更早内容已截断"))
         self.assertTrue(got["input"].endswith("B" * 8000))
+
+class SectionsTopicsTest(unittest.TestCase):
+    """板块注册表与混合关键词（P0 附录 2/3）。"""
+
+    def _write(self, name, text):
+        path = os.path.join(TMP, name)
+        with open(path, "w", encoding="utf-8") as fh:
+            fh.write(text)
+        return path
+
+    def test_sections_reserved_ranges(self):
+        sections = generate.load_sections_yaml()
+        by_id = {s["id"]: s for s in sections}
+        self.assertEqual((by_id["infant-care"]["age_min_months"], by_id["infant-care"]["age_max_months"]), (0, 36))
+        self.assertEqual((by_id["preschool"]["age_min_months"], by_id["preschool"]["age_max_months"]), (36, 72))
+        self.assertEqual((by_id["k12"]["age_min_months"], by_id["k12"]["age_max_months"]), (72, 216))
+        self.assertFalse(by_id["humanities"]["enabled"])
+
+    def test_sections_reject_gap(self):
+        path = self._write("bad-sections.yml", """
+version: 1
+sections:
+  - id: infant-care
+    title: 婴幼儿
+    age_min_months: 0
+    age_max_months: 30
+    order: 1
+    enabled: true
+  - id: preschool
+    title: 学前
+    age_min_months: 36
+    age_max_months: 72
+    order: 2
+    enabled: true
+  - id: k12
+    title: 中小学
+    age_min_months: 72
+    age_max_months: 216
+    order: 3
+    enabled: true
+""")
+        with self.assertRaises(ValueError):
+            generate.load_sections_yaml(path)
+
+    def test_topics_v2_parses_must_any(self):
+        path = self._write("topics-v2.yml", """
+version: 1
+topics:
+  - id: infant-feeding
+    section: infant-care
+    title: 喂养与睡眠
+    must_keywords: ["婴幼儿", "喂养"]
+    any_keywords: ["辅食", "母乳", "配方奶"]
+    channels: [bilibili]
+    enabled: true
+""")
+        got = generate.load_topics_yaml(path)
+        self.assertEqual(got[0]["must_keywords"], ["婴幼儿", "喂养"])
+        self.assertEqual(got[0]["any_keywords"], ["辅食", "母乳", "配方奶"])
+        self.assertEqual(got[0]["section"], "infant-care")
+        self.assertEqual(got[0]["keyword"], "婴幼儿")
+
+    def test_keyword_match_mixed(self):
+        self.assertTrue(generate.keyword_match("婴幼儿喂养：辅食添加", ["婴幼儿", "喂养"], ["辅食"]))
+        self.assertFalse(generate.keyword_match("婴幼儿睡眠", ["婴幼儿", "喂养"], ["辅食"]))
+        self.assertTrue(generate.keyword_match("ＳｐｒｉｎｇＡＩ 教程", ["springai"]))
+        self.assertFalse(generate.keyword_match("Spring 教程", ["springai"]))
+
+    def test_preferred_author_blocks_series_drift(self):
+        items = [
+            {"title": "每天挖掘一个神奇网站：A", "author": "新作者"},
+            {"title": "每天挖掘一个神奇网站：B", "author": "原作者"},
+        ]
+        found, ranked, report = generate.pick_series_multi(
+            items, ["每天挖掘一个神奇网站"], [], preferred_author="原作者")
+        self.assertEqual([x["author"] for x in found], ["原作者"])
+        self.assertTrue(report["preferred_locked"])
+        # 原作者没有命中时宁可本次不更新，也不切换到其他作者
+        found, _, report = generate.pick_series_multi(
+            items, ["每天挖掘一个神奇网站"], [], preferred_author="不存在的作者")
+        self.assertEqual(found, [])
+        self.assertTrue(report["preferred_miss"])
+
+    def test_run_topics_partial_keeps_ok(self):
+        path = self._write("topics-run.yml", """
+version: 1
+topics:
+  - id: one
+    section: tools
+    title: 成功
+    must_keywords: ["成功"]
+    channels: [bilibili]
+    enabled: true
+  - id: two
+    section: tools
+    title: 失败
+    must_keywords: ["失败"]
+    channels: [bilibili]
+    enabled: true
+""")
+        old = generate.collect_topic
+        def fake(**kwargs):
+            if kwargs["unit_id"] == "two":
+                return {"ok": False, "error": "模拟失败"}
+            return {"ok": True}
+        generate.collect_topic = fake
+        try:
+            r = generate.run_topics([path], log=lambda *a: None)
+        finally:
+            generate.collect_topic = old
+        self.assertTrue(r["ok"])
+        self.assertEqual(r["status"], "partial")
+        self.assertEqual(len(r["failed"]), 1)
+
 
 class CliSmokeTest(unittest.TestCase):
     """在真实仓库数据上跑 CLI(只读)"""

@@ -441,5 +441,6 @@ window.COLLECTION_DATA["topic-205064a1"] = {
     "大模型",
     "Agent",
     "LLM"
-  ]
+  ],
+  "section": "ai"
 };

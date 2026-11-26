@@ -1,0 +1,60 @@
+version: 1
+
+# 内容板块注册表（公开配置，由采集设置页维护）
+
+sections:
+  - id: infant-care
+    title: "婴幼儿养护"
+    age_min_months: 0
+    age_max_months: 36
+    order: 1
+    enabled: true
+    description: "0–3 岁喂养、睡眠、发育、健康护理与居家安全"
+
+  - id: preschool
+    title: "学前教育"
+    age_min_months: 36
+    age_max_months: 72
+    order: 2
+    enabled: true
+    description: "3–6 岁入园适应、幼小衔接、早期阅读与游戏化学习"
+
+  - id: k12
+    title: "中小学教育"
+    age_min_months: 72
+    age_max_months: 216
+    order: 3
+    enabled: true
+    description: "6–18 岁学科、启蒙与学习方法"
+
+  - id: ai
+    title: "AI 与智能工具"
+    age_min_months: null
+    age_max_months: null
+    order: 4
+    enabled: true
+    description: "全龄；大模型、Agent、AI 开发与 AI 应用"
+
+  - id: tech
+    title: "科技前沿"
+    age_min_months: null
+    age_max_months: null
+    order: 5
+    enabled: true
+    description: "全龄；芯片、算力、机器人、航天与新能源"
+
+  - id: tools
+    title: "工具与效率"
+    age_min_months: null
+    age_max_months: null
+    order: 6
+    enabled: true
+    description: "全龄；网站、软件、效率方法与实用工具"
+
+  - id: humanities
+    title: "人文与通识"
+    age_min_months: null
+    age_max_months: null
+    order: 7
+    enabled: false
+    description: "全龄；城市、历史、文化与地理"

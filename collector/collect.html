@@ -175,6 +175,15 @@
           <button class="tab" id="tab-keyword" type="button">按主题采集</button>
         </div>
         <form id="form">
+          <!-- 重新采集时才出现:追加(默认)保留旧条目 / 覆盖(只保留本次结果) -->
+          <div class="field hidden" id="field-merge-mode">
+            <label>采集方式</label>
+            <div class="channel-picks">
+              <label class="pick"><input type="radio" name="merge_mode" value="append" checked> 追加(保留已有条目)</label>
+              <label class="pick"><input type="radio" name="merge_mode" value="replace"> 覆盖(只保留本次结果)</label>
+            </div>
+            <div class="tip">覆盖会丢弃该单元里本次未采集到的旧条目,建议先点「预览模式」确认,或先导出备份。</div>
+          </div>
           <!-- 必填项:按当前模式只显示对应的一个输入框 -->
           <div class="field hidden" id="field-keyword">
             <label for="keyword">主题关键词 *</label>
@@ -454,6 +463,9 @@
       $('btn-offline').hidden = true;
       $('btn-offline').textContent = '下线不显示';
       $('field-advanced').open = false;
+      $('field-merge-mode').classList.add('hidden');
+      const appendRadio = document.querySelector('input[name="merge_mode"][value="append"]');
+      if (appendRadio) appendRadio.checked = true;
       hideRecall();
       renderRuns([]);
       $('form-title').textContent = '新建采集任务';
@@ -508,6 +520,7 @@
       $('form-title').textContent = '重新采集 · ' + (unit.title || unitId);
       $('btn-title-only').hidden = false;
       $('btn-offline').hidden = false;
+      $('field-merge-mode').classList.remove('hidden');
       syncOfflineButton();
       // 重新采集时默认展开全部可选设置,方便核对上次的补录信息后再执行
       $('field-advanced').open = true;
@@ -747,6 +760,7 @@
         pages: parseInt($('pages').value) || 30,
         channels: channels,
         dry_run: $('dry_run').checked,
+        merge_mode: (document.querySelector('input[name="merge_mode"]:checked') || {}).value || 'append',
         // 手工补录:公众号/小红书抓取被风控时,至少填标题即可建单元
         manual_title: $('manual_title').value.trim(),
         manual_author: $('manual_author').value.trim(),
@@ -754,6 +768,10 @@
         manual_date: $('manual_date').value.trim(),
         manual_cover: $('manual_cover').value.trim(),
       };
+      if (payload.merge_mode === 'replace' && payload.unit_id && !payload.dry_run &&
+          !confirm('确认覆盖采集?该单元里本次未采集到的旧条目会被删除。')) {
+        return;
+      }
       $('submit').disabled = true;
       $('submit').textContent = '采集中…';
       statusBox.className = 'status';

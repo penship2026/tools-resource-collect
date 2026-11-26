@@ -270,6 +270,14 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
         keyword = (payload.get("keyword") or "").strip()
         mode = (payload.get("mode") or "keyword").strip()
+        # 采集方式:append(默认,追加保留旧条目)| replace(覆盖,只保留本次结果)
+        merge_mode = (payload.get("merge_mode") or "append").strip()
+        if merge_mode not in ("append", "replace"):
+            self._json({"ok": False, "error": "不支持的采集方式: %s" % merge_mode}, 400)
+            return
+        # 覆盖只对已有单元有意义;新建时强制按追加处理,避免误传参数造成空结果
+        unit_id_raw = (payload.get("unit_id") or payload.get("slug") or "").strip()
+        replace = merge_mode == "replace" and bool(unit_id_raw)
         if not keyword:
             if mode == "batch":
                 hint = "请粘贴至少一条链接"
@@ -320,7 +328,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     slogan=(payload.get("slogan") or "").strip() or None,
                     dry_run=bool(payload.get("dry_run")),
                     log=log,
-                    intake=intake,
+                    intake=intake, replace=replace,
                 )
             elif mode == "url":
                 result = generate.collect_by_url(
@@ -331,7 +339,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     dry_run=bool(payload.get("dry_run")),
                     manual=manual,
                     log=log,
-                    intake=intake,
+                    intake=intake, replace=replace,
                 )
             else:
                 result = generate.collect_topic(
@@ -344,7 +352,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     dry_run=bool(payload.get("dry_run")),
                     topic_channels=payload.get("channels"),
                     log=log,
-                    intake=intake,
+                    intake=intake, replace=replace,
                 )
         except Exception as exc:
             self._json({"ok": False, "error": "采集失败: %s" % exc, "logs": logs}, 500)

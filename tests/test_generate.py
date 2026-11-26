@@ -211,6 +211,19 @@ class CliSmokeTest(unittest.TestCase):
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertIn("daily-website", r.stdout)
 
+    def test_merge_for_mode(self):
+        """D55:append 保留旧条目;replace 只保留本次,并报告 removed"""
+        old = [{"key": "bilibili:BV1", "title": "旧1"}, {"key": "bilibili:BV2", "title": "旧2"}]
+        new = [{"key": "bilibili:BV1", "title": "新1"}, {"key": "bilibili:BV3", "title": "新3"}]
+        merged, rep = generate.merge_for_mode(old, new, replace=False)
+        self.assertEqual(rep["added"], 1)
+        self.assertEqual(len(merged), 3)
+        merged2, rep2 = generate.merge_for_mode(old, new, replace=True)
+        self.assertEqual(len(merged2), 2)
+        self.assertEqual([v["key"] for v in merged2], ["bilibili:BV1", "bilibili:BV3"])
+        self.assertEqual(rep2["removed"], 2)
+        self.assertEqual(rep2["total"], 2)
+
     def test_bili_parts_and_season(self):
         """B站详情扩展:多P才返回分P目录;合集展平分节"""
         single = {"pages": [{"page": 1, "part": "唯一P", "duration": 10}]}

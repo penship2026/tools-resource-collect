@@ -923,6 +923,31 @@ def merge_videos(existing, incoming):
     return merged, report
 
 
+
+def merge_for_mode(existing, incoming, replace=False):
+    """按采集方式合并:
+    - append(默认):沿用 merge_videos,保留旧有未采到的条目
+    - replace:只保留本次采集结果(同 key 去重,后者覆盖前者),旧条目全部丢弃
+    返回 (视频列表, 报告dict),报告在 replace 时额外带 removed(被丢弃的旧条数)
+    """
+    if not replace:
+        return merge_videos(existing, incoming)
+    uniq = {}
+    for v in incoming:
+        key = item_key(v)
+        if key:
+            uniq[key] = v
+    videos = sorted(uniq.values(), key=lambda v: v.get("ts") or 0, reverse=True)
+    report = {
+        "added": len(videos),
+        "updated": 0,
+        "kept": 0,
+        "total": len(videos),
+        "removed": len(existing or []),
+    }
+    return videos, report
+
+
 def normalize_topic_channels(value, log=print):
     """
     规整「按主题采集」的渠道多选值:支持数组、逗号分隔字符串和中文名,
@@ -951,7 +976,7 @@ def normalize_topic_channels(value, log=print):
 
 def collect_topic(keyword, pages=30, title=None, up=None, slug=None,
                   slogan=None, dry_run=False,
-                  unit_id=None, log=print, intake=None, topic_channels=None):
+                  unit_id=None, log=print, intake=None, topic_channels=None, replace=False):
     """
     按主题采集一个 series 单元,可同时选 B站 / 公众号 / 小红书多个渠道。
     B站走官方搜索并聚类同系列;公众号 / 小红书借搜索引擎找候选链接,
@@ -1073,11 +1098,13 @@ def collect_topic(keyword, pages=30, title=None, up=None, slug=None,
     is_update = uid in existing_ids
 
     existing_data = load_collection_data(uid)
-    videos, report = merge_videos(existing_data.get("videos") if existing_data else [], incoming_unique)
+    videos, report = merge_for_mode(existing_data.get("videos") if existing_data else [],
+                                    incoming_unique, replace)
     result.update(report)
     result["sample_url"] = videos[0]["url"] if videos else ""
 
-    log("去重合并: 新增 %d / 更新 %d / 未变 %d / 合计 %d 期" % (
+    log("%s: 新增 %d / 更新 %d / 未变 %d / 合计 %d 期" % (
+        "覆盖采集" if replace else "去重合并",
         report["added"], report["updated"], report["kept"], report["total"]))
 
     if dry_run:
@@ -1306,7 +1333,7 @@ def fetch_video_tags(bvid, log=print):
 
 
 def collect_by_url(url, title=None, slug=None, slogan=None, dry_run=False,
-                   unit_id=None, log=print, manual=None, intake=None):
+                   unit_id=None, log=print, manual=None, intake=None, replace=False):
     """
     按链接采集单条内容,自动识别渠道:
       - B站(含 BV 号、b23.tv 短链、视频页链接)→ 视频详情接口
@@ -1404,7 +1431,8 @@ def _collect_article_single(url, plat, title=None, slug=None, slogan=None,
     is_update = uid in existing_ids
 
     existing_data = load_collection_data(uid)
-    videos, report = merge_videos(existing_data.get("videos") if existing_data else [], [item])
+    videos, report = merge_for_mode(existing_data.get("videos") if existing_data else [],
+                                    [item], replace)
     result.update(report)
     result["sample_url"] = videos[0]["url"] if videos else ""
 
@@ -1445,7 +1473,7 @@ def _collect_article_single(url, plat, title=None, slug=None, slogan=None,
 
 
 def collect_batch(text, title=None, slug=None, slogan=None, dry_run=False,
-                  unit_id=None, log=print, intake=None):
+                  unit_id=None, log=print, intake=None, replace=False):
     """
     批量链接采集:一次粘贴多条链接(可混合 B站/公众号/小红书),合成一个单元。
       - 1 条成功结果按 single 处理,2 条及以上按 series(合集)处理
@@ -1513,7 +1541,8 @@ def collect_batch(text, title=None, slug=None, slogan=None, dry_run=False,
     is_update = uid in existing_ids
 
     existing_data = load_collection_data(uid)
-    videos, report = merge_videos(existing_data.get("videos") if existing_data else [], items)
+    videos, report = merge_for_mode(existing_data.get("videos") if existing_data else [],
+                                    items, replace)
     result.update(report)
     result["sample_url"] = videos[0]["url"] if videos else ""
     log("去重合并: 新增 %d / 更新 %d / 未变 %d / 合计 %d 条" % (
@@ -1574,7 +1603,7 @@ def collect_batch(text, title=None, slug=None, slogan=None, dry_run=False,
 
 
 def _collect_bilibili_single(url, title=None, slug=None, slogan=None, dry_run=False,
-                             unit_id=None, log=print, intake=None):
+                             unit_id=None, log=print, intake=None, replace=False):
     """按 B站 视频链接采集单条视频,写入一个 single 单元。来源是视频详情 API。"""
     result = {
         "ok": False, "keyword": "", "error": None,
@@ -1630,10 +1659,12 @@ def _collect_bilibili_single(url, title=None, slug=None, slogan=None, dry_run=Fa
     is_update = uid in existing_ids
 
     existing_data = load_collection_data(uid)
-    videos, report = merge_videos(existing_data.get("videos") if existing_data else [], incoming)
+    videos, report = merge_for_mode(existing_data.get("videos") if existing_data else [],
+                                    incoming, replace)
     result.update(report)
     result["sample_url"] = videos[0]["url"] if videos else ""
-    log("去重合并: 新增 %d / 更新 %d / 未变 %d / 合计 %d 期" % (
+    log("%s: 新增 %d / 更新 %d / 未变 %d / 合计 %d 期" % (
+        "覆盖采集" if replace else "去重合并",
         report["added"], report["updated"], report["kept"], report["total"]))
 
     if dry_run:
@@ -1762,6 +1793,8 @@ def build_parser():
     parser.add_argument("--manual-date", default=None, help="手工补录发布日期(如 2025-04-09)")
     parser.add_argument("--manual-cover", default=None, help="手工补录封面图地址")
     parser.add_argument("--dry-run", action="store_true", help="只预览不写文件")
+    parser.add_argument("--replace", action="store_true",
+                        help="重新采集时覆盖该单元已有条目(默认追加,保留旧数据)")
     parser.add_argument("--list", action="store_true", help="列出所有采集单元")
     parser.add_argument("--normalize", action="store_true",
                         help="数据侧解耦:去掉 page 字段,platform 统一为稳定 key(幂等)")
@@ -1970,19 +2003,19 @@ def main():
         result = collect_batch(
             text=args.keyword, title=args.title, slug=args.slug,
             slogan=args.slogan, dry_run=args.dry_run, unit_id=args.unit_id,
-            intake=intake,
+            intake=intake, replace=args.replace,
         )
     elif args.url:
         result = collect_by_url(
             url=args.keyword, title=args.title, slug=args.slug,
             slogan=args.slogan, dry_run=args.dry_run, unit_id=args.unit_id,
-            manual=manual, intake=intake,
+            manual=manual, intake=intake, replace=args.replace,
         )
     else:
         result = collect_topic(
             keyword=args.keyword, pages=args.pages, title=args.title, up=args.up,
             slug=args.slug, slogan=args.slogan, dry_run=args.dry_run, unit_id=args.unit_id,
-            topic_channels=args.channels, intake=intake,
+            topic_channels=args.channels, intake=intake, replace=args.replace,
         )
     if not result["ok"]:
         sys.exit(1)

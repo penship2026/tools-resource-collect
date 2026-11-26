@@ -36,37 +36,6 @@ window.COLLECTION_INDEX = [
     ]
   },
   {
-    "id": "topic-4e6ee53f",
-    "title": "大模型对比",
-    "slogan": "共收录 1 期,点击卡片跳转 B站观看",
-    "source": {
-      "platform": "B站",
-      "name": "明灯-专注脑洞一百年",
-      "url": "https://space.bilibili.com/327838817/video"
-    },
-    "page": "series.html?id=topic-4e6ee53f",
-    "count": 1,
-    "cover": "https://i0.hdslb.com/bfs/archive/cd52743195fa9e690f91595ccd588976ae7790cc.jpg",
-    "latest": "2026.11.24",
-    "type": "series",
-    "enabled": true,
-    "created": "",
-    "updated": "2026-11-25",
-    "keyword": "",
-    "tags": [
-      "AI鬼畜整活",
-      "搞笑",
-      "鬼畜",
-      "复仇者联盟",
-      "美国队长",
-      "漫威",
-      "雷神",
-      "天下第一好",
-      "updream",
-      "复联5"
-    ]
-  },
-  {
     "id": "topic-e5b5c763",
     "title": "英语启蒙必备",
     "slogan": "共收录 1 期,点击卡片跳转 B站观看",
@@ -323,5 +292,34 @@ window.COLLECTION_INDEX = [
     "created": "2026-11-26",
     "updated": "2026-11-26",
     "enabled": true
+  },
+  {
+    "id": "topic-4e6ee53f",
+    "type": "series",
+    "title": "大模型对比",
+    "slogan": "共收录 2 期,点击卡片跳转 B站观看",
+    "source": {
+      "platform": "B站",
+      "name": "解压秘境",
+      "url": "https://space.bilibili.com/3747567349271037/video"
+    },
+    "keyword": "大模型对比",
+    "tags": [
+      "B站AI无限竞技场",
+      "AI",
+      "大模型对比",
+      "AI大模型对比",
+      "创作灵感"
+    ],
+    "page": "series.html?id=topic-4e6ee53f",
+    "count": 2,
+    "updated": "2026-11-26",
+    "latest": "2026.11.24",
+    "cover": "https://i0.hdslb.com/bfs/archive/cd52743195fa9e690f91595ccd588976ae7790cc.jpg",
+    "last_at": "2026-11-26 09:42",
+    "last_mode": "keyword",
+    "last_mode_label": "按主题采集",
+    "enabled": true,
+    "created": ""
   }
 ];

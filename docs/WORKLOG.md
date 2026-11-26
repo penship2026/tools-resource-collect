@@ -306,3 +306,10 @@ Chrome 无头截图三页面全部正常:首页卡片标签独立行两行截断
 - **静态白名单**:只放行 5 个展示页、采集页与 `assets/**`;`/.git`、`backups/`、`docs/`、`*.py`、`.github` 等返回 JSON 404。此前实测这些路径均为 200(源码、备份、git 配置可直接下载),本次已封堵。
 - **采集页**:新增口令输入框(仅 `auth=token` 时显示),所有请求改走 `apiFetch` 自动附带头;遇到 401 自动露出输入框。
 - **验证**:默认模式 4 个敏感路径 404、3 个正常页面 200;`--public` 无口令 exit 2;带口令时无头/错口令 401、正确口令正常;`py_compile` 与 `node --check` 通过。
+
+### 13:50–14:20 M2 任务化(workflow + topics.yml + launchd 兜底)
+- **清单驱动**:`generate.py` 新增 `--topics`(可多次指定合并)、`load_topics_yaml` 受限解析(零依赖,报错带行号)、`run_topics` 逐条执行并汇总失败;新增 `topics.yml`,收录 7 个按主题采集的已发布单元。
+- **GitHub Actions**:新增 `.github/workflows/update-data.yml`——每天 UTC 23:00(北京 07:00)、可手动触发并传 pages、`concurrency: update-data` 串行、仅数据有变化时提交 `data:`。
+- **本机兜底**:新增 `scripts/launchd/collect.sh` 与 `install.sh`(模板 `com.jiye.collect.plist.in`),默认每天 08:10、只采集不提交,`AUTO_PUSH=1` 才 pull/commit/push;日志进 `logs/`(已 gitignore)。plist 已生成并装载(`launchctl bootstrap`,state=not running),未立即触发采集。
+- **文档**:`DEPLOY.md` 改为「形态 A 静态站+任务(推荐)/ 形态 B 本机采集台」两段式并新增 launchd 章节;`GITHUB-PAGES.md` 3.2 删除内嵌 YAML,改为指向真实文件,消除「文档说已内置、仓库缺失」的漂移。
+- **验证**:清单解析 7 条;`--topics /tmp/topics-test.yml --dry-run --pages 1` 端到端通过(搜 20 条、合并 26 期、未写盘);`py_compile`、`bash -n`、`plutil -lint` 全通过。

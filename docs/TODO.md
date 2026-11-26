@@ -127,6 +127,19 @@
 
 ---
 
+### ✅ 10. M2 任务化:workflow + topics.yml + 本机 launchd 兜底(2026-11-26 13:50–14:20)
+
+- **决策来源**:D4、D5、D27、D18
+- **落点**:
+  1. `collector/generate.py` 新增 `load_topics_yaml`(受限 YAML 子集解析,零依赖、报错带行号)、`run_topics`(逐条采集、单条失败不影响其余,末尾汇总失败)、CLI `--topics FILE`(可多次指定合并)。
+  2. 新增 `topics.yml`:收录 7 个「按主题采集」的已发布单元(keyword + id + channels)。
+  3. 新增 `.github/workflows/update-data.yml`:每天 UTC 23:00(= 北京 07:00)、`workflow_dispatch`(可传 pages)、`concurrency: update-data`、`permissions: contents: write`,数据有变化才 `data:` 提交。
+  4. 新增 `scripts/launchd/{collect.sh,com.jiye.collect.plist.in,install.sh}`:默认每天 08:10、只采集不提交(`AUTO_PUSH=1` 才推送)、日志写 `logs/`;install.sh 支持 `--hour/--minute/--load/--uninstall`。
+  5. `.gitignore` 增加 `logs/`;`DEPLOY.md` 重写为「形态 A 静态站+任务 / 形态 B 本机采集台」并新增 launchd 章节;`GITHUB-PAGES.md` 3.2 删除内嵌 YAML(改为指向真实文件,消除两处漂移)。
+- **验证**:`load_topics_yaml` 解析 7 条通过;`generate.py --topics /tmp/topics-test.yml --dry-run --pages 1` 端到端成功(搜索 20 条、合并 26 期、未写盘);`py_compile` 通过;`bash -n` 与 `plutil -lint` 通过;plist 已生成并通过 `launchctl bootstrap` 装载(08:10,state not running)。
+
+---
+
 ## 新增待办
 
 - [ ] **清理旧架构遗留文件**:`topics/*.html`(9 个)与 `assets/data/*.js`(9 个旧根数据文件)已不被任何页面引用,建议确认后删除,减少仓库噪音(删除后可从 git 历史恢复)。

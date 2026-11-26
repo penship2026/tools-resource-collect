@@ -2,12 +2,19 @@
 
 本项目由两部分组成：
 
-- **五个静态页面**：`index.html`（首页）、`series.html`（子集合页）、`list.html`（全部内容页）、`single.html`（站内详情页），加样式与数据文件；另有一个仅本机使用的采集页 `collector/collect.html`。页面是固定模板，布局样式各自独立维护，浏览器直接打开即可。
-- **采集服务 `server.py`**：一个真实运行的 Python 进程，提供采集交互页和 `/api/*` 接口。**采集只写数据，不生成、不修改任何页面**；每次采集是独立数据单元，可单独更新、单独关闭显示。
+- **五个静态页面 + 数据**：`index.html`（首页）、`series.html`（子集合页）、`list.html`（全部内容页）、`single.html`（站内详情页）、`collector/collect.html`（采集页），加样式与 `assets/data/`。页面是固定模板，浏览器直接打开即可；采集只写数据，不生成、不修改任何页面。
+- **采集程序**：`collector/generate.py`（命令行，纯规则采集）与 `collector/server.py`（本机采集台，提供表单与 `/api/*`）。
 
-> ⚠️ **核心前提**：采集功能**不能只把 HTML 当静态站点托管**。必须让 `server.py` 进程跑起来，并把所有请求交给它处理。否则点「开始采集」会报 `Unexpected token '<' ... is not valid JSON`——因为 `/api/collect` 被静态服务器接走返回了 HTML。
+## 部署形态：先选 A 还是 B（2026-11-26 起）
 
-好消息是：`server.py` 本身就能提供全站静态文件（5 个展示页/数据/采集页）+ API，所以部署时**可以把它作为唯一入口**，反向代理只需把所有请求转发给它，无需拆分静态和接口；但该地址只要能从公网访问，就必须加口令启动（见下文「安全基线」）。若要把展示端单独部署到静态托管/CDN，可用 `--api-only` 只跑采集端（见第六章）。
+采集必须由一个真实进程执行——浏览器无法直接跨域抓取平台数据。但从 2026-11-26 起有两种形态：
+
+| 形态 | 组成 | 适用 | 是否常驻 |
+|---|---|---|---|
+| **A. 静态站 + 定时任务（推荐）** | 展示端：纯静态托管（GitHub Pages / Nginx / 群晖 Web / 对象存储）；采集端：GitHub Actions（每天 07:00）+ 本机 launchd（08:10 兜底） | 日常无人值守更新 | **否**，任务跑完即退出 |
+| **B. 本机采集台（可选）** | 本机运行 `python3 collector/server.py`（默认只听 `127.0.0.1`），用网页表单采集 | 临时补采、手工补录、核对结果 | 是，但只在本机 |
+
+**两种形态可以并存**：展示端始终是纯静态；`server.py` 只在需要交互采集时临时启动，不对外暴露。若你确实要让 `server.py` 直接对外提供站点（旧做法），**必须**加口令启动（见「安全基线」）。形态 A 的定时任务配置见 `docs/GITHUB-PAGES.md` 3.2 与本文第十章。
 
 ---
 
@@ -367,7 +374,53 @@ python3 collector/backup_data.py backup --out /mnt/nas/backup            # 备�
 
 ---
 
-## 十、访问地址速查
+## 十、本机 macOS 定时采集（launchd，形态 A 的兜底）
+
+GitHub Actions 是主力调度（每天 07:00），本机 launchd 作为兜底（默认 08:10），两者**错开时间、不要同时跑**——它们写同一份 `assets/data`，约定「先提交者为准」。
+
+### 1. 安装
+
+```bash
+./scripts/launchd/install.sh            # 只生成 ~/Library/LaunchAgents/com.jiye.collect.plist,不装载
+./scripts/launchd/install.sh --load     # 生成并装载(默认每天 08:10)
+```
+
+安装脚本会校验 plist 格式并打印后续命令；也可以用参数改时间：
+
+```bash
+./scripts/launchd/install.sh --hour 9 --minute 0 --load
+```
+
+### 2. 试跑与查看
+
+```bash
+launchctl kickstart -k gui/$UID/com.jiye.collect     # 立即跑一次(会真实采集)
+launchctl print gui/$UID/com.jiye.collect | head -20 # 查看状态与下次执行
+tail -f logs/launchd.out.log                          # 采集输出(与 launchd.err.log 同目录)
+```
+
+### 3. 行为说明
+
+| 项 | 说明 |
+|---|---|
+| 采集范围 | 仓库根 `topics.yml`；若存在 `topics.local.yml`（未公开主题，已 gitignore）会一并采集 |
+| 页数 | 脚本默认 `PAGES=10`，可在 `scripts/launchd/collect.sh` 改默认值或改 plist 环境变量 |
+| 是否提交 | 默认**只采集不提交**；设 `AUTO_PUSH=1` 才会 `git pull --rebase` → commit → push，需要本机 git 凭据（SSH key 或 credential helper） |
+| 日志 | `logs/launchd.out.log`、`logs/launchd.err.log`，`logs/` 已加入 `.gitignore` |
+
+### 4. 卸载
+
+```bash
+./scripts/launchd/install.sh --uninstall
+```
+
+### 5. 常见问题
+
+- **提示无法访问项目目录**：macOS 对后台任务有隐私限制，到「系统设置 → 隐私与安全性 → 完全磁盘访问权限」把 `/bin/bash` 或终端加入；或把仓库放到用户目录下（本项目即在用户目录，一般无需额外授权）。
+- **找不到 python3**：脚本已把 `/opt/homebrew/bin`、`/usr/local/bin` 加入 PATH；若用 pyenv/conda，请在 `collect.sh` 里改成绝对路径。
+- **每天没变化**：属于正常——采集无新增时不会写盘，日志里会显示「数据无变化」。
+
+## 十一、访问地址速查
 
 | 部署方式 | 采集页 | 首页 | 合集页 | 单条页 |
 |---|---|---|---|---|

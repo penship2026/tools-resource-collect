@@ -212,63 +212,20 @@ git push
 
 **第二步:确认 workflow 已就位**
 
-项目已内置 `.github/workflows/update-data.yml`,随仓库一起提交即可自动生效,无需手动创建。默认配置为每天北京时间 08:00 采集两个单元,完整内容如下:
+项目已内置 `.github/workflows/update-data.yml`,随仓库提交即自动生效。当前配置:
 
-```yaml
-name: 更新采集数据
+- 定时:每天 **北京时间 07:00**(UTC `0 23 * * *`)跑一次;
+- 内容:按仓库根目录 `topics.yml` 的清单逐条采集,默认每个主题搜 10 页;
+- 手动:`Run workflow` 时可填 `pages` 覆盖页数;
+- 提交:数据有变化才 commit 并 push,提交信息前缀 `data:`。
 
-# 定时采集 + 手动触发。
-# cron 使用 UTC 时区:'0 0 * * *' = 北京时间每天 08:00。
-on:
-  schedule:
-    - cron: '0 0 * * *'
-  # 允许在 Actions 页面点 Run workflow 手动触发
-  workflow_dispatch:
+完整内容以仓库里的实际文件为准(本文件不再重复贴 YAML,避免两处漂移)。本地可先用同一份清单验证解析与抓取:
 
-# 必须可写:采集结果要 commit 并 push 回仓库
-permissions:
-  contents: write
-
-# 同一时间只允许一个采集任务运行,避免并发写数据
-concurrency:
-  group: update-data
-  cancel-in-progress: false
-
-jobs:
-  collect:
-    runs-on: ubuntu-latest
-    steps:
-      - name: 拉取仓库
-        uses: actions/checkout@v4
-
-      - name: 设置 Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-
-      - name: 采集数据
-        env:
-          # 关键:generate.py 的日期依赖系统时区,UTC 会导致日期早 8 小时
-          TZ: Asia/Shanghai
-          PYTHONUNBUFFERED: '1'
-        run: |
-          python3 collector/generate.py "每天挖掘一个神奇网站" --id daily-website --pages 30
-          python3 collector/generate.py "跟着动画学古文" --id guwen-animation --pages 30
-          # 按链接采集示例(取消注释并替换):
-          # python3 collector/generate.py "https://www.bilibili.com/video/BVxxxxxxxxxxx/" --url --id bvxxxxxxxxxxx
-
-      - name: 提交数据变更
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add assets/data/index.js assets/data/collections/*.js
-          if git diff --cached --quiet; then
-            echo "数据无变化,跳过提交"
-          else
-            git commit -m "chore: 自动更新采集数据 $(date +%F)"
-            git push
-          fi
+```bash
+python3 collector/generate.py --topics topics.yml --dry-run --pages 1
 ```
+
+并发由 `concurrency: update-data` 保证,同一时间只跑一个采集任务;本机 launchd 兜底见 `docs/DEPLOY.md` 的「本机 macOS 定时采集」。
 
 **关键注意点**:
 
@@ -281,9 +238,9 @@ jobs:
 | 自动部署 | 用 `GITHUB_TOKEN` 推送的提交**不会**再次触发本 workflow,不会形成死循环 |
 | 手动补采 | 在 Actions 页面点 **Run workflow** 可随时手动触发 |
 
-**多主题维护建议**:要增减采集单元,直接编辑项目里已生成的 `.github/workflows/update-data.yml`,在「采集数据」步骤的 `run` 块中增删一行——每增减一个单元就改一行。`--id` 参数确保每条命令只更新对应单元,不会影响其他数据。改完提交后下次运行即生效。
+**多主题维护建议**:要增减采集单元,直接编辑仓库根目录的 `topics.yml`(字段 `keyword` / `id` / `title` / `channels`),**不要改 workflow**。`id` 确保续采同一单元,`--pages` 在 workflow 里统一控制页数。改完提交后下次运行即生效。
 
-**改时间**:编辑同一文件顶部 `schedule` 下的 `cron` 表达式(UTC 时间)。常用换算:`0 0 * * *` = 北京时间 08:00,`0 10 * * *` = 北京时间 18:00,`0 22 * * *` = 北京时间次日 06:00。
+**改时间**:编辑 `.github/workflows/update-data.yml` 顶部 `schedule` 下的 `cron` 表达式(UTC 时间)。当前 `0 23 * * *` = 北京时间 07:00;常用换算:`0 0 * * *` = 北京时间 08:00,`0 10 * * *` = 北京时间 18:00。
 
 ### 3.3 方式 C:NAS / 服务器采集后同步推送
 

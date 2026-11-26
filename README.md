@@ -133,6 +133,15 @@ python3 collector/server.py --public --token <口令>   # 对外访问:绑定 0.
 
 采集端与展示端可分离部署(同机/同容器共享数据目录,或不同机器挂载同一共享卷),两端用相同的环境变量 `VIDEO_DATA_DIR` 指向共享目录即可。
 
+### 定时采集(推荐)与本机采集台
+
+- **定时采集**:主题清单在仓库根目录 `topics.yml`(`--topics` 批量执行),由 GitHub Actions 每天 07:00 跑一次,本机 launchd 08:10 兜底(安装见 `scripts/launchd/install.sh`)。展示端始终是纯静态,不需要 `server.py` 常驻。
+- **本机采集台**:需要表单交互、重新采集回填、下线开关时,临时运行 `python3 collector/server.py`(默认只听 `127.0.0.1`),用完关掉即可。
+
+```bash
+python3 collector/generate.py --topics topics.yml --dry-run --pages 1   # 本地验证清单解析
+```
+
 ## 采集规则
 
 ### 精准匹配

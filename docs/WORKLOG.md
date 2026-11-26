@@ -313,3 +313,9 @@ Chrome 无头截图三页面全部正常:首页卡片标签独立行两行截断
 - **本机兜底**:新增 `scripts/launchd/collect.sh` 与 `install.sh`(模板 `com.jiye.collect.plist.in`),默认每天 08:10、只采集不提交,`AUTO_PUSH=1` 才 pull/commit/push;日志进 `logs/`(已 gitignore)。plist 已生成并装载(`launchctl bootstrap`,state=not running),未立即触发采集。
 - **文档**:`DEPLOY.md` 改为「形态 A 静态站+任务(推荐)/ 形态 B 本机采集台」两段式并新增 launchd 章节;`GITHUB-PAGES.md` 3.2 删除内嵌 YAML,改为指向真实文件,消除「文档说已内置、仓库缺失」的漂移。
 - **验证**:清单解析 7 条;`--topics /tmp/topics-test.yml --dry-run --pages 1` 端到端通过(搜 20 条、合并 26 期、未写盘);`py_compile`、`bash -n`、`plutil -lint` 全通过。
+
+### 14:20–15:10 M3 个人收藏层
+- **新增 `assets/personal.js`**:localStorage 单键 `jiye.mine.v1`,条目级收藏 + 最小快照,单元下线仍可读;导出/导入 JSON(导入前自动导出、默认合并、替换覆盖、非法文件整体拒绝、800 条软上限、只收 http(s))。
+- **页面接入**:`series.html` / `list.html` / `single.html` 卡片与详情加 ☆ 按钮(事件委托 + `preventDefault`);`index.html` 页头「公开 / 我的」开关仅在收藏 > 0 时出现,`?view=mine` 进入收藏网格并加 `noindex`,页脚常驻导入导出入口。
+- **样式**:`assets/style.css` 追加收藏层样式(不新增第三方依赖,主题化时只需改 CSS 变量)。
+- **验证**:13 项 node 单测通过;5 页 inline 脚本 `node --check` 通过;本地服务实测 5 页与 `assets/personal.js` 全 200。

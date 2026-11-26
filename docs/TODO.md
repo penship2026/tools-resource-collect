@@ -138,6 +138,18 @@
   5. `.gitignore` 增加 `logs/`;`DEPLOY.md` 重写为「形态 A 静态站+任务 / 形态 B 本机采集台」并新增 launchd 章节;`GITHUB-PAGES.md` 3.2 删除内嵌 YAML(改为指向真实文件,消除两处漂移)。
 - **验证**:`load_topics_yaml` 解析 7 条通过;`generate.py --topics /tmp/topics-test.yml --dry-run --pages 1` 端到端成功(搜索 20 条、合并 26 期、未写盘);`py_compile` 通过;`bash -n` 与 `plutil -lint` 通过;plist 已生成并通过 `launchctl bootstrap` 装载(08:10,state not running)。
 
+### ✅ 11. M3 个人收藏层(localStorage only + 导出/导入)(2026-11-26 14:20–15:10)
+
+- **决策来源**:D11、D12、D28、D30
+- **落点**:新增 `assets/personal.js`(约 380 行,无依赖,不落后端):
+  1. 存储键 `jiye.mine.v1`,条目级收藏(unit + key),每条存最小快照(标题/链接/封面/日期/作者/kind/单元名),单元下线后仍可读;
+  2. 收藏按钮 `☆/★` 在合集页、全部内容页、详情页出现;点击用事件委托,`preventDefault` 不进详情页;
+  3. 「公开 / 我的」开关放首页页头,**收藏数为 0 时隐藏**(D28),页脚常驻「导出备份或导入恢复」入口;
+  4. `index.html?view=mine` 渲染收藏网格,自动加 `noindex` meta 并改标题;单元已下线时卡片退回原链接;
+  5. 导出 JSON(`个人收藏-YYYYMMDD.json`);导入支持 merge(默认,按 key 保留较新)/ replace(覆盖),导入前自动先导出一份,非法文件整体拒绝不写入;800 条软上限;只接受 http(s) 链接。
+- **验证**:node 单测 13 项全通过(空态/新增/去重/导出/非法 JSON/缺标题/`javascript:` 链接/合并/幂等/replace/上限);5 个页面 inline 脚本 `node --check` 通过;本地 8898 端口实测 5 页与 `assets/personal.js` 均 200。
+- **口径**:不做双站、不做账号、不做自动同步;不收录手工录入的站外链接(D30)。
+
 ---
 
 ## 新增待办

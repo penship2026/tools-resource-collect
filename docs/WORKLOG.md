@@ -277,3 +277,25 @@ Chrome 无头截图三页面全部正常:首页卡片标签独立行两行截断
 - 远程仓库:`github.com/penship2026/tools-resource-collect`(main),Pages 自定义域名 `resource-collect.ximyan.com`。
 - 已知限制:B站搜索翻页为唯一数据源,排序波动可能漏采旧视频;公众号 / 小红书主题采集依赖搜索引擎,会间歇性风控、结果有噪声,小红书只有标题+链接;视频号仅能跳转微信观看;抖音风控未纳入。
 - 待办事项:**见 docs/TODO.md**(旧架构文件清理)。
+
+### 10:30–13:10 全项目评审与改造计划落档
+- **评审**:按 README / docs / collector 全量代码 + 5 个页面走查,产出 `docs/REVIEW-20261126.md`(P0–P3 共 18 条,含实测证据)。基线 `HEAD = efff2a2`(多渠道采集已提交),`py_compile` 通过。
+- **实测结论(可复现)**:`server.py` 默认静态托管把 `/.git/config`、`/backups/`、`/collector/generate.py` 都返回 200;3 个写接口无鉴权且监听 `0.0.0.0`;`index.html` / `series.html` / `collector/collect.html` 仍无 `esc()`;`.github/workflows` 不存在但 README 声称已内置。
+- **评审期间并发事实**:10:01–10:26 另一侧连续修改 `generate.py` / `platforms.py` / `server.py` / `collect.html`,P0「`channels` 形参遮蔽」在评审过程中被修复,该条已标为【已修】并复测通过。
+- **后续评估(三轮,均未改代码)**:服务能否取消(结论:可任务化,但浏览器直连平台 API 受 CORS 限制)、个人收藏层(localStorage + 导出导入,1.5–2 人日)、GitHub 同类项目(无完全对应,B站方向多为下载/留档,localStorage 收藏层有大量同构实现)。
+- **计划**:产出 `docs/PLAN-20261126.md`,决策 D1–D33、里程碑 M0–M6;7 项待定逐条定稿(见计划第六章);补「页面与数据分离 / 多主题模版」分析(第七章);按「多端并发」要求新增第八章协作约定与 D34–D39。
+
+## 当前状态(2026-11-26 13:10)
+
+- 站点名:**集页**;支持 B站 / 公众号 / 小红书三渠道采集;存量 **11 个单元**(以 `generate.py --list` 与索引/文件一一对应校验为准;上文 10:42 记录的「9 个单元」已过时)。
+- 页面共 **5 个**:首页 / 合集页 / 全部内容页 / 站内详情页 + 采集页 `collector/collect.html`;服务未常驻,采集时运行 `python3 collector/server.py 8765`。
+- 远程仓库:`github.com/penship2026/tools-resource-collect`(main),Pages 自定义域名 `resource-collect.ximyan.com`。
+- 当前文档:`docs/REVIEW-20261126.md`(问题依据)、`docs/PLAN-20261126.md`(决策与里程碑)、`docs/TODO.md`(执行)、本文件(演进记录)。
+- 已知限制:B站搜索翻页为唯一数据源;公众号 / 小红书主题采集依赖搜索引擎,会间歇性风控、结果有噪声;小红书只有标题+链接;视频号仅能跳转微信观看;抖音风控未纳入。
+
+### 13:10–13:30 M0 止血(转义 / 原子写入 / 损坏识别)
+- **共享转义**:`assets/data-loader.js` 新增 `escHtml`(同时挂 `window.escHtml` 与 `CollectionLoader.esc`),`index.html`、`series.html` 全部字段改走转义;`list.html`、`single.html` 原局部 `esc` 改为调用共享实现(补上单引号);`collect.html` 新增 `esc` 与 `safePage`,单元列表的标题 / 平台 / id / page 全部转义;首页新增 `cardHref`,数据里的 `page` 仅接受站内页面路由。
+- **原子写入**:`generate.py` 新增 `write_text_atomic`(同目录临时文件 + `fsync` + `os.replace`,异常清理残留 `.tmp`),`write_index`、`write_collection_file`、`set_enabled`、`--migrate` 全部改用它;覆盖前自动快照到 `backups/auto`,保留最近 10 份。
+- **损坏识别**:新增 `IndexCorrupt`、`load_index(strict=)`、`index_status()`;`/api/health` 上报 `index_ok/index_count/index_error`;`/api/topics` 在索引损坏时返回 500 与具体原因,采集页据此显示原因,不再伪装成「暂无采集单元」。
+- **忽略项**:`backups/` 整体忽略,并预置个人收藏导出与 `topics.local.yml`。
+- **验证**:`py_compile` 通过;`--list` 11 个单元;临时数据目录实测索引正常/损坏两态、严格模式抛 `IndexCorrupt`、写入后无 `.tmp`、快照上限 10;`escHtml` 对 `<img onerror>` 与属性引号转义正确;5 个页面内联脚本 `node --check` 全通过;`/api/health` 返回 `index_ok:true,index_count:11`。

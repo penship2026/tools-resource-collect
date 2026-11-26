@@ -2,6 +2,8 @@
 
 > 逐条处理,处理完把 `- [ ]` 改为 `- [x]` 并在「处理记录」补一行结果。
 > 来源:docs/WORKLOG.md 中遗留的待确认/待执行事项。
+> 改造计划(决策与里程碑):docs/PLAN-20261126.md;问题依据:docs/REVIEW-20261126.md。
+> 多端并发:本文件只「勾选 + 末尾追加记录」,不重排/不格式化;开工前先看 PLAN 第八章 8.3。
 
 ---
 
@@ -97,6 +99,18 @@
 | 4 | 重新采集恢复渠道选择 | `intake.channels` 回填,老单元默认 B站 |
 
 - **验证**:公众号单渠道 8 条、三渠道混合 15 条(B站 6 / 公众号 8 / 小红书 1)写入正确;浏览器实测多选、空选拦截、回填与首页筛选;顺带修复首页平台筛选被通用 chip 处理器接管导致永远为空的 bug。
+
+---
+
+### ✅ 8. M0 止血:统一转义 / 原子写入 / 索引损坏识别(2026-11-26 13:10–13:30)
+
+- **决策来源**:PLAN 的 D10、D7、D8、D34(改动同批落档)
+- **落点**:
+  1. `assets/data-loader.js` 新增 `escHtml`(转义 `& < > " '`),5 个页面统一调用;`index.html`/`series.html` 原有裸拼全部包 `esc()`;`collect.html` 新增 `esc()` 与 `safePage()`;首页新增 `cardHref()`,数据里的 `page` 只接受站内路由。
+  2. `generate.py` 新增 `write_text_atomic`(临时文件 + fsync + `os.replace` + 异常清理 `.tmp`),索引/单元文件/`--toggle`/迁移写入全部改用它;覆盖前快照到 `backups/auto`,保留最近 10 份。
+  3. 新增 `IndexCorrupt` / `load_index(strict=)` / `index_status()`;`/api/health` 增加 `index_ok`/`index_count`/`index_error`;`/api/topics` 损坏时返回 500 与具体原因,采集页显示原因而非「暂无采集单元」。
+  4. `.gitignore` 整体忽略 `backups/`,并预置 `个人收藏-*.json`、`personal-*.json`、`topics.local.yml`。
+- **验证**:`py_compile` 通过;`--list` 11 个单元;临时目录实测「正常/损坏」两态、严格抛 `IndexCorrupt`、写入无 `.tmp` 残留、快照上限 10;`escHtml` 输出正确;5 页内联脚本 `node --check` 全通过;`/api/health` 返回 `index_ok:true, index_count:11`。
 
 ---
 

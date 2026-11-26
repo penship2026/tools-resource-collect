@@ -20,7 +20,10 @@ window.COLLECTION_DATA["bv1wg39zpetl"] = {
       "date": "2025.07.05",
       "ts": 1751702532,
       "author": "学霸动画加油站",
-      "desc": "全158集【影子跟读英语新概念第一册动画】(盲听+精学+影子跟读+成果检验)"
+      "desc": "全158集【影子跟读英语新概念第一册动画】(盲听+精学+影子跟读+成果检验)",
+      "platform": "bilibili",
+      "kind": "video",
+      "key": "bilibili:BV1WG39zPETL"
     }
   ],
   "type": "single",

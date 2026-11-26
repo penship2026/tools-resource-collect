@@ -66,7 +66,7 @@
           <span>集页</span>
         </a>
       </div>
-      <div class="header-meta"><a href="collect.html" style="color:var(--brand)">采集入口 →</a></div>
+      <div class="header-meta">一集一页 · 持续更新</div>
     </div>
   </header>
 
@@ -83,7 +83,7 @@
 
     <div class="section-title">
       <h2>全部主题</h2>
-      <span class="hint">点击卡片进入合集 / 单视频页面</span>
+      <span class="hint">点击卡片进入合集 / 单条内容</span>
     </div>
 
     <div class="filter-bar" id="filter-bar">
@@ -103,7 +103,7 @@
   <footer class="site-footer">
     <div class="wrap">
       <div>内容来自各平台公开内容,版权归原作者所有,本站仅做链接聚合与导航。</div>
-      <div>页面为固定模板,采集只更新数据;新增主题请在「采集入口」操作。</div>
+      <div>页面为固定模板,采集只更新数据;新增主题请在 <a href="collect.html">采集入口</a> 操作 →</div>
     </div>
   </footer>
 
@@ -122,6 +122,11 @@
     }
     function tagsOf(t) {
       return Array.isArray(t.tags) ? t.tags : [];
+    }
+    // 渠道徽标配色:与采集端 platforms.py 的平台定义保持一致
+    var PLAT_COLORS = { 'B站': '#fb7299', '公众号': '#07c160', '小红书': '#ff2442' };
+    function platColor(name) {
+      return PLAT_COLORS[name] || 'rgba(0,0,0,.72)';
     }
 
     document.getElementById('stat-topics').textContent = all.length;
@@ -201,11 +206,14 @@
         var cover = t.cover
           ? '<img src="' + t.cover + '" alt="' + t.title + '" loading="lazy" referrerpolicy="no-referrer">'
           : '<div style="width:100%;height:100%;display:grid;place-items:center;background:linear-gradient(135deg,#1e3a5f,#2d7ff9);color:#fff;font-size:42px">' + t.title.charAt(0) + '</div>';
-        // 封面左下角显示来源平台徽标,为多渠道聚合预留(接入抖音/视频号等后自动区分来源)
-        var badgeHtml = '<span class="badge">' + platformOf(t) + '</span>';
+        // 封面左下角显示来源平台徽标,不同渠道用不同底色区分
+        var platName = platformOf(t);
+        var badgeHtml = '<span class="badge" style="background:' + platColor(platName) + '">' + platName + '</span>';
         var tag = type === 'single'
           ? '<span class="type-tag single">单条</span>'
           : '<span class="type-tag">合集</span>';
+        // 图文内容占位封面(没有封面图时不至于空白)
+        if (!t.cover) cover = '<div style="width:100%;height:100%;display:grid;place-items:center;background:linear-gradient(135deg,#1e3a5f,#2d7ff9);color:#fff;font-size:42px">' + t.title.charAt(0) + '</div>';
         // 标签独立成行展示(实际采集的正式标签),超出两行自动截断
         var showTags = tagsOf(t).slice(0, 6).map(function (x) {
           return '<span class="mini-tag">' + x + '</span>';
@@ -215,7 +223,7 @@
           '<div class="topic-body"><h3>' + t.title + '</h3>' +
           '<p class="slogan">' + (t.slogan || '') + '</p>' +
           (showTags ? '<div class="tag-line">' + showTags + '</div>' : '') +
-          '<div class="foot"><span class="count">' + (t.count || 0) + ' 期视频 →</span>' +
+          '<div class="foot"><span class="count">' + (t.count || 0) + ' 条内容 →</span>' +
           '<span>' + (t.latest || updated) + '</span></div></div></a>';
       }).join('') : '<div class="empty">没有匹配的主题</div>';
     }

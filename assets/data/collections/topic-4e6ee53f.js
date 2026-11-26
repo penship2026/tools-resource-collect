@@ -20,7 +20,10 @@ window.COLLECTION_DATA["topic-4e6ee53f"] = {
       "date": "2026.11.24",
       "ts": 1795511835,
       "author": "明灯-专注脑洞一百年",
-      "desc": "含ai生成内容，仅供娱乐"
+      "desc": "含ai生成内容，仅供娱乐",
+      "platform": "bilibili",
+      "kind": "video",
+      "key": "bilibili:BV1wbyfzeEuH"
     }
   ],
   "type": "series",

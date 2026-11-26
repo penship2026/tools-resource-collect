@@ -115,7 +115,8 @@ a { color: inherit; text-decoration: none; }
   background: var(--surface); border: 1px solid var(--border);
   border-radius: var(--radius); overflow: hidden;
   box-shadow: var(--shadow); transition: transform .2s, box-shadow .2s;
-  display: block;
+  /* 网格内等高:标题行数不同时底部日期/PV 仍对齐 */
+  display: flex; flex-direction: column; height: 100%;
 }
 .video-card:hover { transform: translateY(-3px); box-shadow: 0 12px 32px rgba(16,24,40,.1); }
 .video-thumb { aspect-ratio: 16 / 9; position: relative; overflow: hidden; background: #111; }
@@ -135,13 +136,23 @@ a { color: inherit; text-decoration: none; }
   background: rgba(0,0,0,.62); color: #fff;
   font-size: 11px; padding: 3px 8px; border-radius: 20px;
 }
-.video-info { padding: 14px 16px 16px; }
+/* 多渠道:图文内容没有封面或不是视频时的占位与标记 */
+.video-thumb .thumb-placeholder {
+  width: 100%; height: 100%; display: grid; place-items: center;
+  background: linear-gradient(135deg, #1e3a5f, #2d7ff9); color: #fff; font-size: 36px;
+}
+.video-thumb .kind-tag {
+  position: absolute; right: 10px; top: 10px;
+  background: rgba(0,0,0,.62); color: #fff;
+  font-size: 11px; padding: 3px 8px; border-radius: 20px;
+}
+.video-info { padding: 14px 16px 16px; flex: 1; display: flex; flex-direction: column; }
 .video-info h3 { font-size: 14px; font-weight: 500; line-height: 1.5; }
 .video-info .desc {
   margin-top: 8px; font-size: 12px; color: var(--text-sub); line-height: 1.55;
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }
-.video-info .meta { margin-top: 12px; font-size: 12px; color: var(--text-mute); display: flex; justify-content: space-between; }
+.video-info .meta { margin-top: auto; padding-top: 12px; font-size: 12px; color: var(--text-mute); display: flex; justify-content: space-between; }
 
 /* 按发布者分组 */
 .author-section { margin-bottom: 36px; }

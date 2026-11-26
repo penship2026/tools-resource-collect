@@ -20,7 +20,10 @@ window.COLLECTION_DATA["bv1j4w16reys"] = {
       "date": "2026.11.11",
       "ts": 1794377617,
       "author": "椰子酱的AI日常",
-      "desc": ""
+      "desc": "",
+      "platform": "bilibili",
+      "kind": "video",
+      "key": "bilibili:BV1J4W16REys"
     }
   ],
   "type": "single",

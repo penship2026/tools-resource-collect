@@ -14,10 +14,16 @@ series.html / single.html),由人工单独维护布局样式,通过 ?id= 读取�
   assets/data/index.js                  索引(各单元元信息 + 显示开关)
   assets/data/collections/<id>.js       该单元的视频数据
 
+支持渠道:B站(视频)、公众号(图文)、小红书(图文/视频)。后两者只做「按链接/批量链接」采集,
+主题关键词搜索仍仅 B站(公众号与小红书没有公开可用的搜索接口)。
+
 用法:
-  python3 generate.py "每天挖掘一个神奇网站"            # 按主题采集(type=series)
+  python3 generate.py "每天挖掘一个神奇网站"            # 按主题采集 B站(type=series)
   python3 generate.py "跟着动画学古文" --up "某个UP主"
   python3 generate.py "https://www.bilibili.com/video/BVxxx/" --url   # 按链接采集(type=single)
+  python3 generate.py "https://mp.weixin.qq.com/s/xxxx" --url         # 公众号文章(图文)
+  python3 generate.py "https://xhslink.com/xxxx" --url                # 小红书笔记
+  python3 generate.py --batch "链接1 链接2" --title "AI 与人的边界"     # 批量链接(可混合渠道,type=series)
   python3 generate.py --id daily-website "新关键词"       # 重新采集指定单元,只更新它
   python3 generate.py --toggle daily-website --off        # 关闭某单元显示
   python3 generate.py --toggle daily-website --on         # 开启某单元显示
@@ -25,7 +31,10 @@ series.html / single.html),由人工单独维护布局样式,通过 ?id= 读取�
   python3 generate.py --migrate                           # 从旧版 topic 数据迁移
 
 可选参数:
-  --url            按 B站 视频链接/BV 号采集单条视频(type=single)
+  --url            按链接采集单条内容(type=single,自动识别 B站/公众号/小红书)
+  --batch          批量采集:位置参数传入多行链接/分享文案,可混合多个渠道
+  --manual-title T 抓取失败时手工补录标题(公众号/小红书风控时可用)
+  --manual-author A / --manual-desc D / --manual-date YYYY-MM-DD / --manual-cover URL
   --id ID          指定采集单元 id;命中已有单元则只更新它,不新建
   --pages N        搜索翻页数,默认 30(每页 20 条)
   --title T        显示标题,默认等于关键词
@@ -49,6 +58,9 @@ import time
 import urllib.parse
 import urllib.request
 import uuid
+
+# 多渠道适配层(公众号/小红书),与 B站 采集并列
+import platforms as channels
 
 # 本脚本位于 <项目根>/collector/,项目根是它的父目录。
 # 可用 VIDEO_PROJECT_ROOT 显式覆盖(例如把 collector 目录整体搬到别处时)。
@@ -191,6 +203,10 @@ def normalize(video, keyword=""):
     # 简介:优先 description,其次 desc
     desc = clean_html(video.get("description") or video.get("desc") or "")
     return {
+        "platform": "bilibili",
+        "kind": "video",
+        # 去重键:跨平台统一用 key,B站用 BV 号
+        "key": "bilibili:%s" % bv if bv else "",
         "title": title,
         "bv": bv,
         "url": "https://www.bilibili.com/video/%s/" % bv,
@@ -219,6 +235,107 @@ def slugify(keyword, slug_arg, existing_ids):
 def js(value):
     """Python 值转 JS 字面量"""
     return json.dumps(value, ensure_ascii=False, indent=2)
+
+
+def item_key(item):
+    """
+    条目的去重键,跨平台统一:
+      - 新采集的条目自带 key(如 bilibili:BVxxx / wechat:<文章地址> / xhs:<笔记ID>)
+      - 存量 B站 条目可能只有 BV 号,统一补成 bilibili:BVxxx,避免与新格式重复
+      - 再退回原文地址,保证任何渠道都能去重
+    """
+    item = item or {}
+    key = (item.get("key") or "").strip()
+    bv = (item.get("bv") or "").strip()
+    if key and ":" not in key:
+        key = ("bilibili:" + key) if (bv or key.upper().startswith("BV")) else key
+    if not key and bv:
+        key = "bilibili:" + bv
+    return key or (item.get("url") or "").strip()
+
+
+def display_path(path):
+    """日志里展示的路径:在项目内用相对路径,数据目录被指到项目外时用绝对路径"""
+    try:
+        rel = os.path.relpath(path, ROOT)
+    except Exception:
+        return path
+    return path if rel.startswith("..") else rel
+
+
+def platform_label(key):
+    """平台标识 → 展示名称;B站为空时按老数据处理"""
+    if not key:
+        return "B站"
+    return channels.platform_name(key) or key
+
+
+def normalize_date(text):
+    """把各种日期写法统一成 yyyy.mm.dd,无法识别时原样返回"""
+    m = re.match(r"(\d{4})[-./年](\d{1,2})[-./月](\d{1,2})", (text or "").strip())
+    if not m:
+        return (text or "").strip() or "—"
+    return "%s.%s.%s" % (m.group(1), m.group(2).zfill(2), m.group(3).zfill(2))
+
+
+def guess_tags(title, extra=()):
+    """
+    文章类内容没有平台标签,用标题片段做标签兜底,保证首页筛选有内容。
+    只保留 2-12 字的片段,最多 6 个。
+    """
+    tags = []
+    for raw in list(extra) + re.split(r"[|｜/、,，:：\-—_()（）\[\]【】]+", title or ""):
+        token = (raw or "").strip()
+        if 2 <= len(token) <= 12 and token not in tags:
+            tags.append(token)
+    return tags[:6]
+
+
+def article_item(raw, platform_key):
+    """把适配层返回的文章结构转成站点条目(与 B站 normalize 后的结构对齐)"""
+    tags = [t for t in (raw.get("tags") or []) if t]
+    if not tags:
+        tags = guess_tags(raw.get("title", ""), [raw.get("source_name") or ""])
+    return {
+        "platform": raw.get("platform") or platform_key,
+        "kind": raw.get("kind") or channels.platform_kind(platform_key),
+        "key": raw.get("key") or ("%s:%s" % (platform_key, raw.get("url", ""))),
+        "title": raw.get("title", ""),
+        "bv": "",
+        # 图文内容没有 BV 号,用平台编号占位展示(公众号短链末段 / 小红书笔记ID)
+        "vid": (raw.get("key") or "").split(":", 1)[-1][-24:],
+        "url": raw.get("url", ""),
+        "cover": raw.get("cover", ""),
+        "views": "",
+        "date": normalize_date(raw.get("date", "")),
+        "ts": raw.get("ts") or 0,
+        "author": raw.get("author") or raw.get("source_name") or "",
+        "desc": (raw.get("desc") or "")[:160],
+        "tags": tags[:10],
+    }
+
+
+def manual_item(url, platform_key, manual):
+    """抓取被风控时的手工补录:只有标题必填,其余留空也能建单元"""
+    manual = manual or {}
+    title = (manual.get("title") or "").strip()
+    author = (manual.get("author") or "").strip()
+    return {
+        "platform": platform_key,
+        "kind": channels.platform_kind(platform_key),
+        "key": "%s:%s" % (platform_key, url),
+        "title": title,
+        "bv": "",
+        "vid": "",
+        "url": url,
+        "cover": (manual.get("cover") or "").strip(),
+        "views": "",
+        "date": normalize_date(manual.get("date") or ""),
+        "ts": 0,
+        "author": author,
+        "desc": (manual.get("desc") or "").strip()[:160],
+        "tags": guess_tags(title, [author]),
+    }
 
 
 def load_index():
@@ -309,6 +426,11 @@ def meta_from_collection(collection, created=None):
 def save_collection(collection, index):
     """写入单元数据文件并更新索引中的对应条目(只动这一个单元)"""
     os.makedirs(COLLECTIONS_DIR, exist_ok=True)
+    # 单元数据文件里也记下采集时间与最新日期:页面直接读数据文件,缺了会显示「—」
+    collection["updated"] = datetime.date.today().isoformat()
+    videos = collection.get("videos") or []
+    if videos:
+        collection["latest"] = videos[0].get("date", "")
     data_path = write_collection_file(collection)
     unit_id = collection["id"]
     existing = next((t for t in index if t.get("id") == unit_id), None)
@@ -346,24 +468,25 @@ def set_enabled(unit_id, enabled, log=print):
 def merge_videos(existing, incoming):
     """
     增量合并 + 去重(纯规则):
-      - 以 BV 号为唯一键,同一视频只保留一条
-      - 新采集到的数据覆盖旧数据(刷新播放量/简介)
-      - 旧有但本次未搜到的视频保留,避免搜索排序波动导致数据丢失
+      - 以条目 key 为唯一键(B站=BV号,公众号=原文地址,小红书=笔记ID),同一内容只保留一条
+      - 新采集到的数据覆盖旧数据(刷新标题/简介/封面)
+      - 旧有但本次未采集到的条目保留,避免搜索排序波动导致数据丢失
     返回 (合并后列表, 报告dict)
     """
-    old_map = {v.get("bv"): v for v in (existing or []) if v.get("bv")}
+    old_map = {item_key(v): v for v in (existing or []) if item_key(v)}
     report = {"added": 0, "updated": 0, "kept": 0, "total": 0}
 
     for v in incoming:
-        bv = v.get("bv")
-        if not bv:
+        key = item_key(v)
+        if not key:
             continue
-        if bv in old_map:
-            old = old_map[bv]
+        if key in old_map:
+            old = old_map[key]
             changed = (
                 old.get("views") != v.get("views")
                 or old.get("title") != v.get("title")
                 or old.get("desc") != v.get("desc")
+                or old.get("cover") != v.get("cover")
                 or (v.get("ts") and not old.get("ts"))  # 回填时间戳也视为更新
             )
             if changed:
@@ -373,10 +496,10 @@ def merge_videos(existing, incoming):
             # 新数据没有 ts 时,保留旧数据已有的 ts
             if not v.get("ts") and old.get("ts"):
                 v["ts"] = old["ts"]
-            old_map[bv] = v  # 用最新数据覆盖
+            old_map[key] = v  # 用最新数据覆盖
         else:
             report["added"] += 1
-            old_map[bv] = v
+            old_map[key] = v
 
     def sort_key(v):
         if v.get("ts"):
@@ -435,8 +558,9 @@ def collect_topic(keyword, pages=30, title=None, up=None, slug=None,
     incoming = [normalize(v, keyword) for v in chosen]
     seen, incoming_unique = set(), []
     for v in incoming:
-        if v["bv"] and v["bv"] not in seen:
-            seen.add(v["bv"])
+        key = item_key(v)
+        if key and key not in seen:
+            seen.add(key)
             incoming_unique.append(v)
 
     index = load_index()
@@ -511,14 +635,31 @@ def collect_topic(keyword, pages=30, title=None, up=None, slug=None,
     data_path, index = save_collection(collection, index)
 
     result["ok"] = True
-    result["data_file"] = os.path.relpath(data_path, ROOT)
+    result["data_file"] = display_path(data_path)
     result["page_file"] = page_path
     result["topic_count"] = len(index)
     log("采集完成: %s" % result["data_file"])
     log("数据单元页: %s" % page_path)
-    log("采集索引: assets/data/index.js (共 %d 个单元,本次%s)" % (len(index), "更新" if is_update else "新建"))
+    log("采集索引: %s (共 %d 个单元,本次%s)" % (display_path(INDEX_JS), len(index), "更新" if is_update else "新建"))
     log("跳转地址: %s" % result["sample_url"])
     return result
+
+
+def _backfill_item_fields(data):
+    """为存量条目补齐多渠道字段(platform/kind/key),幂等"""
+    changed = False
+    for v in data.get("videos") or []:
+        if not v.get("platform"):
+            v["platform"] = "bilibili" if v.get("bv") else ""
+            changed = True
+        if not v.get("kind"):
+            v["kind"] = "video" if v.get("bv") else "article"
+            changed = True
+        normalized = item_key(v)
+        if normalized and v.get("key") != normalized:
+            v["key"] = normalized
+            changed = True
+    return changed
 
 
 def extract_bvid(text):
@@ -615,11 +756,297 @@ def fetch_video_tags(bvid, log=print):
 
 
 def collect_by_url(url, title=None, slug=None, slogan=None, dry_run=False,
-                   unit_id=None, log=print):
+                   unit_id=None, log=print, manual=None):
     """
-    按 B站 视频链接采集单条视频,写入一个 single 单元。
-    与 collect_topic 共用 normalize / merge / 写文件逻辑,但来源是详情 API。
+    按链接采集单条内容,自动识别渠道:
+      - B站(含 BV 号、b23.tv 短链、视频页链接)→ 视频详情接口
+      - 公众号 / 小红书 → 文章适配层解析;被风控时可传 manual 手工补录
     """
+    plat = channels.detect_platform(url)
+    # 没有域名但能解析出 BV 号(用户直接贴 BV 号)也算 B站
+    if plat == "bilibili" or (not plat and extract_bvid(url)):
+        return _collect_bilibili_single(
+            url, title=title, slug=slug, slogan=slogan, dry_run=dry_run,
+            unit_id=unit_id, log=log)
+    if not plat:
+        return {
+            "ok": False, "keyword": url, "error":
+                "无法识别该链接的渠道,目前支持 B站(bilibili.com / b23.tv)、"
+                "公众号(mp.weixin.qq.com)、小红书(xiaohongshu.com / xhslink.com)",
+            "added": 0, "updated": 0, "kept": 0, "total": 0, "fetched": 0,
+            "data_file": "", "page_file": "", "unit_id": "", "type": "single",
+        }
+    return _collect_article_single(
+        url, plat, title=title, slug=slug, slogan=slogan, dry_run=dry_run,
+        unit_id=unit_id, log=log, manual=manual)
+
+
+def _unit_id_from_item(item, plat, existing_ids):
+    """为图文内容生成稳定可读的单元 id:公众号用短链末段,小红书用笔记 ID"""
+    key = item.get("key") or ""
+    tail = key.split(":", 1)[-1]
+    m = re.search(r"/s/([A-Za-z0-9_-]{6,})", tail)
+    if plat == "wechat" and m:
+        base = "wx-" + m.group(1).lower()
+    elif plat == "xhs" and re.search(r"[0-9a-fA-F]{20,}", tail):
+        base = "xhs-" + re.search(r"([0-9a-fA-F]{20,})", tail).group(1).lower()
+    else:
+        base = "%s-%s" % (
+            {"wechat": "wx", "xhs": "xhs"}.get(plat, "item"),
+            hashlib.md5((item.get("url") or "").encode("utf-8")).hexdigest()[:10])
+    base = re.sub(r"[^a-zA-Z0-9_-]", "", base)[:40]
+    candidate, n = base, 1
+    while candidate in existing_ids and candidate != base:
+        n += 1
+        candidate = "%s-%d" % (base, n)
+    return candidate
+
+
+def _collect_article_single(url, plat, title=None, slug=None, slogan=None,
+                            dry_run=False, unit_id=None, log=print, manual=None):
+    """采集单条图文内容(公众号/小红书),写入一个 single 单元"""
+    plat_name = channels.platform_name(plat)
+    result = {
+        "ok": False, "keyword": url, "error": None,
+        "added": 0, "updated": 0, "kept": 0, "total": 0,
+        "fetched": 0, "author": "", "data_file": "", "page_file": "",
+        "sample_url": "", "topic_count": 0, "unit_id": "", "type": "single",
+        "platform": plat,
+    }
+    log("识别渠道: %s" % plat_name)
+    try:
+        raw = channels.fetch(url, log=log)
+    except channels.PlatformError as exc:
+        if (manual or {}).get("title"):
+            log("抓取失败: %s" % exc)
+            log("改用手工补录: %s" % manual.get("title"))
+            item = manual_item(url, plat, manual)
+        else:
+            result["error"] = str(exc)
+            log(result["error"])
+            return result
+    else:
+        item = article_item(raw, plat)
+
+    if not item.get("title"):
+        result["error"] = "内容标题为空,无法建立单元"
+        log(result["error"])
+        return result
+
+    result["fetched"] = 1
+    result["author"] = item.get("author", "")
+    log("标题: %s" % item["title"])
+    log("作者: %s | 发布: %s" % (item.get("author") or "—", item.get("date") or "—"))
+    if item.get("desc"):
+        log("摘要: %s" % item["desc"][:60])
+
+    index = load_index()
+    existing_ids = {t.get("id") for t in index}
+    final_title = (title or "").strip() or item["title"]
+    wanted = (unit_id or slug or "").strip()
+    if wanted:
+        uid = re.sub(r"[^a-zA-Z0-9_-]", "", wanted) or _unit_id_from_item(item, plat, existing_ids)
+    else:
+        matched = next((t for t in index if t.get("title") == final_title), None)
+        uid = matched["id"] if matched else _unit_id_from_item(item, plat, existing_ids)
+    result["unit_id"] = uid
+    is_update = uid in existing_ids
+
+    existing_data = load_collection_data(uid)
+    videos, report = merge_videos(existing_data.get("videos") if existing_data else [], [item])
+    result.update(report)
+    result["sample_url"] = videos[0]["url"] if videos else ""
+
+    if dry_run:
+        log("\n[dry-run] 未写文件")
+        log("%s | %s | %s" % (item["url"], item["date"], item["title"]))
+        result["ok"] = True
+        return result
+
+    unchanged = (
+        existing_data
+        and report["added"] == 0
+        and report["updated"] == 0
+        and report["kept"] == len(videos)
+    )
+    if unchanged:
+        log("数据无更新,跳过写文件")
+        result.update(ok=True, data_file="assets/data/collections/%s.js" % uid,
+                      page_file="single.html?id=%s" % uid, topic_count=len(index))
+        return result
+
+    page_path = "single.html?id=%s" % uid
+    final_slogan = slogan or "单条内容精选 · 前往%s阅读原文" % plat_name
+    unit_tags = item.get("tags") or guess_tags(final_title, [item.get("author") or ""])
+    collection = {
+        "id": uid,
+        "type": "single",
+        "title": final_title,
+        "slogan": final_slogan,
+        "source": {
+            "platform": plat_name,
+            "name": item.get("author") or plat_name,
+            "url": item["url"],
+        },
+        "keyword": url,
+        "tags": unit_tags[:10],
+        "page": page_path,
+        "count": len(videos),
+        "videos": videos,
+    }
+    data_path, index = save_collection(collection, index)
+    result.update(ok=True, data_file=display_path(data_path),
+                  page_file=page_path, topic_count=len(index))
+    log("采集完成: %s" % result["data_file"])
+    log("数据单元页: %s" % page_path)
+    log("采集索引: %s (共 %d 个单元,本次%s)" % (
+        display_path(INDEX_JS), len(index), "更新" if is_update else "新建"))
+    return result
+
+
+def collect_batch(text, title=None, slug=None, slogan=None, dry_run=False,
+                  unit_id=None, log=print):
+    """
+    批量链接采集:一次粘贴多条链接(可混合 B站/公众号/小红书),合成一个单元。
+      - 1 条成功结果按 single 处理,2 条及以上按 series(合集)处理
+      - 单条失败不影响其他链接,失败原因随结果返回
+    """
+    result = {
+        "ok": False, "keyword": "", "error": None,
+        "added": 0, "updated": 0, "kept": 0, "total": 0,
+        "fetched": 0, "author": "", "data_file": "", "page_file": "",
+        "sample_url": "", "topic_count": 0, "unit_id": "", "type": "series",
+        "platform": "", "failed": [],
+    }
+    urls = channels.extract_urls(text)
+    if not urls:
+        result["error"] = "未从文本中找到链接,请粘贴以 http(s):// 开头的原文地址,一行一条"
+        return result
+    log("识别到 %d 条链接" % len(urls))
+
+    items, failed = [], []
+    for u in urls:
+        plat = channels.detect_platform(u)
+        try:
+            if plat == "bilibili" or (not plat and extract_bvid(u)):
+                bvid = extract_bvid(u)
+                if not bvid:
+                    raise ValueError("未能解析出 BV 号")
+                item = normalize(fetch_video_by_bvid(bvid, log=log), "")
+            elif plat:
+                item = article_item(channels.fetch(u, log=lambda m: None), plat)
+            else:
+                raise ValueError("暂不支持该链接")
+            items.append(item)
+            log("  ✓ [%s] %s" % (platform_label(item.get("platform")), item["title"][:48]))
+        except Exception as exc:
+            failed.append({"url": u, "error": str(exc)})
+            log("  ✗ %s —— %s" % (u, str(exc)[:80]))
+
+    result["failed"] = failed
+    if not items:
+        result["error"] = "全部链接都采集失败:%s" % (failed[0]["error"] if failed else "未知原因")
+        log(result["error"])
+        return result
+
+    # 同一内容可能重复粘贴,按 key 去重
+    unique, seen = [], set()
+    for item in items:
+        key = item_key(item)
+        if key and key not in seen:
+            seen.add(key)
+            unique.append(item)
+    items = unique
+    result["fetched"] = len(items)
+
+    index = load_index()
+    existing_ids = {t.get("id") for t in index}
+    wanted = (unit_id or slug or "").strip()
+    if wanted:
+        uid = re.sub(r"[^a-zA-Z0-9_-]", "", wanted) or slugify("", None, existing_ids)
+    else:
+        raw_title = (title or "").strip()
+        matched = next((t for t in index if t.get("title") == raw_title), None) if raw_title else None
+        uid = matched["id"] if matched else slugify(
+            "|".join(sorted(item_key(i) for i in items)), None, existing_ids)
+    result["unit_id"] = uid
+    is_update = uid in existing_ids
+
+    existing_data = load_collection_data(uid)
+    videos, report = merge_videos(existing_data.get("videos") if existing_data else [], items)
+    result.update(report)
+    result["sample_url"] = videos[0]["url"] if videos else ""
+    log("去重合并: 新增 %d / 更新 %d / 未变 %d / 合计 %d 条" % (
+        report["added"], report["updated"], report["kept"], report["total"]))
+
+    unit_type = (existing_data or {}).get("type") or ("series" if len(videos) > 1 else "single")
+    result["type"] = unit_type
+
+    if dry_run:
+        log("\n[dry-run] 未写文件")
+        for v in videos[:20]:
+            log("%s | %s | %s" % (platform_label(v.get("platform")), v.get("date"), v.get("title")))
+        result["ok"] = True
+        return result
+
+    # 渠道与来源名称:单一渠道直接显示,混合渠道标注「多平台」
+    plat_keys = list(dict.fromkeys([i.get("platform") for i in items if i.get("platform")]))
+    plat_label = platform_label(plat_keys[0]) if len(plat_keys) == 1 else "多平台"
+    authors = list(dict.fromkeys([i.get("author") for i in items if i.get("author")]))
+    if len(authors) == 1:
+        source_name = authors[0]
+    elif authors:
+        source_name = "%s 等 %d 个来源" % (authors[0], len(authors))
+    else:
+        source_name = plat_label
+    result["platform"] = plat_label
+    result["author"] = source_name
+
+    page_path = "%s.html?id=%s" % ("series" if unit_type == "series" else "single", uid)
+    # 批量采集没填标题时,用「来源 · N 条合集」而不是笼统的「批量采集」
+    default_title = (videos[0]["title"] if len(videos) == 1
+                     else "%s · %d 条合集" % (source_name, len(videos)))
+    final_title = (title or "").strip() or default_title
+    final_slogan = slogan or "共收录 %d 条内容 · %s" % (len(videos), plat_label)
+
+    tag_pool = []
+    for item in items:
+        for t in (item.get("tags") or []):
+            if t not in tag_pool:
+                tag_pool.append(t)
+    unit_tags = tag_pool[:10] or guess_tags(final_title, [source_name])
+
+    collection = {
+        "id": uid,
+        "type": unit_type,
+        "title": final_title,
+        "slogan": final_slogan,
+        "source": {
+            "platform": plat_label,
+            "name": source_name,
+            "url": items[0].get("url", ""),
+        },
+        "keyword": "batch",
+        "tags": unit_tags,
+        "page": page_path,
+        "count": len(videos),
+        "videos": videos,
+    }
+    data_path, index = save_collection(collection, index)
+    result.update(ok=True, data_file=display_path(data_path),
+                  page_file=page_path, topic_count=len(index))
+    log("采集完成: %s" % result["data_file"])
+    log("数据单元页: %s" % page_path)
+    if failed:
+        log("失败 %d 条(已跳过,不影响成功项)" % len(failed))
+    log("采集索引: %s (共 %d 个单元,本次%s)" % (
+        display_path(INDEX_JS), len(index), "更新" if is_update else "新建"))
+    return result
+
+
+def _collect_bilibili_single(url, title=None, slug=None, slogan=None, dry_run=False,
+                             unit_id=None, log=print):
+    """按 B站 视频链接采集单条视频,写入一个 single 单元。来源是视频详情 API。"""
     result = {
         "ok": False, "keyword": "", "error": None,
         "added": 0, "updated": 0, "kept": 0, "total": 0,
@@ -726,12 +1153,12 @@ def collect_by_url(url, title=None, slug=None, slogan=None, dry_run=False,
     data_path, index = save_collection(collection, index)
 
     result["ok"] = True
-    result["data_file"] = os.path.relpath(data_path, ROOT)
+    result["data_file"] = display_path(data_path)
     result["page_file"] = page_path
     result["topic_count"] = len(index)
     log("采集完成: %s" % result["data_file"])
     log("数据单元页: %s" % page_path)
-    log("采集索引: assets/data/index.js (共 %d 个单元,本次%s)" % (len(index), "更新" if is_update else "新建"))
+    log("采集索引: %s (共 %d 个单元,本次%s)" % (display_path(INDEX_JS), len(index), "更新" if is_update else "新建"))
     log("跳转地址: %s" % result["sample_url"])
     return result
 
@@ -776,6 +1203,8 @@ def migrate_legacy(log=print):
                 data["tags"] = [data["title"]] if data.get("title") else []
                 changed = changed or bool(data["tags"])
             data.setdefault("enabled", True)
+            if _backfill_item_fields(data):
+                changed = True
             if changed:
                 with open(new_path, "w", encoding="utf-8") as fh:
                     fh.write("// 采集单元数据: %s (迁移自旧格式)\n" % data.get("title", ""))
@@ -802,6 +1231,7 @@ def migrate_legacy(log=print):
         if videos and not data.get("cover"):
             data["cover"] = videos[0].get("cover", "")
             data["latest"] = videos[0].get("date", "")
+        _backfill_item_fields(data)
         write_collection_file(data)
         migrated += 1
         log("迁移 %s -> collections/%s.js (type=%s)" % (uid, uid, data["type"]))
@@ -830,7 +1260,8 @@ def migrate_legacy(log=print):
 
 
 def build_parser():
-    parser = argparse.ArgumentParser(description="B站采集数据生成器(纯规则,不使用AI;不生成页面)")
+    parser = argparse.ArgumentParser(
+        description="多渠道采集数据生成器: B站(视频) / 公众号(图文) / 小红书(图文),纯规则不使用 AI,不生成页面")
     parser.add_argument("keyword", nargs="?", default=None, help="搜索主题关键词(或 --url 时的链接/BV号)")
     parser.add_argument("--pages", type=int, default=30, help="搜索翻页数,默认30(每页20条)")
     parser.add_argument("--title", default=None, help="显示标题")
@@ -840,7 +1271,13 @@ def build_parser():
     parser.add_argument("--slogan", default=None, help="副标题")
     parser.add_argument("--min-match", type=int, default=2, help="标题相似度最小词块数,默认2")
     parser.add_argument("--match-all", action="store_true", help="要求包含关键词全部核心词")
-    parser.add_argument("--url", action="store_true", help="按链接采集单条视频(type=single)")
+    parser.add_argument("--url", action="store_true", help="按链接采集单条内容(自动识别 B站/公众号/小红书)")
+    parser.add_argument("--batch", action="store_true", help="批量链接采集:位置参数传多条链接/分享文案")
+    parser.add_argument("--manual-title", default=None, help="手工补录标题(抓取被风控时使用)")
+    parser.add_argument("--manual-author", default=None, help="手工补录作者/公众号名")
+    parser.add_argument("--manual-desc", default=None, help="手工补录摘要")
+    parser.add_argument("--manual-date", default=None, help="手工补录发布日期(如 2025-04-09)")
+    parser.add_argument("--manual-cover", default=None, help="手工补录封面图地址")
     parser.add_argument("--dry-run", action="store_true", help="只预览不写文件")
     parser.add_argument("--list", action="store_true", help="列出所有采集单元")
     parser.add_argument("--toggle", metavar="ID", default=None, help="开启/关闭某单元显示,配合 --on/--off")
@@ -861,7 +1298,7 @@ def main():
     if args.list:
         for t in load_index():
             mark = "on " if t.get("enabled", True) else "off"
-            print("[%s] %-10s %-14s %s (%s 期)" % (
+            print("[%s] %-10s %-14s %s (%s 条)" % (
                 mark, t.get("type", "series"), t.get("id"), t.get("title"), t.get("count", 0)))
         return
     if args.toggle:
@@ -879,10 +1316,20 @@ def main():
         print("错误:请提供主题关键词/链接,或使用 --list/--toggle/--migrate", file=sys.stderr)
         sys.exit(1)
 
-    if args.url:
+    manual = {
+        "title": args.manual_title, "author": args.manual_author,
+        "desc": args.manual_desc, "date": args.manual_date, "cover": args.manual_cover,
+    }
+    if args.batch:
+        result = collect_batch(
+            text=args.keyword, title=args.title, slug=args.slug,
+            slogan=args.slogan, dry_run=args.dry_run, unit_id=args.unit_id,
+        )
+    elif args.url:
         result = collect_by_url(
             url=args.keyword, title=args.title, slug=args.slug,
             slogan=args.slogan, dry_run=args.dry_run, unit_id=args.unit_id,
+            manual=manual,
         )
     else:
         result = collect_topic(

@@ -48,6 +48,15 @@
     .video-info .desc { font-size: 12px; color: var(--text-sub); margin: 0 0 8px; line-height: 1.5; }
     .video-info .meta { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-mute); }
     .empty { padding: 40px 0; text-align: center; color: var(--text-mute); }
+    /* 列表截断提示:只展示最近 N 条,其余进全量列表页 */
+    .more-bar {
+      display: flex; align-items: center; justify-content: space-between; gap: 14px;
+      margin: 4px 0 48px; padding: 14px 18px;
+      background: var(--surface); border: 1px dashed var(--border); border-radius: var(--radius-sm);
+      font-size: 13px; color: var(--text-sub); flex-wrap: wrap;
+    }
+    .more-bar a { color: var(--brand); font-weight: 500; }
+    .more-bar a:hover { text-decoration: underline; }
   </style>
 </head>
 <body>
@@ -67,7 +76,7 @@
       <h1 id="topic-title">—</h1>
       <p class="sub" id="topic-slogan">—</p>
       <div class="facts">
-        <div class="fact"><b id="stat-count">0</b><span>收录期数</span></div>
+        <div class="fact"><b id="stat-count">0</b><span>收录条数</span></div>
         <div class="fact"><b id="stat-latest">—</b><span>最新发布</span></div>
         <div class="fact"><b id="stat-collected">—</b><span>最近采集</span></div>
         <div class="fact"><b id="stat-span">—</b><span>时间跨度</span></div>
@@ -76,16 +85,17 @@
     </section>
 
     <div class="section-title">
-      <h2>全部视频</h2>
-      <a class="hint" id="source-link" href="#" target="_blank" rel="noopener">查看 UP 主主页 →</a>
+      <h2>最近收录</h2>
+      <a class="hint" id="source-link" href="#" target="_blank" rel="noopener">查看来源 →</a>
     </div>
 
     <div class="toolbar">
-      <input type="text" id="search" placeholder="搜索视频标题,输入关键词过滤…">
+      <input type="text" id="search" placeholder="搜索内容标题,输入关键词过滤…">
       <span class="stat" id="result-stat"></span>
     </div>
 
     <div id="video-grid"></div>
+    <div id="more-bar"></div>
   </main>
 
   <footer class="site-footer">
@@ -99,7 +109,16 @@
   <script>
     var id = CollectionLoader.currentId();
     var grid = document.getElementById('video-grid');
+    var moreBar = document.getElementById('more-bar');
     var vids = [];
+    // 合集页只展示最近 20 条,更多记录进 list.html(可筛选、可分页)
+    var PAGE_LIMIT = 20;
+    var unitPlatform = 'B站';
+    // 平台标识 → 展示名(与数据里的 platform 字段对应)
+    var PLAT = { bilibili: 'B站', wechat: '公众号', xhs: '小红书' };
+    function platOf(v) {
+      return PLAT[v.platform] || unitPlatform || 'B站';
+    }
 
     // ISO 日期(YYYY-MM-DD)统一格式化为 yyyy.mm.dd
     function fmtDate(iso) {
@@ -126,14 +145,18 @@
         if (topic.source && topic.source.url) {
           document.getElementById('source-link').href = topic.source.url;
         }
-        vids = topic.videos || [];
+        vids = (topic.videos || []).slice().sort(function (a, b) {
+          if ((b.ts || 0) !== (a.ts || 0)) return (b.ts || 0) - (a.ts || 0);
+          return String(b.date || '').localeCompare(String(a.date || ''));
+        });
         document.getElementById('stat-count').textContent = vids.length;
         document.getElementById('stat-latest').textContent = vids.length ? vids[0].date : '—';
         document.getElementById('stat-collected').textContent = fmtDate(topic.updated);
         document.getElementById('stat-span').textContent = vids.length
           ? vids[0].date + ' – ' + vids[vids.length - 1].date : '—';
-        // 来源平台信息(多渠道预留:接入抖音/视频号等后自动显示对应平台)
+        // 来源平台信息(多渠道:接入公众号/小红书后自动显示对应平台)
         var plat = (topic.source && topic.source.platform) || 'B站';
+        unitPlatform = plat;
         var srcHtml = '<div class="topic-meta-row"><span class="label">来源</span>' +
           '<span class="value">' + plat +
           (topic.source && topic.source.name ? ' · <a href="' + (topic.source.url || '#') + '" target="_blank" rel="noopener" style="color:var(--brand)">' + topic.source.name + '</a>' : '') +
@@ -152,23 +175,39 @@
       });
     }
 
+    // 卡片跳站内详情页(不直接跳源平台);源链接在详情页里提供
+    function detailHref(v) {
+      var k = v.key || v.bv || v.url || '';
+      return 'single.html?id=' + encodeURIComponent(id) + (k ? '&k=' + encodeURIComponent(k) : '');
+    }
+
     function cardHtml(v) {
-      return '<a class="video-card" href="' + v.url + '" target="_blank" rel="noopener">' +
-        '<div class="video-thumb"><img src="' + v.cover + '" alt="' + v.title + '" loading="lazy" referrerpolicy="no-referrer">' +
-        '<span class="play"><i>▶</i></span></div>' +
+      var isVideo = (v.kind || 'video') === 'video';
+      var cover = v.cover
+        ? '<img src="' + v.cover + '" alt="' + v.title + '" loading="lazy" referrerpolicy="no-referrer">'
+        : '<div class="thumb-placeholder">' + (v.title || '内').charAt(0) + '</div>';
+      // 视频显示播放标记,图文显示常驻「图文」标记,避免让图文卡片看起来像视频
+      var mark = isVideo ? '<span class="play"><i>▶</i></span>' : '<span class="kind-tag">图文</span>';
+      // 编号只对视频展示(BV 号);图文显示平台名
+      var idText = v.bv ? (' · ' + v.bv) : '';
+      return '<a class="video-card" href="' + detailHref(v) + '">' +
+        '<div class="video-thumb">' + cover + mark + '</div>' +
         '<div class="video-info"><h3>' + v.title + '</h3>' +
         (v.desc ? '<p class="desc">' + v.desc + '</p>' : '') +
-        '<div class="meta"><span>' + v.date + '</span><span>B站 · ' + v.bv + '</span></div></div></a>';
+        '<div class="meta"><span>' + v.date + '</span><span>' + platOf(v) + idText + '</span></div></div></a>';
     }
 
     function render(list) {
       if (!list.length) {
-        grid.innerHTML = '<div class="empty">没有匹配的视频,换个关键词试试</div>';
-        document.getElementById('result-stat').textContent = '显示 0 / ' + vids.length + ' 期';
+        grid.innerHTML = '<div class="empty">没有匹配的内容,换个关键词试试</div>';
+        moreBar.innerHTML = '';
+        document.getElementById('result-stat').textContent = '显示 0 / ' + vids.length + ' 条';
         return;
       }
+      // 本页最多渲染 PAGE_LIMIT 条,其余在全量列表页查看
+      var shown = list.slice(0, PAGE_LIMIT);
       var groups = {}, order = [];
-      list.forEach(function (v) {
+      shown.forEach(function (v) {
         var a = v.author || '未标注作者';
         if (!groups[a]) { groups[a] = []; order.push(a); }
         groups[a].push(v);
@@ -176,20 +215,34 @@
       if (order.length > 1) {
         grid.innerHTML = order.map(function (a) {
           return '<section class="author-section"><h3 class="author-heading">' + a +
-            '<span>' + groups[a].length + ' 期</span></h3><div class="video-grid">' +
+            '<span>' + groups[a].length + ' 条</span></h3><div class="video-grid">' +
             groups[a].map(cardHtml).join('') + '</div></section>';
         }).join('');
       } else {
-        grid.innerHTML = '<div class="video-grid">' + list.map(cardHtml).join('') + '</div>';
+        grid.innerHTML = '<div class="video-grid">' + shown.map(cardHtml).join('') + '</div>';
       }
-      document.getElementById('result-stat').textContent = '显示 ' + list.length + ' / ' + vids.length + ' 期';
+      document.getElementById('result-stat').textContent = '显示 ' + shown.length + ' / ' + vids.length + ' 条';
+
+      // 超出上限时给出全量入口(带上当前搜索词,搜索也不丢)
+      var q = document.getElementById('search').value.trim();
+      var href = 'list.html?id=' + encodeURIComponent(id) + (q ? '&q=' + encodeURIComponent(q) : '');
+      if (list.length > PAGE_LIMIT) {
+        moreBar.innerHTML = '<span>已显示最近 ' + PAGE_LIMIT + ' 条,共 ' + list.length + ' 条</span>' +
+          '<a href="' + href + '">查看全部内容(可筛选、可分页) →</a>';
+      } else if (vids.length > PAGE_LIMIT) {
+        moreBar.innerHTML = '<span>共 ' + vids.length + ' 条,本页显示最近 ' + PAGE_LIMIT + ' 条</span>' +
+          '<a href="' + href + '">查看全部内容(可筛选、可分页) →</a>';
+      } else {
+        moreBar.innerHTML = '';
+      }
     }
 
     document.getElementById('search').addEventListener('input', function (e) {
       var q = e.target.value.trim().toLowerCase();
       render(q ? vids.filter(function (v) {
         return v.title.toLowerCase().indexOf(q) >= 0 ||
-          v.bv.toLowerCase().indexOf(q) >= 0 ||
+          (v.bv || '').toLowerCase().indexOf(q) >= 0 ||
+          (v.author || '').toLowerCase().indexOf(q) >= 0 ||
           (v.desc || '').toLowerCase().indexOf(q) >= 0;
       }) : vids);
     });

@@ -6,24 +6,23 @@
   <title>单条精选 · 集页</title>
   <link rel="stylesheet" href="assets/style.css">
   <style>
-    /* ===== 单链接页专属布局样式(单独维护本页时只改这里) ===== */
+    /* ===== 详情页样式:按渠道切换三套模板(视频 / 公众号文章 / 小红书笔记) ===== */
     .crumb { font-size: 13px; color: var(--text-mute); margin: 18px 0; }
     .crumb a { color: var(--brand); text-decoration: none; }
     .crumb span { margin: 0 8px; }
 
+    /* --- 渠道色:模板内部覆盖品牌色,让按钮/链接跟随渠道 --- */
+    .tpl-wechat { --brand: #07c160; --brand-soft: #e9f8f0; }
+    .tpl-xhs { --brand: #ff2442; --brand-soft: #fff0f3; }
+
+    .plat-pill {
+      display: inline-block; font-size: 11px; color: #fff; padding: 3px 10px;
+      border-radius: 20px; margin-bottom: 12px; letter-spacing: .3px;
+    }
+
+    /* ---------- 模板 A:B站视频(双栏 + 官方 iframe 播放器) ---------- */
     .single-layout { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(260px, 1fr); gap: 28px; align-items: start; }
     @media (max-width: 860px) { .single-layout { grid-template-columns: 1fr; } }
-
-    .player {
-      display: block; position: relative; aspect-ratio: 16 / 9; border-radius: var(--radius);
-      overflow: hidden; background: var(--bg); box-shadow: var(--shadow);
-    }
-    .player img { width: 100%; height: 100%; object-fit: cover; display: block; }
-    .player .play {
-      position: absolute; inset: 0; display: grid; place-items: center;
-      background: rgba(0,0,0,.18); color: #fff; font-size: 56px;
-    }
-    /* B站官方 iframe 播放器 */
     .player-frame {
       position: relative; aspect-ratio: 16 / 9; border-radius: var(--radius);
       overflow: hidden; background: #000; box-shadow: var(--shadow);
@@ -44,7 +43,131 @@
       display: inline-block; margin-top: 22px; background: var(--brand); color: #fff;
       text-decoration: none; border-radius: var(--radius-sm); padding: 12px 22px; font-size: 14px;
     }
+    .side-link { margin-top: 14px; }
+    .side-link a { font-size: 12px; color: var(--text-mute); }
+    .tag-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .tag-chips i {
+      font-style: normal; font-size: 11px; color: var(--text-sub);
+      border: 1px solid var(--border); border-radius: 20px; padding: 2px 9px; background: var(--bg);
+    }
+
+    /* ---------- 模板 B:公众号文章(单栏阅读版式) ---------- */
+    .tpl-wechat { max-width: 780px; margin: 0 auto; }
+    .wx-article {
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+      overflow: hidden; box-shadow: var(--shadow);
+    }
+    .wx-cover { aspect-ratio: 16 / 9; background: var(--brand-soft); overflow: hidden; }
+    .wx-cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .wx-body { padding: 30px 38px 34px; }
+    .wx-body h1 { font-size: 25px; line-height: 1.45; font-weight: 650; margin: 0 0 14px; letter-spacing: -.2px; }
+    .wx-meta { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; font-size: 12px; color: var(--text-mute); margin-bottom: 16px; }
+    .wx-meta .wx-name { color: var(--brand); font-weight: 500; }
+    .wx-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 18px; }
+    .wx-tags i { font-style: normal; font-size: 11px; color: var(--text-sub); background: var(--brand-soft); border-radius: 4px; padding: 3px 8px; }
+    .wx-lead { font-size: 15px; line-height: 2; color: var(--text-sub); margin: 0 0 26px; padding-left: 14px; border-left: 3px solid var(--border); }
+    .wx-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; padding-top: 20px; border-top: 1px solid var(--border); }
+    .wx-btn {
+      display: inline-block; background: var(--brand); color: #fff; text-decoration: none;
+      border-radius: 24px; padding: 11px 26px; font-size: 14px;
+    }
+    .wx-hint { font-size: 12px; color: var(--text-mute); }
+
+    /* ---------- 模板 C:小红书笔记(图左文右) ---------- */
+    .tpl-xhs { max-width: 900px; margin: 0 auto; }
+    .xhs-card {
+      display: grid; grid-template-columns: 330px minmax(0, 1fr); gap: 0;
+      background: var(--surface); border: 1px solid var(--border); border-radius: 18px;
+      overflow: hidden; box-shadow: var(--shadow);
+    }
+    @media (max-width: 760px) { .xhs-card { grid-template-columns: 1fr; } }
+    .xhs-media { aspect-ratio: 3 / 4; background: var(--brand-soft); overflow: hidden; }
+    .xhs-media img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .xhs-side { padding: 28px 30px 30px; display: flex; flex-direction: column; }
+    .xhs-side h1 { font-size: 21px; line-height: 1.5; font-weight: 600; margin: 0 0 14px; }
+    .xhs-author { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+    .xhs-avatar {
+      width: 32px; height: 32px; border-radius: 50%; background: var(--brand); color: #fff;
+      display: grid; place-items: center; font-size: 13px; flex: none;
+    }
+    .xhs-author .who { font-size: 13px; color: var(--text); font-weight: 500; }
+    .xhs-author .when { font-size: 12px; color: var(--text-mute); }
+    .xhs-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+    .xhs-tags i { font-style: normal; font-size: 12px; color: var(--brand); background: var(--brand-soft); border-radius: 20px; padding: 4px 12px; }
+    .xhs-desc { font-size: 14px; line-height: 1.9; color: var(--text-sub); margin: 0 0 24px; }
+    .xhs-btn {
+      align-self: flex-start; margin-top: auto; background: var(--brand); color: #fff;
+      text-decoration: none; border-radius: 24px; padding: 11px 26px; font-size: 14px;
+    }
+    .xhs-note { margin-top: 14px; font-size: 12px; color: var(--text-mute); line-height: 1.6; }
+    /* 胶囊在纵向 flex 里默认被拉伸,显式靠左 */
+    .xhs-side .plat-pill { align-self: flex-start; }
+
+    /* ---------- 多集内容:上一集 / 下一集 / 全集列表 ---------- */
+    .ep-nav { display: flex; align-items: stretch; gap: 12px; margin: 22px 0 0; }
+    .ep-btn {
+      flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;
+      padding: 10px 14px; background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); color: var(--text-sub); font-size: 13px;
+    }
+    .ep-btn.next { align-items: flex-end; text-align: right; }
+    .ep-btn:hover { border-color: var(--brand); }
+    .ep-btn:hover .ep-dir { color: var(--brand); }
+    .ep-btn.disabled { opacity: .45; pointer-events: none; }
+    /* 方向标签 + 目标集短标题(单行省略) */
+    .ep-btn .ep-dir { font-size: 12px; color: var(--text-sub); }
+    .ep-btn .ep-name {
+      max-width: 100%; font-size: 12px; color: var(--text-mute);
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .ep-pos { flex: none; align-self: center; font-size: 12px; color: var(--text-mute); white-space: nowrap; }
+    .ep-pos b { color: var(--text); font-weight: 600; }
+
+    .ep-list {
+      margin-top: 30px; background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden;
+    }
+    .ep-head {
+      display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+      padding: 15px 20px; border-bottom: 1px solid var(--border);
+    }
+    .ep-head h3 { font-size: 15px; font-weight: 600; }
+    .ep-head span { font-size: 12px; color: var(--text-mute); }
+    .ep-items { list-style: none; max-height: 400px; overflow: auto; padding: 6px 0; }
+    .ep-item a {
+      display: flex; align-items: baseline; gap: 12px; padding: 9px 20px;
+      font-size: 13px; color: var(--text-sub);
+    }
+    .ep-item a:hover { background: var(--brand-soft); color: var(--text); }
+    .ep-item.cur a { background: var(--brand-soft); color: var(--brand); font-weight: 500; }
+    .ep-no { flex: none; width: 26px; font-size: 11px; color: var(--text-mute); font-variant-numeric: tabular-nums; }
+    .ep-item.cur .ep-no { color: var(--brand); }
+    .ep-t { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .ep-d { flex: none; font-size: 11px; color: var(--text-mute); }
+    @media (max-width: 600px) {
+      .ep-nav { gap: 8px; }
+      .ep-btn { padding: 10px 8px; font-size: 12px; }
+      .ep-d { display: none; }
+    }
+
+    /* ---------- 模板 D:其他渠道兜底(封面 + 双栏) ---------- */
+    .cover-link {
+      display: block; position: relative; aspect-ratio: 16 / 9; border-radius: var(--radius);
+      overflow: hidden; background: var(--bg); box-shadow: var(--shadow);
+    }
+    .cover-link img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .cover-ph { width: 100%; height: 100%; display: grid; place-items: center; background: linear-gradient(135deg, #1e3a5f, #2d7ff9); color: #fff; font-size: 46px; }
+    .cover-link .read-note {
+      position: absolute; left: 0; right: 0; bottom: 0; padding: 26px 16px 12px;
+      background: linear-gradient(transparent, rgba(0,0,0,.65)); color: #fff; font-size: 13px; text-align: right;
+    }
+
     .empty { padding: 40px 0; text-align: center; color: var(--text-mute); }
+    @media (max-width: 600px) {
+      .wx-body { padding: 22px 20px 26px; }
+      .wx-body h1 { font-size: 21px; }
+      .xhs-side { padding: 20px 18px 24px; }
+    }
   </style>
 </head>
 <body>
@@ -53,7 +176,7 @@
       <div class="brand">
         <a href="index.html"><span class="brand-mark">◈</span><span>集页</span></a>
       </div>
-      <div class="header-meta">单条精选</div>
+      <div class="header-meta" id="header-meta">单条精选</div>
     </div>
   </header>
 
@@ -64,7 +187,7 @@
 
   <footer class="site-footer">
     <div class="wrap">
-      <div>内容来自各平台公开投稿或发布,版权归原作者所有;B站视频在页内直接播放,无法播放时可跳转原平台。</div>
+      <div>内容来自各平台公开内容,版权归原作者所有;B站视频在页内播放,其余渠道点击按钮跳转原文。</div>
       <div><a href="index.html">← 返回全部主题</a></div>
     </div>
   </footer>
@@ -74,66 +197,280 @@
     var id = CollectionLoader.currentId();
     var root = document.getElementById('single-root');
 
-    // ISO 日期(YYYY-MM-DD)统一格式化为 yyyy.mm.dd
+    var PLAT = { bilibili: 'B站', wechat: '公众号', xhs: '小红书' };
+    var PLAT_COLORS = { 'B站': '#fb7299', '公众号': '#07c160', '小红书': '#ff2442' };
+
+    function esc(s) {
+      return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+      });
+    }
+    // 条目唯一键:与采集端 item_key 一致(B站=BV,公众号=原文地址,小红书=笔记ID)
+    function itemRefKey(v) {
+      return v.key || v.bv || v.url || '';
+    }
+    // ISO 日期统一格式化为 yyyy.mm.dd
     function fmtDate(iso) {
       if (!iso) return '—';
       var m = /^(\d{4})-(\d{1,2})-(\d{1,2})/.exec(iso);
       if (!m) return iso;
       return m[1] + '.' + ('0' + Number(m[2])).slice(-2) + '.' + ('0' + Number(m[3])).slice(-2);
     }
+    function pills(tags, cls) {
+      if (!tags || !tags.length) return '';
+      return '<div class="' + cls + '">' + tags.map(function (t) {
+        return '<i>' + (cls === 'xhs-tags' ? '#' : '') + esc(t) + '</i>';
+      }).join('') + '</div>';
+    }
+
+    // ---------- 模板 A:B站视频(页内 iframe 播放) ----------
+    function renderBilibili(ctx) {
+      var v = ctx.v, plat = ctx.plat;
+      var iframeSrc = 'https://player.bilibili.com/player.html?bvid=' + encodeURIComponent(v.bv) +
+        '&autoplay=0&danmaku=0&high_quality=1&as_wide=1';
+      var rows =
+        row('来源平台', plat) +
+        row('发布者', esc(ctx.author)) +
+        row('发布日期', esc(v.date)) +
+        row('最近采集', fmtDate(ctx.topic.updated)) +
+        (ctx.tags.length ? '<div class="detail-row"><span class="label">标签</span><span class="value">' +
+          '<span class="tag-chips">' + ctx.tags.map(function (t) { return '<i>' + esc(t) + '</i>'; }).join('') +
+          '</span></span></div>' : '') +
+        row('视频编号', esc(v.bv));
+
+      return '<div class="tpl-bili"><div class="single-layout">' +
+        '<div>' +
+          '<div class="player-frame"><iframe src="' + iframeSrc +
+            '" scrolling="no" frameborder="0" allowfullscreen="true" title="B站视频 ' + esc(v.bv) + '"></iframe></div>' +
+          '<div class="player-fallback">若上方播放器无法播放(部分 UP 主关闭了站外播放),请' +
+            '<a href="' + esc(v.url) + '" target="_blank" rel="noopener">前往 B站 观看 →</a></div>' +
+          '<div class="desc-box"><h3>简介</h3><p>' + esc(v.desc || '该视频暂无简介。') + '</p></div>' +
+        '</div>' +
+        '<div class="detail">' +
+          '<span class="plat-pill" style="background:' + PLAT_COLORS['B站'] + '">B站 · 视频</span>' +
+          '<h1>' + esc(v.title) + '</h1>' +
+          '<p class="sub">' + esc(ctx.topic.slogan || '') + '</p>' +
+          rows +
+          '<a class="watch-btn" href="' + esc(v.url) + '" target="_blank" rel="noopener">前往 B站 观看 →</a>' +
+          (ctx.sourceUrl ? '<div class="side-link"><a href="' + esc(ctx.sourceUrl) +
+            '" target="_blank" rel="noopener">查看 UP 主主页 →</a></div>' : '') +
+        '</div></div></div>';
+    }
+
+    // ---------- 模板 B:公众号文章(单栏阅读版式) ----------
+    function renderWechat(ctx) {
+      var v = ctx.v;
+      var cover = v.cover
+        ? '<img src="' + esc(v.cover) + '" alt="' + esc(v.title) + '" referrerpolicy="no-referrer">'
+        : '<div class="cover-ph" style="background:linear-gradient(135deg,#0f5132,#07c160)">' + esc((v.title || '文').charAt(0)) + '</div>';
+      var meta = '<span class="wx-name">' + esc(ctx.author || '公众号') + '</span>' +
+        (v.date ? '<span>·</span><span>' + esc(v.date) + '</span>' : '') +
+        '<span>·</span><span>采集于 ' + fmtDate(ctx.topic.updated) + '</span>';
+
+      return '<div class="tpl-wechat"><article class="wx-article">' +
+        '<div class="wx-cover">' + cover + '</div>' +
+        '<div class="wx-body">' +
+          '<span class="plat-pill" style="background:' + PLAT_COLORS['公众号'] + '">公众号 · 文章</span>' +
+          '<h1>' + esc(v.title) + '</h1>' +
+          '<div class="wx-meta">' + meta + '</div>' +
+          pills(ctx.tags, 'wx-tags') +
+          '<p class="wx-lead">' + esc(v.desc || '该文章暂无摘要,点击下方按钮阅读原文。') + '</p>' +
+          '<div class="wx-foot">' +
+            '<a class="wx-btn" href="' + esc(v.url) + '" target="_blank" rel="noopener">阅读原文 →</a>' +
+            '<span class="wx-hint">正文在公众号内,本站仅收录标题、封面与摘要</span>' +
+          '</div>' +
+        '</div></article></div>';
+    }
+
+    // ---------- 模板 C:小红书笔记(图左文右) ----------
+    function renderXhs(ctx) {
+      var v = ctx.v;
+      var media = v.cover
+        ? '<img src="' + esc(v.cover) + '" alt="' + esc(v.title) + '" referrerpolicy="no-referrer">'
+        : '<div class="cover-ph" style="height:100%;background:linear-gradient(135deg,#8c1d2f,#ff2442)">' + esc((v.title || '笔').charAt(0)) + '</div>';
+      var initial = esc((ctx.author || '红').charAt(0));
+
+      return '<div class="tpl-xhs"><article class="xhs-card">' +
+        '<div class="xhs-media">' + media + '</div>' +
+        '<div class="xhs-side">' +
+          '<span class="plat-pill" style="background:' + PLAT_COLORS['小红书'] + '">小红书 · 图文笔记</span>' +
+          '<h1>' + esc(v.title) + '</h1>' +
+          '<div class="xhs-author">' +
+            '<span class="xhs-avatar">' + initial + '</span>' +
+            '<div><div class="who">' + esc(ctx.author || '小红书用户') + '</div>' +
+            '<div class="when">' + esc(v.date || '—') + ' · 采集于 ' + fmtDate(ctx.topic.updated) + '</div></div>' +
+          '</div>' +
+          pills(ctx.tags, 'xhs-tags') +
+          '<p class="xhs-desc">' + esc(v.desc || '该笔记暂无摘要。') + '</p>' +
+          '<a class="xhs-btn" href="' + esc(v.url) + '" target="_blank" rel="noopener">打开笔记 →</a>' +
+          '<div class="xhs-note">笔记正文需在 App / 网页内查看;封面与标题来自公开分享页。</div>' +
+        '</div></article></div>';
+    }
+
+    // ---------- 模板 D:其他渠道兜底 ----------
+    function renderGeneric(ctx) {
+      var v = ctx.v, plat = ctx.plat;
+      var cover = v.cover
+        ? '<img src="' + esc(v.cover) + '" alt="' + esc(v.title) + '" referrerpolicy="no-referrer">'
+        : '<div class="cover-ph">' + esc((v.title || '内').charAt(0)) + '</div>';
+      var isVideo = (v.kind || 'video') === 'video';
+      return '<div class="tpl-generic"><div class="single-layout">' +
+        '<div>' +
+          '<a class="cover-link" href="' + esc(v.url) + '" target="_blank" rel="noopener">' + cover +
+            '<span class="read-note">前往 ' + esc(plat) + (isVideo ? ' 观看' : ' 阅读原文') + ' →</span></a>' +
+          '<div class="desc-box"><h3>' + (isVideo ? '简介' : '摘要') + '</h3><p>' +
+            esc(v.desc || '该内容暂无摘要。') + '</p></div>' +
+        '</div>' +
+        '<div class="detail">' +
+          '<span class="plat-pill" style="background:' + (PLAT_COLORS[plat] || 'rgba(0,0,0,.72)') + '">' +
+            esc(plat) + (isVideo ? ' · 视频' : ' · 图文') + '</span>' +
+          '<h1>' + esc(v.title) + '</h1>' +
+          '<p class="sub">' + esc(ctx.topic.slogan || '') + '</p>' +
+          row('来源平台', esc(plat)) +
+          row('发布者', esc(ctx.author)) +
+          row('发布日期', esc(v.date)) +
+          row('最近采集', fmtDate(ctx.topic.updated)) +
+          (ctx.tags.length ? '<div class="detail-row"><span class="label">标签</span><span class="value">' +
+            '<span class="tag-chips">' + ctx.tags.map(function (t) { return '<i>' + esc(t) + '</i>'; }).join('') +
+            '</span></span></div>' : '') +
+          '<a class="watch-btn" href="' + esc(v.url) + '" target="_blank" rel="noopener">前往 ' + esc(plat) +
+            (isVideo ? ' 观看 →' : ' 阅读原文 →') + '</a>' +
+        '</div></div></div>';
+    }
+
+    function row(label, value) {
+      return '<div class="detail-row"><span class="label">' + label + '</span><span class="value">' + value + '</span></div>';
+    }
+
+    // 短标题:去掉【第 N 期】标记与合集同名前缀,过长截断
+    function shortTitle(raw, unitTitle) {
+      var t = String(raw || '').trim();
+      t = t.replace(/^[【\[][^】\]]{1,24}[】\]]\s*/, '');
+      var base = String(unitTitle || '').trim();
+      if (base && t.indexOf(base) === 0) {
+        t = t.slice(base.length).replace(/^[\s:：\-—–|·,，、]+/, '');
+      }
+      if (!t) t = String(raw || '').trim();
+      return t.length > 26 ? t.slice(0, 26) + '…' : t;
+    }
+
+    // ---------- 多集导航:上一集 / 下一集 + 全集列表 ----------
+    function buildEpisodeNav(cur, list, unitTitle) {
+      if (!list || list.length < 2) return '';
+      var i = list.indexOf(cur);
+      var allVideo = list.every(function (x) { return (x.kind || 'video') === 'video'; });
+      var unitWord = allVideo ? '集' : '条';
+      function href(item, idx) {
+        var k = itemRefKey(item);
+        return 'single.html?id=' + encodeURIComponent(id) + (k ? '&k=' + encodeURIComponent(k) : '&i=' + idx);
+      }
+      var prev = i > 0 ? list[i - 1] : null;
+      var next = i < list.length - 1 ? list[i + 1] : null;
+
+      // 上一集 / 下一集:方向标签 + 目标集的短标题
+      function stepBtn(item, idx, dir) {
+        var isPrev = dir === 'prev';
+        var dirText = isPrev ? '← 上一' + unitWord : '下一' + unitWord + ' →';
+        if (!item) {
+          return '<span class="ep-btn ' + dir + ' disabled"><span class="ep-dir">' + dirText + '</span></span>';
+        }
+        return '<a class="ep-btn ' + dir + '" href="' + href(item, idx) + '">' +
+          '<span class="ep-dir">' + dirText + '</span>' +
+          '<span class="ep-name">' + esc(shortTitle(item.title, unitTitle)) + '</span>' +
+          '</a>';
+      }
+      var nav = '<nav class="ep-nav">' +
+        stepBtn(prev, i - 1, 'prev') +
+        '<span class="ep-pos">第 <b>' + (i + 1) + '</b> / ' + list.length + ' ' + unitWord + '</span>' +
+        stepBtn(next, i + 1, 'next') +
+        '</nav>';
+
+      var items = list.map(function (x, idx) {
+        return '<li class="ep-item' + (x === cur ? ' cur' : '') + '">' +
+          '<a href="' + href(x, idx) + '">' +
+            '<span class="ep-no">' + ('0' + (idx + 1)).slice(-2) + '</span>' +
+            '<span class="ep-t">' + esc(x.title) + '</span>' +
+            '<span class="ep-d">' + esc(x.date || '') + '</span>' +
+          '</a></li>';
+      }).join('');
+
+      return nav +
+        '<section class="ep-list"><div class="ep-head"><h3>' + (allVideo ? '全集列表' : '全部内容') + '</h3>' +
+        '<span>共 ' + list.length + ' ' + unitWord + ' · 按发布顺序</span></div>' +
+        '<ol class="ep-items">' + items + '</ol></section>';
+    }
+
+    // 让全集列表自动滚到当前集(只滚容器,不动页面)
+    function scrollCurrentEpisode() {
+      var cur = document.querySelector('.ep-item.cur');
+      var box = document.querySelector('.ep-items');
+      if (!cur || !box) return;
+      var boxRect = box.getBoundingClientRect();
+      var curRect = cur.getBoundingClientRect();
+      box.scrollTop += (curRect.top - boxRect.top) - box.clientHeight / 2 + curRect.height / 2;
+      if (box.scrollTop < 0) box.scrollTop = 0;
+    }
 
     if (!id) {
-      root.innerHTML = '<div class="empty">未指定视频。请从 <a href="index.html">首页</a> 选择一个「单条精选」。</div>';
+      root.innerHTML = '<div class="empty">未指定内容。请从 <a href="index.html">首页</a> 选择一条。</div>';
     } else {
       CollectionLoader.load(id, function (topic, err) {
         if (err || !topic) {
-          root.innerHTML = '<div class="empty">未找到该视频数据(' + (err || '') + ')。请从 <a href="index.html">首页</a> 选择。</div>';
+          root.innerHTML = '<div class="empty">未找到该内容数据(' + (err || '') + ')。请从 <a href="index.html">首页</a> 选择。</div>';
           return;
         }
-        var v = (topic.videos || [])[0];
+        // 按发布时间升序 = 「第 1 集 → 第 N 集」的固定顺序,上一集/下一集都基于它
+        var all = (topic.videos || []).slice().sort(function (a, b) {
+          var at = a.ts || 0, bt = b.ts || 0;
+          if (at !== bt) return at - bt;
+          return String(a.date || '').localeCompare(String(b.date || ''));
+        });
+        var params = new URLSearchParams(location.search);
+        var wantKey = params.get('k') || '';
+        var wantIdx = params.get('i');
+        var v = null;
+        if (wantKey) {
+          v = all.filter(function (x) { return itemRefKey(x) === wantKey; })[0] || null;
+        } else if (wantIdx !== null && all[parseInt(wantIdx, 10)]) {
+          v = all[parseInt(wantIdx, 10)];
+        }
+        // 没指定(或指定的条目已不在数据里)时,默认最新一条
+        if (!v) v = all[all.length - 1] || null;
         if (!v) {
-          root.innerHTML = '<div class="empty">该单元没有视频数据。</div>';
+          root.innerHTML = '<div class="empty">该单元没有内容数据。</div>';
           return;
         }
-        document.title = (topic.title || v.title) + ' · 单条精选 · 集页';
-        document.getElementById('crumb-title').textContent = topic.title || v.title;
-        var author = v.author || (topic.source && topic.source.name) || '';
-        var sourceUrl = (topic.source && topic.source.url) || v.url;
-        var plat = (topic.source && topic.source.platform) || 'B站';
-        var unitTags = Array.isArray(topic.tags) ? topic.tags : [];
-        // 播放区:B站视频用官方 iframe 在页内直接播放(合规);其他渠道或缺少编号时仍为封面跳转
-        var playerHtml;
-        if (plat === 'B站' && v.bv) {
-          var iframeSrc = 'https://player.bilibili.com/player.html?bvid=' + encodeURIComponent(v.bv) +
-            '&autoplay=0&danmaku=0&high_quality=1&as_wide=1';
-          playerHtml = '<div class="player-frame"><iframe src="' + iframeSrc +
-            '" scrolling="no" frameborder="0" allowfullscreen="true" title="B站视频 ' + v.bv + '"></iframe></div>' +
-            '<div class="player-fallback">若上方播放器无法播放(部分 UP 主关闭了站外播放),请' +
-            '<a href="' + v.url + '" target="_blank" rel="noopener">前往 B站 观看 →</a></div>';
+
+        var platKey = v.platform || (topic.source && topic.source.platform === 'B站' ? 'bilibili' : '');
+        var plat = PLAT[platKey] || (topic.source && topic.source.platform) || 'B站';
+        var ctx = {
+          v: v,
+          topic: topic,
+          plat: plat,
+          author: v.author || (topic.source && topic.source.name) || '',
+          sourceUrl: (topic.source && topic.source.url) || v.url,
+          tags: Array.isArray(topic.tags) ? topic.tags : []
+        };
+
+        // 按渠道选模板:B站视频 / 公众号文章 / 小红书笔记 / 其他兜底
+        var tplName, label, html;
+        if (platKey === 'bilibili' && v.bv) {
+          tplName = 'bilibili'; label = '单条精选 · B站'; html = renderBilibili(ctx);
+        } else if (platKey === 'wechat') {
+          tplName = 'wechat'; label = '公众号文章'; html = renderWechat(ctx);
+        } else if (platKey === 'xhs') {
+          tplName = 'xhs'; label = '小红书笔记'; html = renderXhs(ctx);
         } else {
-          playerHtml = '<a class="player" href="' + v.url + '" target="_blank" rel="noopener">' +
-            '<img src="' + v.cover + '" alt="' + v.title + '" referrerpolicy="no-referrer">' +
-            '<span class="play">▶</span></a>';
+          tplName = 'generic'; label = (v.kind === 'article') ? '图文精选' : '单条精选'; html = renderGeneric(ctx);
         }
-        root.innerHTML =
-          '<div class="single-layout">' +
-            '<div>' +
-              playerHtml +
-              '<div class="desc-box"><h3>简介</h3><p>' + (v.desc || '该视频暂无简介。') + '</p></div>' +
-            '</div>' +
-            '<div class="detail">' +
-              '<h1>' + v.title + '</h1>' +
-              '<p class="sub">' + (topic.slogan || '') + '</p>' +
-              '<div class="detail-row"><span class="label">来源平台</span><span class="value">' + plat + '</span></div>' +
-              '<div class="detail-row"><span class="label">发布者</span><span class="value">' + author + '</span></div>' +
-              '<div class="detail-row"><span class="label">发布日期</span><span class="value">' + v.date + '</span></div>' +
-              '<div class="detail-row"><span class="label">最近采集</span><span class="value">' + fmtDate(topic.updated) + '</span></div>' +
-              (unitTags.length ? '<div class="detail-row"><span class="label">标签</span><span class="value">' + unitTags.join(' / ') + '</span></div>' : '') +
-              '<div class="detail-row"><span class="label">视频编号</span><span class="value">' + v.bv + '</span></div>' +
-              '<a class="watch-btn" href="' + v.url + '" target="_blank" rel="noopener">前往 ' + plat + '观看 →</a>' +
-              (sourceUrl ? '<div style="margin-top:14px"><a href="' + sourceUrl + '" target="_blank" rel="noopener" style="font-size:12px;color:var(--text-mute)">查看 UP 主主页 →</a></div>' : '') +
-            '</div>' +
-          '</div>';
+
+        document.title = (topic.title || v.title) + ' · ' + label + ' · 集页';
+        document.getElementById('header-meta').textContent = label;
+        document.getElementById('crumb-title').textContent = topic.title || v.title;
+        document.body.setAttribute('data-tpl', tplName);
+        // 多集内容:详情下方追加「上一集 / 下一集」与全集列表
+        root.innerHTML = html + buildEpisodeNav(v, all, topic.title);
+        scrollCurrentEpisode();
       });
     }
   </script>

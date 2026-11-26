@@ -12,18 +12,36 @@
     .panel h2 { font-size: 15px; font-weight: 600; margin-bottom: 18px; }
     .field { margin-bottom: 16px; }
     .field label { display: block; font-size: 13px; color: var(--text-sub); margin-bottom: 7px; }
-    .field input[type=text], .field input[type=number] {
+    .field input[type=text], .field input[type=number], .field textarea {
       width: 100%; background: var(--bg); border: 1px solid var(--border);
       border-radius: var(--radius-sm); padding: 10px 12px; color: var(--text); font-size: 14px; outline: none;
+      font-family: inherit; line-height: 1.6; resize: vertical;
     }
-    .field input:focus { border-color: var(--brand); }
+    .field input:focus, .field textarea:focus { border-color: var(--brand); }
+    /* 可选设置:默认收起,只留必填项 */
+    .advanced { margin-top: 18px; border-top: 1px dashed var(--border); padding-top: 14px; }
+    .advanced summary {
+      font-size: 13px; color: var(--text-sub); cursor: pointer; list-style: none;
+      display: flex; align-items: center; gap: 6px; user-select: none;
+    }
+    .advanced summary::-webkit-details-marker { display: none; }
+    .advanced summary::before { content: '＋'; color: var(--text-mute); font-size: 12px; }
+    .advanced[open] summary::before { content: '－'; }
+    .advanced summary:hover { color: var(--brand); }
+    .adv-body { padding-top: 16px; }
+    .adv-body .field { margin-bottom: 14px; }
+    .manual-block {
+      border: 1px solid var(--border); border-radius: var(--radius-sm);
+      padding: 14px 14px 2px; margin: 4px 0 14px; background: var(--bg);
+    }
+    .manual-block h4 { font-size: 12px; font-weight: 600; color: var(--text-sub); margin-bottom: 12px; }
     .field .tip { font-size: 12px; color: var(--text-mute); margin-top: 5px; }
     .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     .check { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-sub); }
     .btn {
       display: inline-flex; align-items: center; justify-content: center; gap: 8px;
       background: var(--brand); color: #fff; border: none; border-radius: var(--radius-sm);
-      padding: 11px 20px; font-size: 14px; cursor: pointer; margin-top: 6px;
+      padding: 11px 20px; font-size: 14px; cursor: pointer; margin-top: 6px; margin-right: 8px;
     }
     .btn:disabled { opacity: .55; cursor: not-allowed; }
     .btn.ghost { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
@@ -79,7 +97,7 @@
   <main class="wrap">
     <section class="hero" style="padding: 40px 0 20px">
       <h1>采集入口</h1>
-      <p class="sub">输入一个主题,程序自动到 B站 搜索同类视频、聚类同系列、去重后写入采集单元。全程为固定规则处理,不使用 AI。</p>
+      <p class="sub">三种采集方式:按主题搜 B站、按链接采单条、批量粘贴多条链接(可混合 B站 / 公众号 / 小红书)。程序按固定规则解析去重后写入采集单元,不使用 AI。</p>
       <div id="backend-badge" class="tip" style="margin-top:8px">后端状态检测中…</div>
     </section>
 
@@ -87,47 +105,75 @@
       <div class="panel">
         <h2>新建采集任务</h2>
         <div class="tabs">
-          <button class="tab active" id="tab-keyword" type="button">按主题采集</button>
-          <button class="tab" id="tab-url" type="button">按链接采集单片</button>
+          <button class="tab active" id="tab-url" type="button">按链接采集单条</button>
+          <button class="tab" id="tab-batch" type="button">批量链接采集</button>
+          <button class="tab" id="tab-keyword" type="button">按主题采集</button>
         </div>
         <form id="form">
-          <div class="field" id="field-keyword">
+          <!-- 必填项:按当前模式只显示对应的一个输入框 -->
+          <div class="field hidden" id="field-keyword">
             <label for="keyword">主题关键词 *</label>
             <input type="text" id="keyword" placeholder="例如:每天挖掘一个神奇网站">
             <div class="tip">需完整出现在视频标题中(可多字,但不拆分)。例如「每天挖掘一个神奇网站」。</div>
           </div>
-          <div class="field hidden" id="field-url">
-            <label for="video_url">B站 分享文案 / 链接 / BV 号 *</label>
-            <input type="text" id="video_url" placeholder="粘贴分享文案,或 https://b23.tv/xxx、BV15esS68EoG">
-            <div class="tip">可直接粘贴 B站 分享文案(【标题】+ 链接),会自动解析短链并用文案里的标题;也支持视频页链接、b23.tv 短链、BV 号。</div>
+          <div class="field" id="field-url">
+            <label for="video_url">内容链接 / 分享文案 *</label>
+            <input type="text" id="video_url" placeholder="B站视频链接、b23.tv 短链、BV 号,或公众号文章、小红书笔记链接">
+            <div class="tip">自动识别渠道:B站(bilibili.com / b23.tv)、公众号(mp.weixin.qq.com)、小红书(xiaohongshu.com / xhslink.com)。B站可直接粘贴分享文案。</div>
           </div>
-          <div class="grid2">
-            <div class="field">
-              <label for="title">显示标题</label>
-              <input type="text" id="title" placeholder="留空则同关键词/视频标题">
-            </div>
-            <div class="field">
-              <label for="slug">单元 ID(可选)</label>
-              <input type="text" id="slug" placeholder="留空自动生成">
-              <div class="tip">填写已有单元 ID 即重新采集、只更新该单元的数据;留空则按标题匹配或新建。</div>
-            </div>
+          <div class="field hidden" id="field-batch">
+            <label for="batch_links">多条链接 / 分享文案 *</label>
+            <textarea id="batch_links" rows="6" placeholder="一行一条,可混合渠道:&#10;https://mp.weixin.qq.com/s/xxxx&#10;https://www.bilibili.com/video/BVxxxx&#10;https://xhslink.com/xxxx"></textarea>
+            <div class="tip">可一次粘贴多条链接或分享文案,逐条解析后合成一个合集;个别链接失败会跳过,并在日志里说明原因。</div>
           </div>
-          <div class="field" id="field-up">
-            <label for="up">指定 UP 主(可选)</label>
-            <input type="text" id="up" placeholder="例如:草根的异世界">
-            <div class="tip">指定后只采该作者,结果更纯粹。</div>
-          </div>
-          <div class="field" id="field-pages">
-            <label for="pages">搜索页数</label>
-            <input type="number" id="pages" value="30" min="1" max="50">
-            <div class="tip">每页 20 条,上限约 50 页</div>
-          </div>
-          <div class="field check">
-            <input type="checkbox" id="dry_run">
-            <label for="dry_run" style="margin:0">预览模式(只看结果,不写文件)</label>
-          </div>
-          <button class="btn" id="submit" type="submit">开始采集</button>
+
+          <button class="btn" id="submit" type="submit">采集这条内容</button>
           <button class="btn ghost" id="reset" type="button">清空</button>
+
+          <!-- 可选设置:默认折叠,需要改标题/指定单元/手工补录时再展开 -->
+          <details class="advanced" id="field-advanced">
+            <summary>可选设置 · 标题 / 单元 ID / 手工补录 / 预览模式</summary>
+            <div class="adv-body">
+              <div class="grid2">
+                <div class="field">
+                  <label for="title">显示标题</label>
+                  <input type="text" id="title" placeholder="留空则同关键词/视频标题">
+                </div>
+                <div class="field">
+                  <label for="slug">单元 ID(可选)</label>
+                  <input type="text" id="slug" placeholder="留空自动生成">
+                  <div class="tip">填写已有单元 ID 即重新采集、只更新该单元的数据;留空则按标题匹配或新建。</div>
+                </div>
+              </div>
+              <div class="field hidden" id="field-up">
+                <label for="up">指定 UP 主(可选)</label>
+                <input type="text" id="up" placeholder="例如:草根的异世界">
+                <div class="tip">指定后只采该作者,结果更纯粹。</div>
+              </div>
+              <div class="field hidden" id="field-pages">
+                <label for="pages">搜索页数</label>
+                <input type="number" id="pages" value="30" min="1" max="50">
+                <div class="tip">每页 20 条,上限约 50 页</div>
+              </div>
+              <div class="manual-block" id="field-manual">
+                <h4>抓取失败时手工补录(公众号 / 小红书)</h4>
+                <div class="grid2">
+                  <div class="field"><label for="manual_title">内容标题</label><input type="text" id="manual_title" placeholder="抓不到时填这里"></div>
+                  <div class="field"><label for="manual_author">作者 / 公众号名</label><input type="text" id="manual_author" placeholder="可留空"></div>
+                </div>
+                <div class="grid2">
+                  <div class="field"><label for="manual_date">发布日期</label><input type="text" id="manual_date" placeholder="如 2026-11-20"></div>
+                  <div class="field"><label for="manual_cover">封面图地址</label><input type="text" id="manual_cover" placeholder="可留空"></div>
+                </div>
+                <div class="field"><label for="manual_desc">摘要</label><input type="text" id="manual_desc" placeholder="可留空"></div>
+                <div class="tip">小红书对未登录抓取有风控。填标题即可建单元,其余可留空;原文链接会保留,点击仍跳转原笔记。</div>
+              </div>
+              <div class="field check">
+                <input type="checkbox" id="dry_run">
+                <label for="dry_run" style="margin:0">预览模式(只看结果,不写文件)</label>
+              </div>
+            </div>
+          </details>
         </form>
 
         <div class="status" id="status"></div>
@@ -145,7 +191,7 @@
         <div id="topics"><div class="tip">加载中…</div></div>
         <p class="tip" style="margin-top:18px">
           每次采集是独立单元,可单独开启/关闭首页显示(关闭后数据保留,只是不展示)。
-          填写单元 ID 重新采集时,只更新该单元,不影响其他单元;按 BV 号自动去重。
+          填写单元 ID 重新采集时,只更新该单元,不影响其他单元;按内容唯一键去重(B站=BV 号,公众号=原文地址,小红书=笔记 ID)。
         </p>
       </div>
     </div>
@@ -153,7 +199,7 @@
 
   <footer class="site-footer">
     <div class="wrap">
-      <div>采集程序为纯规则实现,仅读取 B站 公开搜索接口。视频版权归原作者所有。</div>
+      <div>采集程序为纯规则实现,仅读取各平台公开页面与接口。内容版权归原作者所有。</div>
       <div><a href="index.html">← 返回聚合站首页</a></div>
     </div>
   </footer>
@@ -165,26 +211,37 @@
     const logBox = $('log');
     const reportBox = $('report');
     const badgeBox = $('backend-badge');
-    let mode = 'keyword'; // keyword | url
+    // 默认按链接采集:日常最常用的是贴一条链接就入库
+    let mode = 'url'; // url(单条链接) | batch(批量链接) | keyword(主题)
+
+    function submitLabel() {
+      if (mode === 'batch') return '开始批量采集';
+      return mode === 'url' ? '采集这条内容' : '开始采集';
+    }
 
     function setMode(m) {
       mode = m;
-      const isUrl = m === 'url';
-      $('tab-keyword').classList.toggle('active', !isUrl);
-      $('tab-url').classList.toggle('active', isUrl);
-      $('field-keyword').classList.toggle('hidden', isUrl);
-      $('field-url').classList.toggle('hidden', !isUrl);
-      $('field-up').classList.toggle('hidden', isUrl);
-      $('field-pages').classList.toggle('hidden', isUrl);
-      $('keyword').required = !isUrl;
-      $('video_url').required = isUrl;
-      $('submit').textContent = isUrl ? '采集这条视频' : '开始采集';
+      const isKeyword = m === 'keyword';
+      $('tab-keyword').classList.toggle('active', isKeyword);
+      $('tab-url').classList.toggle('active', m === 'url');
+      $('tab-batch').classList.toggle('active', m === 'batch');
+      $('field-keyword').classList.toggle('hidden', !isKeyword);
+      $('field-url').classList.toggle('hidden', m !== 'url');
+      $('field-batch').classList.toggle('hidden', m !== 'batch');
+      $('field-up').classList.toggle('hidden', !isKeyword);
+      $('field-pages').classList.toggle('hidden', !isKeyword);
+      $('field-manual').classList.toggle('hidden', isKeyword);
+      $('keyword').required = isKeyword;
+      $('video_url').required = m === 'url';
+      $('batch_links').required = m === 'batch';
+      $('submit').textContent = submitLabel();
       statusBox.textContent = '';
       logBox.textContent = '';
       reportBox.classList.remove('show');
     }
     $('tab-keyword').addEventListener('click', () => setMode('keyword'));
     $('tab-url').addEventListener('click', () => setMode('url'));
+    $('tab-batch').addEventListener('click', () => setMode('batch'));
 
     // 用相对路径调用接口,兼容站点部署在子目录下(根路径下也正常)
     const API_COLLECT = 'api/collect';
@@ -237,7 +294,7 @@
           <div class="topic-item ${enabled ? '' : 'off'}">
             <div>
               ${typeTag}<a href="${t.page}" target="_blank">${t.title}</a>
-              <small>${t.count} 期 · ${t.author || 'B站'} · id: ${t.id}</small>
+              <small>${t.count} 条 · ${t.platform || 'B站'}${t.author ? ' · ' + t.author : ''} · id: ${t.id}</small>
             </div>
             <div class="topic-actions">
               <button class="toggle-btn ${enabled ? '' : 'off'}" data-id="${t.id}" data-enabled="${enabled}">
@@ -288,19 +345,29 @@
 
     form.addEventListener('submit', async e => {
       e.preventDefault();
+      const keyword = mode === 'url' ? $('video_url').value.trim()
+        : (mode === 'batch' ? $('batch_links').value.trim() : $('keyword').value.trim());
       const payload = {
         mode: mode,
-        keyword: (mode === 'url' ? $('video_url').value.trim() : $('keyword').value.trim()),
+        keyword: keyword,
         title: $('title').value.trim(),
         unit_id: $('slug').value.trim(),
         up: $('up').value.trim(),
         pages: parseInt($('pages').value) || 30,
         dry_run: $('dry_run').checked,
+        // 手工补录:公众号/小红书抓取被风控时,至少填标题即可建单元
+        manual_title: $('manual_title').value.trim(),
+        manual_author: $('manual_author').value.trim(),
+        manual_desc: $('manual_desc').value.trim(),
+        manual_date: $('manual_date').value.trim(),
+        manual_cover: $('manual_cover').value.trim(),
       };
       $('submit').disabled = true;
       $('submit').textContent = '采集中…';
       statusBox.className = 'status';
-      statusBox.textContent = '正在搜索 B站,请稍候(约需十几秒)…';
+      statusBox.textContent = mode === 'keyword'
+        ? '正在搜索 B站,请稍候(约需十几秒)…'
+        : '正在解析链接内容,请稍候…';
       logBox.textContent = '';
       reportBox.classList.remove('show');
 
@@ -326,13 +393,15 @@
         } else {
           statusBox.className = 'status err';
           statusBox.textContent = '失败: ' + (d.error || '未知错误');
+          // 抓取失败多半是风控,自动展开可选设置方便手工补录
+          $('field-advanced').open = true;
         }
       } catch (err) {
         statusBox.className = 'status err';
         statusBox.textContent = '请求失败: ' + err.message;
       } finally {
         $('submit').disabled = false;
-        $('submit').textContent = (mode === 'url' ? '采集这条视频' : '开始采集');
+        $('submit').textContent = submitLabel();
       }
     });
 
@@ -345,6 +414,7 @@
       reportBox.classList.remove('show');
     });
 
+    setMode('url'); // 初始态与默认模式保持一致
     checkBackend();
     loadTopics();
   </script>

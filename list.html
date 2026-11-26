@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>全部内容 · 集页</title>
+  <meta name="description" content="某个主题的全部采集记录,可按关键词、作者、平台筛选,支持分页浏览">
+  <link rel="stylesheet" href="assets/style.css">
+  <style>
+    /* ===== 全量列表页专属样式(合集页只展示最近 20 条,更多记录在这里) ===== */
+    .crumb { font-size: 13px; color: var(--text-mute); margin: 18px 0; }
+    .crumb a { color: var(--brand); text-decoration: none; }
+    .crumb span { margin: 0 8px; }
+
+    .hero { padding: 4px 0 18px; }
+    .hero h1 { font-size: 24px; font-weight: 600; margin: 0 0 8px; }
+    .hero h1 em { font-style: normal; font-size: 13px; font-weight: 400; color: var(--text-mute); margin-left: 10px; }
+    .facts { display: flex; gap: 32px; flex-wrap: wrap; margin-top: 16px; }
+    .fact b { display: block; font-size: 19px; font-weight: 600; }
+    .fact span { font-size: 12px; color: var(--text-mute); }
+
+    /* 筛选面板 */
+    .filters {
+      display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 14px 16px; margin: 6px 0 18px;
+      box-shadow: var(--shadow);
+    }
+    .filters input[type=text] {
+      flex: 1; min-width: 200px; background: var(--bg); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 9px 12px; color: var(--text); font-size: 13px; outline: none;
+    }
+    .filters input[type=text]:focus { border-color: var(--brand); }
+    .filters select {
+      background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm);
+      padding: 9px 10px; color: var(--text); font-size: 13px; outline: none; max-width: 190px;
+    }
+    .chip-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; width: 100%; }
+    .chip {
+      border: 1px solid var(--border); background: var(--surface); color: var(--text-sub);
+      border-radius: 20px; padding: 5px 13px; font-size: 12px; cursor: pointer; white-space: nowrap;
+    }
+    .chip.active { background: var(--brand); color: #fff; border-color: var(--brand); }
+    .chip-row .label { font-size: 12px; color: var(--text-mute); margin-right: 2px; }
+
+    .list-head { display: flex; align-items: baseline; justify-content: space-between; margin: 0 0 14px; }
+    .list-head h2 { font-size: 17px; font-weight: 600; }
+    .list-head .stat { font-size: 12px; color: var(--text-mute); }
+
+    /* 卡片:复用公共 .video-grid / .video-card,只补平台角标 */
+    .video-thumb .plat-tag {
+      position: absolute; left: 10px; top: 10px;
+      color: #fff; font-size: 11px; padding: 3px 9px; border-radius: 20px;
+    }
+    .video-thumb .kind-tag {
+      position: absolute; right: 10px; top: 10px;
+      background: rgba(0,0,0,.62); color: #fff; font-size: 11px; padding: 3px 8px; border-radius: 20px;
+    }
+
+    /* 分页 */
+    .pager { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: center; margin: 6px 0 56px; }
+    .pg {
+      min-width: 36px; padding: 7px 12px; font-size: 13px; cursor: pointer;
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text-sub);
+    }
+    .pg:hover:not(:disabled) { border-color: var(--brand); color: var(--brand); }
+    .pg.active { background: var(--brand); border-color: var(--brand); color: #fff; }
+    .pg:disabled { opacity: .45; cursor: not-allowed; }
+    .pg-dots { color: var(--text-mute); font-size: 13px; padding: 0 2px; }
+    .pg-info { font-size: 12px; color: var(--text-mute); margin-left: 6px; }
+    .empty { padding: 48px 0; text-align: center; color: var(--text-mute); }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <div class="brand">
+        <a href="index.html"><span class="brand-mark">◈</span><span>集页</span></a>
+      </div>
+      <div class="header-meta">全部内容</div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <div class="crumb">
+      <a href="index.html">全部主题</a><span>/</span>
+      <a href="#" id="crumb-series">合集</a><span>/</span><span>全部内容</span>
+    </div>
+
+    <section class="hero">
+      <h1><span id="unit-title">—</span><em>全部采集记录</em></h1>
+      <div class="facts">
+        <div class="fact"><b id="stat-total">0</b><span>收录条数</span></div>
+        <div class="fact"><b id="stat-latest">—</b><span>最新发布</span></div>
+        <div class="fact"><b id="stat-collected">—</b><span>最近采集</span></div>
+        <div class="fact"><b id="stat-span">—</b><span>时间跨度</span></div>
+      </div>
+    </section>
+
+    <div class="filters">
+      <input type="text" id="q" placeholder="搜索标题 / 作者 / 简介…">
+      <select id="author"><option value="">全部作者</option></select>
+      <select id="sort">
+        <option value="new">最新发布优先</option>
+        <option value="old">最早发布优先</option>
+        <option value="title">按标题排序</option>
+      </select>
+      <div class="chip-row" id="platform-row" style="display:none">
+        <span class="label">平台</span>
+        <span id="platform-chips"></span>
+      </div>
+    </div>
+
+    <div class="list-head">
+      <h2>全部内容</h2>
+      <span class="stat" id="result-stat">—</span>
+    </div>
+
+    <div class="video-grid" id="grid"></div>
+    <nav class="pager" id="pager"></nav>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <div>内容来自各平台公开内容,版权归原作者所有;点击卡片将跳转至原平台查看。</div>
+      <div><a href="index.html">← 返回全部主题</a></div>
+    </div>
+  </footer>
+
+  <script src="assets/data-loader.js"></script>
+  <script>
+    var id = CollectionLoader.currentId();
+    var PAGE_SIZE = 12;  // 每页 12 条(约 3 行),翻页成本低
+    var vids = [];
+    var list = [];          // 当前筛选后的结果
+    var page = 1;
+    var platform = 'all';
+    var unitPlatform = 'B站';
+    var PLAT = { bilibili: 'B站', wechat: '公众号', xhs: '小红书' };
+    var PLAT_COLORS = { 'B站': '#fb7299', '公众号': '#07c160', '小红书': '#ff2442' };
+
+    var grid = document.getElementById('grid');
+    var pager = document.getElementById('pager');
+
+    function platOf(v) {
+      return PLAT[v.platform] || unitPlatform || 'B站';
+    }
+    function esc(s) {
+      return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+      });
+    }
+    // 日期统一 yyyy.mm.dd
+    function fmtDate(iso) {
+      if (!iso) return '—';
+      var m = /^(\d{4})-(\d{1,2})-(\d{1,2})/.exec(iso);
+      if (!m) return iso;
+      return m[1] + '.' + ('0' + Number(m[2])).slice(-2) + '.' + ('0' + Number(m[3])).slice(-2);
+    }
+
+    if (!id) {
+      document.querySelector('main').innerHTML =
+        '<div class="empty">未指定合集。请从 <a href="index.html">首页</a> 选择一个主题。</div>';
+    } else {
+      CollectionLoader.load(id, function (topic, err) {
+        if (err || !topic) {
+          document.querySelector('main').innerHTML =
+            '<div class="empty">未找到该合集数据(' + (err || '') + ')。请从 <a href="index.html">首页</a> 选择。</div>';
+          return;
+        }
+        document.title = '全部内容 · ' + topic.title + ' · 集页';
+        document.getElementById('unit-title').textContent = topic.title;
+        document.getElementById('crumb-series').textContent = topic.title;
+        document.getElementById('crumb-series').href = 'series.html?id=' + encodeURIComponent(id);
+
+        unitPlatform = (topic.source && topic.source.platform) || 'B站';
+        vids = (topic.videos || []).slice();
+
+        document.getElementById('stat-total').textContent = vids.length;
+        document.getElementById('stat-collected').textContent = fmtDate(topic.updated);
+        var dates = vids.map(function (v) { return v.date || ''; }).filter(Boolean).sort();
+        document.getElementById('stat-latest').textContent = dates.length ? dates[dates.length - 1] : '—';
+        document.getElementById('stat-span').textContent = dates.length
+          ? dates[dates.length - 1] + ' – ' + dates[0] : '—';
+
+        buildAuthorSelect();
+        buildPlatformChips();
+
+        // 支持从合集页带着搜索词跳转过来
+        var initialQ = new URLSearchParams(location.search).get('q') || '';
+        if (initialQ) document.getElementById('q').value = initialQ;
+
+        apply();
+      });
+    }
+
+    function buildAuthorSelect() {
+      var seen = {}, names = [];
+      vids.forEach(function (v) {
+        var a = (v.author || '').trim();
+        if (a && !seen[a]) { seen[a] = 1; names.push(a); }
+      });
+      if (names.length < 2) { document.getElementById('author').style.display = 'none'; return; }
+      document.getElementById('author').innerHTML = '<option value="">全部作者 (' + names.length + ')</option>' +
+        names.map(function (a) { return '<option value="' + esc(a) + '">' + esc(a) + '</option>'; }).join('');
+    }
+
+    function buildPlatformChips() {
+      var ps = [];
+      vids.forEach(function (v) {
+        var p = platOf(v);
+        if (ps.indexOf(p) < 0) ps.push(p);
+      });
+      if (ps.length < 2) return;  // 单渠道时不显示平台筛选
+      document.getElementById('platform-row').style.display = '';
+      var wrap = document.getElementById('platform-chips');
+      wrap.innerHTML = '<button class="chip active" data-platform="all">全部</button>' +
+        ps.map(function (p) { return '<button class="chip" data-platform="' + esc(p) + '">' + esc(p) + '</button>'; }).join('');
+      wrap.querySelectorAll('.chip').forEach(function (chip) {
+        chip.addEventListener('click', function () {
+          wrap.querySelectorAll('.chip').forEach(function (c) { c.classList.remove('active'); });
+          chip.classList.add('active');
+          platform = chip.getAttribute('data-platform');
+          apply();
+        });
+      });
+    }
+
+    // 收集筛选条件 → 过滤 → 排序 → 回到第一页
+    function apply() {
+      var q = document.getElementById('q').value.trim().toLowerCase();
+      var author = document.getElementById('author').value;
+      var sort = document.getElementById('sort').value;
+
+      list = vids.filter(function (v) {
+        if (platform !== 'all' && platOf(v) !== platform) return false;
+        if (author && (v.author || '') !== author) return false;
+        if (q) {
+          var hay = [v.title, v.author, v.desc].join(' ').toLowerCase();
+          if (hay.indexOf(q) < 0) return false;
+        }
+        return true;
+      });
+
+      list.sort(function (a, b) {
+        if (sort === 'title') return String(a.title || '').localeCompare(String(b.title || ''), 'zh');
+        var at = a.ts || 0, bt = b.ts || 0;
+        if (at !== bt) return sort === 'old' ? at - bt : bt - at;
+        return sort === 'old'
+          ? String(a.date || '').localeCompare(String(b.date || ''))
+          : String(b.date || '').localeCompare(String(a.date || ''));
+      });
+
+      page = 1;
+      render();
+    }
+
+    function render() {
+      var totalPages = Math.max(1, Math.ceil(list.length / PAGE_SIZE));
+      if (page > totalPages) page = totalPages;
+      var start = (page - 1) * PAGE_SIZE;
+      var slice = list.slice(start, start + PAGE_SIZE);
+
+      grid.innerHTML = slice.length
+        ? slice.map(cardHtml).join('')
+        : '<div class="empty">没有匹配的内容,调整筛选条件试试</div>';
+
+      document.getElementById('result-stat').textContent = list.length
+        ? '共 ' + list.length + ' 条,第 ' + page + ' / ' + totalPages + ' 页'
+        : '共 0 条';
+      renderPager(totalPages);
+    }
+
+    // 卡片跳站内详情页(不直接跳源平台)
+    function detailHref(v) {
+      var k = v.key || v.bv || v.url || '';
+      return 'single.html?id=' + encodeURIComponent(id) + (k ? '&k=' + encodeURIComponent(k) : '');
+    }
+
+    function cardHtml(v) {
+      var plat = platOf(v);
+      var isVideo = (v.kind || 'video') === 'video';
+      var cover = v.cover
+        ? '<img src="' + esc(v.cover) + '" alt="' + esc(v.title) + '" loading="lazy" referrerpolicy="no-referrer">'
+        : '<div class="thumb-placeholder">' + esc((v.title || '内').charAt(0)) + '</div>';
+      var mark = isVideo
+        ? '<span class="play"><i>▶</i></span>'
+        : '<span class="kind-tag">图文</span>';
+      var platTag = '<span class="plat-tag" style="background:' + (PLAT_COLORS[plat] || 'rgba(0,0,0,.72)') + '">' + esc(plat) + '</span>';
+      return '<a class="video-card" href="' + detailHref(v) + '">' +
+        '<div class="video-thumb">' + cover + mark + platTag + '</div>' +
+        '<div class="video-info"><h3>' + esc(v.title) + '</h3>' +
+        (v.desc ? '<p class="desc">' + esc(v.desc) + '</p>' : '') +
+        '<div class="meta"><span>' + esc(v.date || '—') + '</span><span>' + esc(v.author || plat) + '</span></div>' +
+        '</div></a>';
+    }
+
+    // 页码:首尾 + 当前前后各 1 页,其余收起为省略号
+    function pageNumbers(total, current) {
+      var out = [];
+      for (var i = 1; i <= total; i++) {
+        if (i === 1 || i === total || Math.abs(i - current) <= 1) out.push(i);
+        else if (out[out.length - 1] !== '...') out.push('...');
+      }
+      return out;
+    }
+
+    function renderPager(totalPages) {
+      if (totalPages <= 1) { pager.innerHTML = ''; return; }
+      var html = '<button class="pg" data-page="' + (page - 1) + '"' + (page === 1 ? ' disabled' : '') + '>上一页</button>';
+      pageNumbers(totalPages, page).forEach(function (p) {
+        html += p === '...'
+          ? '<span class="pg-dots">…</span>'
+          : '<button class="pg' + (p === page ? ' active' : '') + '" data-page="' + p + '">' + p + '</button>';
+      });
+      html += '<button class="pg" data-page="' + (page + 1) + '"' + (page === totalPages ? ' disabled' : '') + '>下一页</button>';
+      html += '<span class="pg-info">共 ' + totalPages + ' 页</span>';
+      pager.innerHTML = html;
+
+      pager.querySelectorAll('button[data-page]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var next = parseInt(btn.getAttribute('data-page'), 10);
+          if (!next || next === page) return;
+          page = next;
+          render();
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+      });
+    }
+
+    var timer = null;
+    document.getElementById('q').addEventListener('input', function () {
+      clearTimeout(timer);
+      timer = setTimeout(apply, 200);
+    });
+    document.getElementById('author').addEventListener('change', apply);
+    document.getElementById('sort').addEventListener('change', apply);
+  </script>
+</body>
+</html>

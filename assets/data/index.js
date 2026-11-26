@@ -3,7 +3,7 @@
 window.SITE = {
   name: "集页",
   description: "一集一页,把值得收藏的内容收成清单",
-  updated: "2026-11-25",
+  updated: "2026-11-26",
 };
 window.COLLECTION_INDEX = [
   {
@@ -274,5 +274,54 @@ window.COLLECTION_INDEX = [
       "汉语拼音",
       "网站推荐"
     ]
+  },
+  {
+    "id": "wx-nxpxhhghan9dvfzoat5avg",
+    "type": "single",
+    "title": "一座城市的纬度密码！《沿着纬度听中国》第二季城市篇从福建将乐启程",
+    "slogan": "单条内容精选 · 前往公众号阅读原文",
+    "source": {
+      "platform": "公众号",
+      "name": "央广网",
+      "url": "https://mp.weixin.qq.com/s/nxpXHhgHan9dVfZOAt5avg"
+    },
+    "keyword": "https://mp.weixin.qq.com/s/nxpXHhgHan9dVfZOAt5avg",
+    "tags": [
+      "央广网"
+    ],
+    "page": "single.html?id=wx-nxpxhhghan9dvfzoat5avg",
+    "count": 1,
+    "cover": "https://mmbiz.qpic.cn/mmbiz_jpg/eT2Hxs8JQmMYuUGAPiaibwuBm9JslsPRcDz78NnibsEBKY89feEvibT0Qkf4BT2F0SXsnnGsA6VVa0NSn1IiajTvwkUicMo9ekQ3XFVHzonAZduzo/0?wx_fmt=jpeg",
+    "latest": "2026.11.24",
+    "created": "2026-11-26",
+    "updated": "2026-11-26",
+    "enabled": true
+  },
+  {
+    "id": "topic-d9744f1c",
+    "type": "series",
+    "title": "央广网 · 4 条合集",
+    "slogan": "共收录 4 条内容 · 公众号",
+    "source": {
+      "platform": "公众号",
+      "name": "央广网",
+      "url": "https://mp.weixin.qq.com/s/dg888doDqpYrOsDvdyx6DQ"
+    },
+    "keyword": "batch",
+    "tags": [
+      "央广网",
+      "最新！黄仁勋复职",
+      "黄仁勋复职",
+      "英伟达开盘暴涨超33%",
+      "黄仁勋辞职",
+      "英伟达股票开盘大跌→"
+    ],
+    "page": "series.html?id=topic-d9744f1c",
+    "count": 4,
+    "cover": "https://mmbiz.qpic.cn/sz_mmbiz_jpg/eT2Hxs8JQmMDJ5Krh3jU9mnd8osccsDd06wUGcxe5hiaicx3dHZuDNz63PRfk89Ozf5DVThyibRuyQ1dibibtu5My0wo9Dmle04uia8p5MnT9agwU/0?wx_fmt=jpeg",
+    "latest": "2026.11.24",
+    "created": "2026-11-26",
+    "updated": "2026-11-26",
+    "enabled": true
   }
 ];

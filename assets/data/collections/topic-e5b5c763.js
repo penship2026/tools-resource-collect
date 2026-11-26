@@ -20,7 +20,10 @@ window.COLLECTION_DATA["topic-e5b5c763"] = {
       "date": "2024.03.14",
       "ts": 1710394121,
       "author": "爱学习的柒影",
-      "desc": "https://www.youtube.com/watch?v=K0yyw8Fk1Uk\n跟着动画学习交通工具单词,男宝宝英语启蒙必备动画~"
+      "desc": "https://www.youtube.com/watch?v=K0yyw8Fk1Uk\n跟着动画学习交通工具单词,男宝宝英语启蒙必备动画~",
+      "platform": "bilibili",
+      "kind": "video",
+      "key": "bilibili:BV1kF4m1c7MU"
     }
   ],
   "type": "series",

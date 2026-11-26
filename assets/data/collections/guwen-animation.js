@@ -18,7 +18,10 @@ window.COLLECTION_DATA["guwen-animation"] = {
       "cover": "https://i0.hdslb.com/bfs/archive/7f02dcd6b7f7e4acfd0d1d82f4b6114c07ac9ce8.jpg",
       "views": "30292",
       "date": "2026.07.30",
-      "ts": 1785340800
+      "ts": 1785340800,
+      "platform": "bilibili",
+      "kind": "video",
+      "key": "bilibili:BV1v5gz6aEaF"
     },
     {
       "title": "【1000集动画教学】让孩子爱上小古文，了解历史，增加语文素养~每日小古文，再也不用死记硬背啦",
@@ -29,7 +32,10 @@ window.COLLECTION_DATA["guwen-animation"] = {
       "date": "2025.01.21",
       "ts": 1737445676,
       "author": "宋歌资源库",
-      "desc": "www.qq.com\n增加语文素养~每日小古文，再也不用死记硬背啦"
+      "desc": "www.qq.com\n增加语文素养~每日小古文，再也不用死记硬背啦",
+      "platform": "bilibili",
+      "kind": "video",
+      "key": "bilibili:BV1ndwhe9ErT"
     },
     {
       "title": "【全148集】初中文言文动画讲解 看动画学初中文言文 把枯燥难懂的的文言文趣味化，从此爱上文言文",
@@ -40,7 +46,10 @@ window.COLLECTION_DATA["guwen-animation"] = {
       "date": "2024.07.14",
       "ts": 1720941398,
       "author": "小初高动画课堂",
-      "desc": "网络\n【全148集】初中文言文动画讲解 看动画学初中文言文 把枯燥难懂的的文言文趣味化，从此爱上文言文"
+      "desc": "网络\n【全148集】初中文言文动画讲解 看动画学初中文言文 把枯燥难懂的的文言文趣味化，从此爱上文言文",
+      "platform": "bilibili",
+      "kind": "video",
+      "key": "bilibili:BV1G1421b7ME"
     },
     {
       "title": "【全450集】高中文言文趣味动画，看动画学文言文通俗易懂 涵盖一词多义实词虚词等所有知识点 ，看完拿满分",
@@ -51,7 +60,10 @@ window.COLLECTION_DATA["guwen-animation"] = {
       "date": "2024.07.14",
       "ts": 1720940386,
       "author": "小初高动画课堂",
-      "desc": "网络\n【全450集】高中文言文趣味动画，看动画学文言文通俗易懂 涵盖一词多义实词虚词等所有知识点 ，看完拿满分"
+      "desc": "网络\n【全450集】高中文言文趣味动画，看动画学文言文通俗易懂 涵盖一词多义实词虚词等所有知识点 ，看完拿满分",
+      "platform": "bilibili",
+      "kind": "video",
+      "key": "bilibili:BV1sW421R7Gr"
     },
     {
       "title": "【全240集】每日一句小古文动画视频讲解 日积月累 古文基础知识轻松拿捏",
@@ -62,7 +74,10 @@ window.COLLECTION_DATA["guwen-animation"] = {
       "date": "2024.05.27",
       "ts": 1716792880,
       "author": "宋歌资源库",
-      "desc": "www.qq.com\n【全240集】每日一句小古文动画视频讲解 日积月累 古文基础知识轻松拿捏"
+      "desc": "www.qq.com\n【全240集】每日一句小古文动画视频讲解 日积月累 古文基础知识轻松拿捏",
+      "platform": "bilibili",
+      "kind": "video",
+      "key": "bilibili:BV14142117D4"
     },
     {
       "title": "【全1075集】每日一句小古文动画视频讲解 日积月累 古文基础知识轻松拿捏，L1-L2-L3共三个级别 每个级别365集",
@@ -73,7 +88,10 @@ window.COLLECTION_DATA["guwen-animation"] = {
       "date": "2024.04.14",
       "ts": 1713076905,
       "author": "宋歌资源库",
-      "desc": "www.qq.com\n【全1075集】每日一句小古文视频讲解 日积月累 古文基础知识轻松拿捏，L1-L2-L3共三个级别 每个级别365集"
+      "desc": "www.qq.com\n【全1075集】每日一句小古文视频讲解 日积月累 古文基础知识轻松拿捏，L1-L2-L3共三个级别 每个级别365集",
+      "platform": "bilibili",
+      "kind": "video",
+      "key": "bilibili:BV1tZ421Y7K6"
     },
     {
       "title": "初中文言文动画，文言文一看就会！初中文言文趣味动画讲解 看动画学初中文言文 逆袭变学霸",
@@ -84,7 +102,10 @@ window.COLLECTION_DATA["guwen-animation"] = {
       "date": "2024.01.25",
       "ts": 1706163451,
       "author": "宋歌资源库",
-      "desc": "www.qq.com\n初中文言文动画，文言文一看就会！初中文言文趣味动画讲解 看动画学初中文言文 逆袭变学霸"
+      "desc": "www.qq.com\n初中文言文动画，文言文一看就会！初中文言文趣味动画讲解 看动画学初中文言文 逆袭变学霸",
+      "platform": "bilibili",
+      "kind": "video",
+      "key": "bilibili:BV1a64y1P7wy"
     },
     {
       "title": "【全450集】高文言文 涵盖高中文言文实词 虚词 一词多义  看动画学文言文通俗易懂",
@@ -95,7 +116,10 @@ window.COLLECTION_DATA["guwen-animation"] = {
       "date": "2023.12.03",
       "ts": 1701605686,
       "author": "小初高动画课堂",
-      "desc": "网络\r\n【全450集】高文言文 涵盖高中文言文实词 虚词 一词多义  看动画学文言文通俗易懂"
+      "desc": "网络\r\n【全450集】高文言文 涵盖高中文言文实词 虚词 一词多义  看动画学文言文通俗易懂",
+      "platform": "bilibili",
+      "kind": "video",
+      "key": "bilibili:BV19H4y117bT"
     },
     {
       "title": "【240集动画教学】让孩子爱上小古文，了解历史，增加语文素养~每日小古文，再也不用死记硬背啦！",
@@ -106,7 +130,10 @@ window.COLLECTION_DATA["guwen-animation"] = {
       "date": "2023.09.05",
       "ts": 1693896108,
       "author": "宋歌资源库",
-      "desc": "www.qq.com\n【240集动画教学】让孩子爱上小古文，了解历史，增加语文素养~每日小古文，再也不用死记硬背啦！"
+      "desc": "www.qq.com\n【240集动画教学】让孩子爱上小古文，了解历史，增加语文素养~每日小古文，再也不用死记硬背啦！",
+      "platform": "bilibili",
+      "kind": "video",
+      "key": "bilibili:BV1Nk4y1A7Lw"
     },
     {
       "title": "【全395集】高中文言文趣味动画，涵盖一词多义实词虚词等所有知识点 看动画学文言文满分技巧秘籍，看完拿满分",
@@ -117,7 +144,10 @@ window.COLLECTION_DATA["guwen-animation"] = {
       "date": "2023.07.26",
       "ts": 1690339558,
       "author": "小初高动画课堂",
-      "desc": "网络\r\n【全395集】高中文言文趣味动画，涵盖一词多义实词虚词等所有知识点"
+      "desc": "网络\r\n【全395集】高中文言文趣味动画，涵盖一词多义实词虚词等所有知识点",
+      "platform": "bilibili",
+      "kind": "video",
+      "key": "bilibili:BV1np4y157JA"
     }
   ],
   "type": "series",

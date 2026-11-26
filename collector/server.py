@@ -14,6 +14,7 @@
   GET  /collect.html           采集交互页(实际文件 collector/collect.html)
   GET  /api/health             后端健康检测(供采集页启动时探测)
   POST /api/collect            触发采集(调用 generate.py 的纯规则程序)
+                               mode=keyword|url|batch,支持 B站/公众号/小红书
   GET  /api/topics             列出已有主题
   GET  /*                      静态文件托管(首页/子页/数据)
 
@@ -105,6 +106,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     "count": t.get("count", 0),
                     "page": t.get("page"),
                     "author": (t.get("source") or {}).get("name", ""),
+                    "platform": (t.get("source") or {}).get("platform", "B站"),
                     "keyword": t.get("keyword", ""),
                     "created": t.get("created", ""),
                     "updated": t.get("updated", ""),
@@ -160,8 +162,23 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         keyword = (payload.get("keyword") or "").strip()
         mode = (payload.get("mode") or "keyword").strip()
         if not keyword:
-            self._json({"ok": False, "error": "视频链接/BV 号不能为空" if mode == "url" else "主题关键词不能为空"}, 400)
+            if mode == "batch":
+                hint = "请粘贴至少一条链接"
+            elif mode == "url":
+                hint = "内容链接不能为空"
+            else:
+                hint = "主题关键词不能为空"
+            self._json({"ok": False, "error": hint}, 400)
             return
+
+        # 手工补录字段(公众号/小红书抓取被风控时使用)
+        manual = {
+            "title": (payload.get("manual_title") or "").strip() or None,
+            "author": (payload.get("manual_author") or "").strip() or None,
+            "desc": (payload.get("manual_desc") or "").strip() or None,
+            "date": (payload.get("manual_date") or "").strip() or None,
+            "cover": (payload.get("manual_cover") or "").strip() or None,
+        }
 
         # 收集日志,随响应返回给前端展示
         logs = []
@@ -169,13 +186,23 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             logs.append(str(msg))
 
         try:
-            if mode == "url":
+            if mode == "batch":
+                result = generate.collect_batch(
+                    text=keyword,
+                    title=(payload.get("title") or "").strip() or None,
+                    unit_id=(payload.get("unit_id") or payload.get("slug") or "").strip() or None,
+                    slogan=(payload.get("slogan") or "").strip() or None,
+                    dry_run=bool(payload.get("dry_run")),
+                    log=log,
+                )
+            elif mode == "url":
                 result = generate.collect_by_url(
                     url=keyword,
                     title=(payload.get("title") or "").strip() or None,
                     unit_id=(payload.get("unit_id") or payload.get("slug") or "").strip() or None,
                     slogan=(payload.get("slogan") or "").strip() or None,
                     dry_run=bool(payload.get("dry_run")),
+                    manual=manual,
                     log=log,
                 )
             else:

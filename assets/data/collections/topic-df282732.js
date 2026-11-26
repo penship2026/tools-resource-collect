@@ -11,8 +11,8 @@ window.COLLECTION_DATA["topic-df282732"] = {
   },
   "keyword": "SpringAI",
   "tags": [
-    "AI",
     "程序员",
+    "AI",
     "编程",
     "Java后端开发",
     "大模型开发",
@@ -32,7 +32,7 @@ window.COLLECTION_DATA["topic-df282732"] = {
       "bv": "BV1qByfz4Ens",
       "url": "https://www.bilibili.com/video/BV1qByfz4Ens/",
       "cover": "https://i2.hdslb.com/bfs/archive/7f4ef0ca45c592134ca812cbbeb587835e60b5a9.jpg",
-      "views": "2354",
+      "views": "2358",
       "date": "2026.11.24",
       "ts": 1795511252,
       "author": "徐庶AI实战",

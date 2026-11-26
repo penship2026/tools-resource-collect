@@ -11,8 +11,8 @@ window.COLLECTION_DATA["daily-website"] = {
   },
   "keyword": "每天挖掘一个神奇网站",
   "tags": [
-    "实用工具",
     "资源分享",
+    "实用工具",
     "网站推荐",
     "干货分享",
     "虚拟资料"

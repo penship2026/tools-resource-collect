@@ -121,7 +121,28 @@
         <div class="mine-tools">
           <button type="button" id="mine-export" class="mine-btn">导出备份</button>
           <button type="button" id="mine-import" class="mine-btn">导入</button>
+          <button type="button" id="mine-settings" class="mine-btn" aria-expanded="false" aria-controls="mine-settings-panel">设置</button>
           <input type="file" id="mine-file" accept=".json,application/json" hidden>
+        </div>
+      </div>
+      <!-- 我的页设置:收藏页名称 + 只对本页生效的主题 -->
+      <div class="mine-settings" id="mine-settings-panel" hidden>
+        <div class="mine-set-row">
+          <label for="mine-set-title">收藏页名称</label>
+          <input type="text" id="mine-set-title" maxlength="20" placeholder="我的收藏">
+          <button type="button" id="mine-set-title-reset" class="mine-set-link">恢复默认</button>
+        </div>
+        <div class="mine-set-row">
+          <label for="mine-set-theme">我的主题</label>
+          <select id="mine-set-theme">
+            <option value="inherit">跟随公开主题</option>
+            <option value="auto">跟随系统</option>
+          </select>
+          <small>只影响「我的」页,公开页仍用页脚主题</small>
+        </div>
+        <div class="mine-set-act">
+          <button type="button" id="mine-set-save" class="mine-btn mine-btn-primary">保存</button>
+          <button type="button" id="mine-set-cancel" class="mine-btn">取消</button>
         </div>
       </div>
       <div class="mine-mode">

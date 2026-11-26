@@ -11,6 +11,8 @@
   'use strict';
 
   var KEY = 'jiye.theme';
+  // 我的页专属主题(与公开主题互不影响);'inherit' 表示跟随公开主题
+  var MINE_KEY = 'jiye.mine.theme.v1';
   var THEMES = {
     default: { file: 'default.css', label: '浅色' },
     dark: { file: 'dark.css', label: '深色' },
@@ -20,6 +22,7 @@
     anime: { file: 'anime.css', label: '二次元' }
   };
   var AUTO_LABEL = '跟随系统';
+  var INHERIT = 'inherit';
 
   function storedChoice() {
     try {
@@ -27,6 +30,23 @@
       return v === 'auto' || THEMES[v] ? v : 'auto';
     } catch (e) {
       return 'auto';
+    }
+  }
+
+  function isMineView() {
+    try {
+      return new URLSearchParams(location.search).get('view') === 'mine';
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function storedMineChoice() {
+    try {
+      var v = localStorage.getItem(MINE_KEY);
+      return v === 'auto' || THEMES[v] ? v : INHERIT;
+    } catch (e) {
+      return INHERIT;
     }
   }
 
@@ -49,6 +69,11 @@
     var preview = previewParam();
     if (preview) return preview;
     var choice = storedChoice();
+    // 我的页单独设过主题就优先用它,否则跟随公开主题
+    if (isMineView()) {
+      var mine = storedMineChoice();
+      if (mine !== INHERIT) choice = mine;
+    }
     return choice === 'auto' ? systemTheme() : choice;
   }
 
@@ -134,5 +159,21 @@
     boot();
   }
 
-  window.JiyeTheme = { THEMES: THEMES, apply: apply, current: resolve };
+  function setMineChoice(choice) {
+    try {
+      if (!choice || choice === INHERIT) localStorage.removeItem(MINE_KEY);
+      else if (choice === 'auto' || THEMES[choice]) localStorage.setItem(MINE_KEY, choice);
+    } catch (e) { /* 隐私模式忽略 */ }
+    apply();
+  }
+
+  window.JiyeTheme = {
+    THEMES: THEMES,
+    AUTO_LABEL: AUTO_LABEL,
+    INHERIT: INHERIT,
+    apply: apply,
+    current: resolve,
+    mineChoice: storedMineChoice,
+    setMineChoice: setMineChoice
+  };
 })();

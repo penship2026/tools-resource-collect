@@ -259,6 +259,31 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   border-radius: 8px; padding: 6px 12px; font-size: 12px; cursor: pointer;
 }
 .mine-btn:hover { border-color: var(--brand); color: var(--brand); }
+.mine-btn-primary { background: var(--brand); border-color: var(--brand); color: #fff; }
+.mine-btn-primary:hover { color: #fff; filter: brightness(1.06); }
+.mine-settings {
+  margin: 0 0 14px; padding: 14px 16px; background: var(--surface);
+  border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow);
+  display: flex; flex-direction: column; gap: 12px;
+}
+.mine-set-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.mine-set-row label { font-size: var(--fs-sm); color: var(--text-sub); min-width: 84px; }
+.mine-set-row input, .mine-set-row select {
+  flex: 1; min-width: 180px; max-width: 320px; padding: 7px 10px;
+  font-size: var(--fs-sm); color: var(--text); background: var(--surface);
+  border: 1px solid var(--border); border-radius: var(--radius-sm); outline: none;
+}
+.mine-set-row input:focus, .mine-set-row select:focus {
+  border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-soft);
+}
+.mine-set-row small { font-size: var(--fs-xs); color: var(--text-mute); }
+.mine-set-link {
+  padding: 0; font-size: var(--fs-xs); color: var(--text-mute);
+  background: none; border: 0; cursor: pointer;
+}
+.mine-set-link:hover { color: var(--brand); }
+.mine-set-act { display: flex; gap: 8px; }
+
 .mine-mode { display: flex; gap: 16px; font-size: 12px; color: var(--text-mute); margin-bottom: 16px; }
 
 .fav-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }

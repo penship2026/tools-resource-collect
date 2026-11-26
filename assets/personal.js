@@ -379,6 +379,67 @@
       });
     })();
 
+    // 设置面板:收藏页名称 + 我的页专属主题(不跟公开主题共用)
+    (function () {
+      var btn = panel.querySelector('#mine-settings');
+      var box = panel.querySelector('#mine-settings-panel');
+      var titleInput = panel.querySelector('#mine-set-title');
+      var themeSel = panel.querySelector('#mine-set-theme');
+      var saveBtn = panel.querySelector('#mine-set-save');
+      var cancelBtn = panel.querySelector('#mine-set-cancel');
+      var resetBtn = panel.querySelector('#mine-set-title-reset');
+      if (!btn || !box || !titleInput || !themeSel) return;
+
+      var theme = global.JiyeTheme;
+      if (theme && theme.THEMES) {
+        Object.keys(theme.THEMES).forEach(function (key) {
+          var op = document.createElement('option');
+          op.value = key;
+          op.textContent = theme.THEMES[key].label;
+          themeSel.appendChild(op);
+        });
+      }
+
+      function fill() {
+        titleInput.value = mineTitle() === DEFAULT_TITLE ? '' : mineTitle();
+        titleInput.placeholder = DEFAULT_TITLE;
+        themeSel.value = theme && theme.mineChoice ? theme.mineChoice() : 'inherit';
+      }
+
+      function open() {
+        fill();
+        box.hidden = false;
+        btn.setAttribute('aria-expanded', 'true');
+        titleInput.focus();
+        titleInput.select();
+      }
+
+      function close() {
+        box.hidden = true;
+        btn.setAttribute('aria-expanded', 'false');
+      }
+
+      btn.addEventListener('click', function () {
+        if (box.hidden) open(); else close();
+      });
+      cancelBtn.addEventListener('click', close);
+      resetBtn.addEventListener('click', function () {
+        titleInput.value = '';
+        titleInput.focus();
+      });
+      saveBtn.addEventListener('click', function () {
+        setMineTitle(titleInput.value);
+        var titleEl = panel.querySelector('#mine-title');
+        if (titleEl) titleEl.textContent = mineTitle();
+        document.title = mineTitle() + ' · 集页';
+        if (theme && theme.setMineChoice) theme.setMineChoice(themeSel.value);
+        close();
+      });
+      box.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') { e.preventDefault(); close(); }
+      });
+    })();
+
     panel.querySelector('#mine-export').addEventListener('click', function () {
       if (!count()) { alert('还没有收藏可导出'); return; }
       exportJson();

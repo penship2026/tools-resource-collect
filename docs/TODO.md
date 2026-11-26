@@ -243,6 +243,12 @@
 - 与 default(蓝/14px)和 dark(深色)形成三套明确区分;token 仍 29 个且与 default 完全对齐。
 - PLAN 追加 10.6(D45);截图对比 tech/default 通过,32 个 Python + 10 个 node 用例、docs-check、`--verify` 全通过。
 
+### ✅ 24. 我的页「设置」:名称 + 我的专属主题(D46)(2026-11-26)
+
+- 我的页头部新增「设置」,面板内可改收藏页名称(复用 `jiye.mine.title.v1`,20 字上限,留空恢复默认)与我的页主题。
+- 我的主题存 `jiye.mine.theme.v1`,仅在 `?view=mine` 生效,与公开主题 `jiye.theme` 及页脚切换完全分离;可选跟随公开 / 跟随系统 / 6 套主题。
+- 主题下拉由 `JiyeTheme.THEMES` 动态生成;保存时同步标题与浏览器标签,支持取消与 Esc。新增 1 个页面钩子用例,共 34 个 Python 用例 + 10 个 node 用例通过。
+
 ---
 
 ## 新增待办

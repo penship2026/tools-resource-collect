@@ -55,6 +55,19 @@ class PagesContractTest(unittest.TestCase):
         self.assertIn("jiye.mine.title.v1", js)
         self.assertIn("mineTitle", js)
 
+    def test_mine_settings_hooks(self):
+        """我的页设置:标题 + 我的页专属主题,且主题键与公开主题分离"""
+        idx = read(os.path.join(ROOT, "index.html"))
+        for hook in ('id="mine-settings"', 'id="mine-settings-panel"', 'id="mine-set-title"', 'id="mine-set-theme"', 'id="mine-set-save"'):
+            self.assertIn(hook, idx)
+        js = read(os.path.join(ROOT, "assets/personal.js"))
+        self.assertIn("mineChoice", js)
+        theme_js = read(os.path.join(ROOT, "assets/theme.js"))
+        self.assertIn("jiye.mine.theme.v1", theme_js)
+        self.assertIn("setMineChoice", theme_js)
+        # 我的页主题只在 ?view=mine 生效,不得覆盖公开主题键
+        self.assertIn("view') === 'mine'", theme_js.replace('"', "'"))
+
     def test_all_theme_files_registered(self):
         """D40:themes/ 下每个 css 都要在 theme.js 的 THEMES 里注册,避免加了文件却切不到"""
         base = os.path.join(ROOT, "assets/themes")

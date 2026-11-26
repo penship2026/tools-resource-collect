@@ -319,3 +319,11 @@ Chrome 无头截图三页面全部正常:首页卡片标签独立行两行截断
 - **页面接入**:`series.html` / `list.html` / `single.html` 卡片与详情加 ☆ 按钮(事件委托 + `preventDefault`);`index.html` 页头「公开 / 我的」开关仅在收藏 > 0 时出现,`?view=mine` 进入收藏网格并加 `noindex`,页脚常驻导入导出入口。
 - **样式**:`assets/style.css` 追加收藏层样式(不新增第三方依赖,主题化时只需改 CSS 变量)。
 - **验证**:13 项 node 单测通过;5 页 inline 脚本 `node --check` 通过;本地服务实测 5 页与 `assets/personal.js` 全 200。
+
+### 15:10–16:00 M4 质量闸门
+- **D13 自检**:新增 `verify_data()` / `--verify`,六类检查(索引可解析、索引↔数据文件双向对应、count、key 唯一、日期格式、开关一致)。接入 Actions 提交前与 launchd 推送前,自检失败不提交。
+- **D14 回归**:新增 3 个页面结构 fixtures 与 18 个 unittest 用例(含解析器保留/去重、小红书状态树、索引损坏、原子写、自检各失败分支、CLI 冒烟);修复 `_xhs_state` 尾分号兼容。
+- **D17 缓存**:页面与数据 `no-store`、CSS/JS 300 秒、图片 1 天,实测头部正确。
+- **D38 文档自检**:`scripts/docs_check.py`(文件存在/口径/引用/workflow/部署章节),接入新增的 `ci.yml`。
+- **D16 清理**:删 `topics/*.html`(9)与根 `assets/data/*.js`(9);`--migrate` 空转正常。`min_match`/`match_all`/`LEGACY_DIR` 因接口透传暂留,记入下轮。
+- **验证**:`--verify` 11 单元 0 问题;18 测试通过;docs-check 通过;7 个本地路径 200。

@@ -39,8 +39,10 @@ jobs:
         run: |
           python3 collector/generate.py --topics topics.yml --pages "${{ github.event.inputs.pages || '10' }}"
 
-      - name: 校验索引可读
-        run: python3 collector/generate.py --list
+      - name: 校验索引与数据一致性
+        run: |
+          python3 collector/generate.py --list
+          python3 collector/generate.py --verify
 
       - name: 提交数据变更
         run: |

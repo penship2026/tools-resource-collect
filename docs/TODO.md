@@ -150,6 +150,16 @@
 - **验证**:node 单测 13 项全通过(空态/新增/去重/导出/非法 JSON/缺标题/`javascript:` 链接/合并/幂等/replace/上限);5 个页面 inline 脚本 `node --check` 通过;本地 8898 端口实测 5 页与 `assets/personal.js` 均 200。
 - **口径**:不做双站、不做账号、不做自动同步;不收录手工录入的站外链接(D30)。
 
+### ✅ 12. M4 质量闸门:自检 / 回归测试 / 缓存分层 / 文档自检 / legacy 清理(2026-11-26 15:10–16:00)
+
+- **D13 `--verify`**:`generate.py` 新增 `verify_data()` 与 CLI `--verify`,检查索引可解析、索引与数据文件一一对应(含反向孤儿文件)、`count == len(videos)`、`key` 唯一、日期格式(`yyyy.mm.dd`,兼容 `yyyy-mm-dd`)、`enabled` 两处一致;有问题返回非 0。已接入 `update-data.yml`(提交前)与 `scripts/launchd/collect.sh`(自检不过不推送)。
+- **D14 fixtures + 离线回归**:新增 `tests/fixtures/{baidu_mobile,so360,xhs_state}.html` 与 `tests/test_platforms.py`、`tests/test_generate.py`,共 18 个用例(解析器保留/去重/xsec_token 剥离/小红书状态树/平台识别/链接提取/索引损坏/原子写/快照/自检各失败分支/CLI 冒烟)。顺带修复 `_xhs_state` 对 `};</script>` 尾分号的兼容。
+- **D17 缓存分层**:`server.py` 的 `Cache-Control` 改为分层——页面与 `assets/data/**` 一律 `no-store`,其他 `*.css/*.js` 300 秒,图片 1 天;实测四类路径头部正确。
+- **D38 docs-check**:新增 `scripts/docs_check.py`,检查关键文档存在、旧口径(「三页/四页」写法)不再出现、文档引用不悬空、workflow 不再写死 `--id`、DEPLOY 覆盖「形态 A/launchd/topics.yml」。已接入 CI。
+- **CI**:新增 `.github/workflows/ci.yml`(语法 → 回归测试 → 数据自检 → 文档自检)。
+- **D16 legacy 清理(部分)**:删除 `topics/*.html`(9)与根目录 `assets/data/*.js`(9),`--migrate` 保持幂等且空转不报错(旧文件缺失时输出「新增 0 个」);死参数 `min_match`/`match_all` 与 `LEGACY_DIR` 暂留,因为 `server.py` 采集接口仍透传这两个字段,删除需同步改接口与采集页(记入下轮)。
+- **验证**:`--verify` 通过(11 单元 0 问题);18 个测试通过;文档自检通过;本地 200 检查 7 个路径全部正常。
+
 ---
 
 ## 新增待办

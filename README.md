@@ -176,7 +176,7 @@ python3 collector/generate.py --topics topics.yml --dry-run --pages 1   # 本地
 
 ## 数据备份与还原
 
-采集产出 = `assets/data/index.js` + `assets/data/collections/*.js`;三个页面和程序不随采集变化,无需备份。
+采集产出 = `assets/data/index.js` + `assets/data/collections/*.js`;各展示页和程序不随采集变化,无需备份。
 
 ```bash
 python3 collector/backup_data.py backup                  # 打包到 backups/data-<时间戳>.zip
@@ -191,7 +191,17 @@ python3 collector/backup_data.py backup --out /mnt/nas/backup            # 备�
 
 ## 从旧版迁移
 
-旧版是「每个主题一个 `topics/<slug>.html` + `assets/data/<slug>.js`」。执行 `python3 collector/generate.py --migrate` 会把旧数据转成采集单元格式(创建 `collections/<id>.js` 并重建索引),BV 号 id 归为 `single`、其余为 `series`。迁移幂等,旧文件不删除。迁移后页面改由三个固定模板提供,旧 `topics/` 目录不再被引用。
+旧版是「每个主题一个 `topics/<slug>.html` + `assets/data/<slug>.js`」。执行 `python3 collector/generate.py --migrate` 会把旧数据转成采集单元格式(创建 `collections/<id>.js` 并重建索引),BV 号 id 归为 `single`、其余为 `series`。迁移幂等。旧版 `topics/*.html` 与 `assets/data/*.js`(根目录那批)已在 2026-11-26 清理中删除(需要时从 git 历史恢复),页面统一由五个固定模板提供。
+
+## 自检与测试(不需要联网)
+
+```bash
+python3 collector/generate.py --verify    # 索引/数据文件/count/key/日期/开关 六项一致性
+python3 scripts/docs_check.py             # 文档口径与引用有效性
+python3 -m unittest discover -s tests -v  # 解析器 fixtures + 数据层回归 + CLI 冒烟
+```
+
+CI(`.github/workflows/ci.yml`)在每次推送/PR 跑上述三项;定时采集 workflow 在提交前也会跑 `--verify`,自检不过不提交。
 
 ## 说明
 

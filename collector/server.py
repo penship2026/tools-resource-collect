@@ -94,9 +94,15 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         super().log_message(fmt, *args)
 
     def end_headers(self):
-        # 所有响应(含静态文件)统一禁用缓存:
-        # 采集更新数据后,手机浏览器若缓存了 index.js 就会一直显示旧首页
-        self.send_header("Cache-Control", "no-store")
+        # 缓存分层(D17):页面与数据必须 no-store(采集更新后手机浏览器若缓存 index.js 会一直显示旧首页);
+        # 样式/脚本/图片属静态资源,允许短缓存减少重复加载。
+        path = (self.path or "").split("?", 1)[0]
+        if path.endswith((".css", ".js")) and not path.startswith("/assets/data/"):
+            self.send_header("Cache-Control", "public, max-age=300")
+        elif path.endswith((".png", ".jpg", ".jpeg", ".webp", ".svg", ".ico")):
+            self.send_header("Cache-Control", "public, max-age=86400")
+        else:
+            self.send_header("Cache-Control", "no-store")
         super().end_headers()
 
     def _json(self, obj, status=200):

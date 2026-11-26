@@ -218,7 +218,7 @@ def extract_xhs_id(url):
 
 def _xhs_state(text):
     """取出页面内嵌的 __INITIAL_STATE__(含 undefined 字面量,先替换再解析)"""
-    m = re.search(r"window\.__INITIAL_STATE__\s*=\s*(\{[\s\S]*?\})\s*</script>", text)
+    m = re.search(r"window\.__INITIAL_STATE__\s*=\s*(\{[\s\S]*?\})\s*;?\s*</script>", text)
     if not m:
         return None
     raw = m.group(1)

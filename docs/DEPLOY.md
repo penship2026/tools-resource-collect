@@ -251,7 +251,7 @@ services:
     restart: unless-stopped             # 开机自启、崩溃重启
 ```
 
-- **数据卷必须保留**：采集只写容器内 `/app/assets/data`（索引 + `collections/` 各单元），挂载到宿主机后，重建/升级容器数据也不丢。三个页面是固定模板，随代码部署，不需挂载。
+- **数据卷必须保留**：采集只写容器内 `/app/assets/data`（索引 + `collections/` 各单元），挂载到宿主机后，重建/升级容器数据也不丢。各展示页是固定模板，随代码部署，不需挂载。
 - `restart: unless-stopped`：NAS/服务器重启后自动拉起服务。
 
 ### 常用运维命令
@@ -311,7 +311,7 @@ server {
   # 采集端以此变量启动;展示端静态站点的 assets/data 指向同一位置
   ```
 
-  相对路径按程序所在目录解析，绝对路径直接使用。三个页面仍用相对路径引用数据，**加载方式不变**。
+  相对路径按程序所在目录解析，绝对路径直接使用。各展示页仍用相对路径引用数据，**加载方式不变**。
 - Linux 权限：采集端运行用户对数据目录需有写权限，展示端至少可读。
 - Docker 场景：`docker-compose.yml` 已把 `assets/data` 挂载为卷，采集容器和展示容器挂载同一个宿主机目录即可共享。
 
@@ -328,7 +328,7 @@ server {
    - 若返回一段 HTML（`<!DOCTYPE ...`），说明请求被静态托管/网关拦截，没转发到 Python。
 2. **单元接口**：`/api/topics` 返回 JSON，且 `topics` 数组里有已收录采集单元（含 id/type/enabled）。
 3. **采集页**：`/collect.html` 顶部显示「后端已连接」绿标；右侧列出各单元并可切换显示。
-4. **三个页面**：`/index.html` 显示主题卡片和封面；`/series.html?id=<单元ID>` 显示合集；`/single.html?id=<单元ID>` 显示单条视频。
+4. **展示页**：`/index.html` 显示主题卡片和封面；`/series.html?id=<单元ID>` 显示合集；`/single.html?id=<单元ID>` 显示单条视频。
 5. **实采一条**：在采集页采一条数据，确认首页刷新后出现新单元；再试「重采此单元」与开关显示。
 6. **手机验证**：手机连同一网络访问首页，确认采集后刷新能看到更新（服务已设 `no-store`，正常不会缓存旧数据）。
 
@@ -355,7 +355,7 @@ server {
 - systemd：`sudo systemctl restart video-collect`
 - Docker：`docker compose up -d --build`
 
-**备份数据**：采集产出只有 `assets/data/index.js`（索引 + 显示开关）和 `assets/data/collections/*.js`（各采集单元）。三个页面和程序不随采集变化，随代码版本管理，无需备份。用内置工具（纯标准库，无需安装依赖）：
+**备份数据**：采集产出只有 `assets/data/index.js`（索引 + 显示开关）和 `assets/data/collections/*.js`（各采集单元）。各展示页和程序不随采集变化，随代码版本管理，无需备份。用内置工具（纯标准库，无需安装依赖）：
 
 ```bash
 python3 collector/backup_data.py backup                  # 打包到 backups/data-<时间戳>.zip
@@ -368,7 +368,7 @@ python3 collector/backup_data.py backup --out /mnt/nas/backup            # 备�
 - 还原只解包 `.js` / `.html`，拒绝 `..` 路径穿越；默认还原前自动留存当前数据快照，可回退。
 - 环境变量 `VIDEO_DATA_DIR` / `VIDEO_BACKUP_DIR` 可覆盖路径，适配分离部署的共享目录。
 - 定时备份：配合 cron 或 NAS 计划任务，先 `cd` 到项目目录再执行 `backup`，并把 `VIDEO_BACKUP_DIR` 指向 NAS 共享文件夹。
-- 旧版数据用 `python3 collector/generate.py --migrate` 转为采集单元格式（幂等，旧文件保留）。迁移/还原后先访问 `/api/topics` 确认单元数正确、首页封面正常。
+- 旧版数据用 `python3 collector/generate.py --migrate` 转为采集单元格式（幂等；旧版 `topics/*.html` 与根目录 `assets/data/*.js` 已于 2026-11-26 删除，需要时从 git 历史恢复）。迁移/还原后先执行 `--verify` 并访问 `/api/topics` 确认单元数正确、首页封面正常。
 
 **升级不丢数据**：Docker 场景因已挂载 `assets/data`，`down` 再 `up` 数据仍在；直接覆盖代码文件重启亦可。
 

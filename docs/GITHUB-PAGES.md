@@ -95,10 +95,9 @@ Thumbs.db
 backups/
 *.zip
 
-# 旧版迁移遗留文件(可选:确认已用 generate.py --migrate 迁移完成后,取消下面两行注释)
-# 注意:assets/data/*.js 只匹配一层,不会误伤 assets/data/collections/ 下的新数据
-# topics/*.html
-# assets/data/*.js
+# 旧版迁移遗留文件已于 2026-11-26 从仓库删除;保留忽略规则,避免本地残留被误提交
+topics/*.html
+assets/data/*.js
 ```
 
 > 提示:旧版 `assets/data/<id>.js` 与新版 `assets/data/collections/<id>.js` 文件名不同。若想忽略旧文件,取消最后两行注释即可——`assets/data/*.js` 只匹配一层,不会误伤新版数据。
@@ -138,7 +137,7 @@ https://<你的用户名>.github.io/<仓库名>/
 
 ### 2.7 封面图防盗链处理(建议)
 
-B站 CDN 封面对第三方站点有时会校验 `Referer`,表现为首页卡片无封面图。若遇到此问题,在三个页面的 `<head>` 中各加一行:
+B站 CDN 封面对第三方站点有时会校验 `Referer`,表现为首页卡片无封面图。若遇到此问题,在各页面的 `<head>` 中各加一行:
 
 ```html
 <meta name="referrer" content="no-referrer">
@@ -303,9 +302,9 @@ python3 collector/backup_data.py restore backups/data-xxx.zip   # 还原(自动�
 
 | 现象 | 原因 | 处理 |
 |---|---|---|
-| 首页显示「主题数 0」、卡片为空 | `index.js` 用了 `const` 声明,未挂到 `window` | 确认文件头部为 `window.COLLECTION_INDEX = [...]`;重新执行 `python3 collector/generate.py --migrate` 生成索引并提交 |
+| 首页显示「主题数 0」、卡片为空 | `index.js` 用了 `const` 声明,未挂到 `window` | 确认文件头部为 `window.COLLECTION_INDEX = [...]`;用 `python3 collector/generate.py --verify` 自检,必要时按 `.github/workflows/update-data.yml` 手动跑一次采集重建索引 |
 | 数据文件 404 | 文件未提交,或大小写/路径不符 | 检查仓库中是否存在 `assets/data/collections/<id>.js`;确认 `.gitignore` 没有误伤 |
-| 封面图不显示 | B站 CDN 校验 `Referer` | 三个页面 `<head>` 加 `<meta name="referrer" content="no-referrer">`(见 2.7) |
+| 封面图不显示 | B站 CDN 校验 `Referer` | 各页面 `<head>` 加 `<meta name="referrer" content="no-referrer">`(见 2.7) |
 | 点击采集报错 `Unexpected token '<'` | 在 Pages 上访问了 `collect.html`,无后端 | 正常现象;请回到本地/服务器运行 `python3 collector/server.py` 后使用采集页 |
 | Actions 推送报 `Permission denied` | Workflow 权限为只读 | Settings → Actions → General → Workflow permissions 改为 Read and write |
 | Actions 里日期差 8 小时 | 容器默认 UTC | workflow 的 `env` 加 `TZ: Asia/Shanghai` |

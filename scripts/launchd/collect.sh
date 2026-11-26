@@ -29,7 +29,16 @@ RC=$?
 
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] 采集结束 rc=$RC"
 
-if [[ "${AUTO_PUSH:-0}" == "1" ]]; then
+# 自检:索引/数据文件一致性有问题时不推送(避免把半坏数据推上去)
+if python3 collector/generate.py --verify; then
+  VERIFY_RC=0
+else
+  VERIFY_RC=1
+  echo "自检未通过,本次不提交"
+  RC=1
+fi
+
+if [[ "${AUTO_PUSH:-0}" == "1" && "$VERIFY_RC" == "0" ]]; then
   if git pull --rebase --autostash; then
     if ! git diff --quiet -- assets/data; then
       git add assets/data

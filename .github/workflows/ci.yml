@@ -1,0 +1,38 @@
+name: ci
+
+# 每次推送/PR 跑质量闸门:语法、离线回归、数据一致性、文档一致性。
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      TZ: Asia/Shanghai
+    steps:
+      - name: 检出仓库
+        uses: actions/checkout@v4
+
+      - name: 准备 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: 语法检查
+        run: python3 -m py_compile collector/*.py scripts/docs_check.py
+
+      - name: 离线回归测试
+        run: python3 -m unittest discover -s tests -v
+
+      - name: 数据一致性自检
+        run: python3 collector/generate.py --verify
+
+      - name: 文档一致性自检
+        run: python3 scripts/docs_check.py

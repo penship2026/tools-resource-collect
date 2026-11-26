@@ -393,6 +393,64 @@ def index_status():
         return {"ok": False, "count": 0, "reason": str(exc)}
 
 
+DATE_RE = re.compile(r"^\d{4}[.\-]\d{2}[.\-]\d{2}$")  # 数据里的标准格式是 yyyy.mm.dd,旧数据允许 yyyy-mm-dd
+
+
+def verify_data(log=print):
+    """数据一致性自检(D13):索引与数据文件一一对应、count 与 videos 一致、
+    key 唯一、日期格式、开关两处一致。返回 {"ok", "problems", "units"}。"""
+    problems = []
+    st = index_status()
+    if not st["ok"]:
+        log("  ✗ 索引不可用: %s" % st["reason"])
+        return {"ok": False, "problems": ["索引不可用: %s" % st["reason"]], "units": 0}
+    items = load_index()
+    ids = [t.get("id") for t in items if t.get("id")]
+    units = 0
+    for t in items:
+        uid = t.get("id") or ""
+        if not uid:
+            problems.append("索引中存在缺少 id 的条目")
+            continue
+        path = os.path.join(COLLECTIONS_DIR, "%s.js" % uid)
+        data = load_collection_data(uid)
+        if data is None:
+            problems.append("%s: 数据文件缺失或无法解析(%s)" % (uid, display_path(path)))
+            continue
+        units += 1
+        vids = data.get("videos") or []
+        if data.get("id") != uid:
+            problems.append("%s: 数据文件里的 id 不一致(%s)" % (uid, data.get("id")))
+        if int(t.get("count", -1)) != len(vids):
+            problems.append("%s: 索引 count=%s,数据 videos=%d" % (uid, t.get("count"), len(vids)))
+        keys = {}
+        for i, v in enumerate(vids):
+            k = item_key(v)
+            if not k:
+                problems.append("%s: 第 %d 条缺少 key" % (uid, i + 1))
+            elif k in keys:
+                problems.append("%s: key 重复(%s)" % (uid, k))
+            else:
+                keys[k] = 1
+            d = str(v.get("date") or "")
+            if d and not DATE_RE.match(d):
+                problems.append("%s: 第 %d 条日期格式异常(%s)" % (uid, i + 1, d))
+            if not str(v.get("title") or "").strip():
+                problems.append("%s: 第 %d 条缺少标题" % (uid, i + 1))
+        if "enabled" in data and bool(data.get("enabled")) != bool(t.get("enabled", True)):
+            problems.append("%s: 显示开关两处不一致(索引 %s / 数据 %s)" % (
+                uid, t.get("enabled", True), data.get("enabled")))
+    # 反向检查:数据目录里存在但索引没登记(遗留文件/手工拷贝)
+    if os.path.isdir(COLLECTIONS_DIR):
+        for fn in sorted(os.listdir(COLLECTIONS_DIR)):
+            if fn.endswith(".js") and fn[:-3] not in ids:
+                problems.append("%s: 数据文件未登记到索引" % fn)
+    for p in problems:
+        log("  ✗ %s" % p)
+    log("  检查单元 %d 个,问题 %d 项" % (units, len(problems)))
+    return {"ok": not problems, "problems": problems, "units": units}
+
+
 def snapshot_file(path, keep=SNAPSHOT_KEEP):
     """覆盖前把现有文件复制一份到 backups/auto,只保留最近 keep 份"""
     if not os.path.exists(path):
@@ -1526,6 +1584,10 @@ def migrate_legacy(log=print):
     迁移到新格式(collections/<id>.js + COLLECTION_INDEX)。
     旧文件不删除,只新增新格式文件并重建索引,可安全重复执行。
     """
+    # 旧格式目录已在 2026-11-26 清理(D16);没有旧文件时直接返回,避免无谓重写现有单元
+    if not os.path.isdir(LEGACY_DIR) or not any(f.endswith(".html") for f in os.listdir(LEGACY_DIR)):
+        log("旧格式目录不存在(%s),无需迁移" % display_path(LEGACY_DIR))
+        return {"ok": True, "migrated": 0, "units": len(load_index())}
     index = load_index()
     migrated = 0
     for meta in index:
@@ -1639,6 +1701,8 @@ def build_parser():
     parser.add_argument("--manual-cover", default=None, help="手工补录封面图地址")
     parser.add_argument("--dry-run", action="store_true", help="只预览不写文件")
     parser.add_argument("--list", action="store_true", help="列出所有采集单元")
+    parser.add_argument("--verify", action="store_true",
+                        help="数据一致性自检(索引/数据文件/count/key/日期/开关),有问题返回非 0")
     parser.add_argument("--toggle", metavar="ID", default=None, help="开启/关闭某单元显示,配合 --on/--off")
     parser.add_argument("--on", dest="toggle_on", action="store_true", help="配合 --toggle:开启显示")
     parser.add_argument("--off", dest="toggle_off", action="store_true", help="配合 --toggle:关闭显示")
@@ -1788,6 +1852,10 @@ def main():
         if not r["ok"]:
             sys.exit(1)
         return
+    if args.verify:
+        r = verify_data()
+        print("自检%s" % ("通过" if r["ok"] else "未通过"))
+        sys.exit(0 if r["ok"] else 1)
     if args.list:
         for t in load_index():
             mark = "on " if t.get("enabled", True) else "off"

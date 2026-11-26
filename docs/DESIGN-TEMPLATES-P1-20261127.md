@@ -13,7 +13,7 @@
 
 一期要解决四件事：
 
-1. **版式可替换**：布局从 5 个页面的内联 `<style>` 抽到 `assets/layouts/*.css`，由 `data-layout` 选择。
+1. **版式可替换**：布局从 5 个页面抽到 `assets/layouts/*.css`，由 `data-layout` 选择；页面专属规则先外置到 `assets/pages/*.css`。
 2. **板块成栏目**：`sections.yml` 的板块按 `order` 升为一级导航，支持 `?section=` 板块视图。
 3. **模板可扩展**：新增一套版式 = 1 个 CSS + 1 行注册，不改 HTML/JS；交付 3 套。
 4. **编辑可控**：人工置顶、画册大图、站点默认版式三项走 `site.yml → site.js`，不污染采集数据。
@@ -24,7 +24,7 @@
 - 6 个启用板块全部出现在导航，停用板块不出现，0 单元板块有占位而不是消失。
 - 新增第 4 套版式，全程只改 `assets/layouts/`、`assets/templates.js` 与文档。
 - 置顶只改首屏与分节排序，不改索引顺序；画册大图缺失时回退封面；设置页改默认版式后新访客生效、老访客保留本机选择。
-- 页面内联 `<style>` 中**不再出现任何色值、圆角、阴影、字号**。
+- 页面内**不再有 `<style>` 块**；页面专属规则集中在 `assets/pages/*.css`，渠道色只引用 `--plat-*`。
 - `python3 collector/generate.py --verify`、`scripts/docs_check.py`、`python3 -m unittest discover -s tests`、node 用例全部通过。
 - `file://` 双击打开仍可用（不依赖 fetch / 构建产物）。
 
@@ -50,6 +50,10 @@ assets/
 ├── site.js                   站点配置与编辑推荐（新增，由 site.yml 生成）
 ├── templates.js              版式注册表（新增）
 ├── layout.js                 版式选择与注入（新增，head 内阻塞）
+├── pages/
+│   ├── series.css            子页专属：hero、截断提示（M1b 外置）
+│   ├── list.css              列表页专属：筛选、分页、平台角标
+│   └── single.css            详情页专属：视频/公众号/小红书三套模板
 ├── layouts/
 │   ├── standard.css          简洁版式（基线，无覆盖）
 │   ├── news.css              门户版式（新增）
@@ -68,6 +72,7 @@ site.yml                      站点外观 + 编辑推荐（根目录，设置�
 
 ```html
 <link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="assets/pages/<page>.css">  <!-- 按页引用，M1b 外置 -->
 <script src="assets/site.js"></script>        <!-- 站点默认版式 + 置顶/大图，必须早于 layout.js -->
 <script src="assets/templates.js"></script>   <!-- 注册表，必须早于 layout.js -->
 <script src="assets/theme.js"></script>       <!-- 已存在：注入 theme-css -->
@@ -83,11 +88,11 @@ site.yml                      站点外观 + 编辑推荐（根目录，设置�
 ```
 style.css（骨架 + token 默认值）
   → themes/<theme>.css（只有变量，位置对结果无影响，前置只为防闪烁）
-  → layouts/<layout>.css（只覆盖结构；位于 style.css 之后才能生效）
-  → 页面内联 <style>（M1 之后只允许容器级布局，不允许组件样式）
+  → pages/<page>.css（页面专属结构，按页引用）
+  → layouts/<layout>.css（只覆盖结构；位于 pages 之后才能生效）
 ```
 
-关键点：`layout.js` 注入的 `<link>` 必须在 `style.css` 之后、页面内联 `<style>` 之前。因此 5 个页面的内联块保留在 `<head>` 末尾不变，`layout.js` 用 `document.head.insertBefore` 插到内联 `<style>` 之前；若页面没有内联块则 append。
+关键点：`layout.js` 注入的 `<link>` 追加到 `<head>` 末尾即可——此时晚于 `style.css` 与 `pages/*.css`，同权重规则自然覆盖；页面已无内联块，不再需要 `insertBefore`。
 
 **选择优先级（D65）**：
 
@@ -405,7 +410,7 @@ magazine 只改"形"：封面比例、单栏、章节间距、编号排版，全
 1. 在 `style.css :root` 增加 17 个 `--layout-*` 默认值（不动颜色 token）。
 2. 按上表把页面内联的组件规则**移入** `style.css`，同名规则只留一份。
 3. 把 `style.css` 里 43 处布局字面量替换为 token（媒体查询断点保留字面量）。
-4. 页面内联只保留"本页独有容器"（`.lead`、`.band`、`.mine-*`、`.parts-*` 等）。
+4. 本页独有规则外置到 `assets/pages/<page>.css`，页面内 `<style>` 清零。
 5. 截图对比改造前后（5 页 × 1280/390），允许字体渲染差异，不允许布局位移。
 
 ---
@@ -433,8 +438,8 @@ magazine 只改"形"：封面比例、单栏、章节间距、编号排版，全
 | 文件 | 改动 |
 |---|---|
 | `assets/style.css` | 布局 token 默认值、合并 10 处重复、替换 43 处布局字面量 |
-| `index.html` | 移除组件内联、加 `site.js`/`templates.js`/`layout.js`、加导航容器/头条容器/分节容器、`?section` 路由 |
-| `series.html` / `list.html` / `single.html` | 移除组件内联、加两个脚本、内页面包屑（板块 › 主题） |
+| `index.html` | 加 `site.js`/`templates.js`/`layout.js`、加导航容器/头条容器/分节容器、`?section` 路由 |
+| `series.html` / `list.html` / `single.html` | 页面样式外置到 `assets/pages/*.css`、加两个脚本、内页面包屑（板块 › 主题） |
 | `assets/render.js` | 新增 `sectionNav()`、`lead()`、`sectionBand()`、`breadcrumb()`；置顶角标与画册大图；能力开关判断 |
 | `collector/generate.py` | `write_sections()`、`write_site_config()`、`rebuild_index()` 调用、`--verify` 新增板块与 `site.yml` 校验 |
 | `collector/server.py` | 板块保存触发重建；新增 `GET/POST /api/site`（默认版式、置顶、画册大图），沿用 CSRF/Origin |
@@ -455,11 +460,11 @@ magazine 只改"形"：封面比例、单栏、章节间距、编号排版，全
 
 ### M1 归一（1–1.5 人日）
 
-1. 建 token，合并 10 处，替换 43 处，清内联组件。
-2. `test_pages.py` 加"内联无 `#hex`/`rgb(`/`font-size: 数字`"断言。
+1. 建 token，合并 10 处，替换 43 处；页面专属规则外置到 `assets/pages/*.css`。
+2. `scripts/layout_lint.py`：4 页无 `<style>`、17 个 token 齐全、页级样式无渠道色。
 3. 5 页 × 2 宽度截图对比，人工过一遍。
 
-**退出条件**：`grep` 页面内联块无颜色/字号字面量；截图无位移。
+**退出条件**：`<style>` 块为 0；`layout_lint.py` 通过；截图无位移。
 
 ### M2 版式层（2 人日）
 
@@ -522,7 +527,7 @@ smoke 只断言无溢出、无控制台报错、导航可点，不做像素比�
 | T5 | 主题切换后版式不变；版式切换后主题不变 |
 | T6 | 390 / 768 / 1280 三档 `scrollWidth == innerWidth` |
 | T7 | `file://` 打开 index，导航与版式生效（无 fetch 报错） |
-| T8 | 内联 `<style>` 中无 `#hex`、`rgb(`、`font-size:` 数字、`box-shadow` |
+| T8 | 4 页无 `<style>` 块；`assets/pages/*.css` 无渠道色与品牌硬编码 |
 | T9 | 删除 `sections.js` 后导航从索引聚合，仍可用（兜底） |
 | T10 | `layout_lint.py` 对含 `color:` 的假 CSS 返回非 0 |
 | T11 | 置顶单元排在首屏主位，取消后回到最新；`index.js` 顺序与列表页顺序始终不变 |
@@ -541,7 +546,7 @@ smoke 只断言无溢出、无控制台报错、导航可点，不做像素比�
 
 | 风险 | 说明 | 对策 |
 |---|---|---|
-| 内联优先级 | 版式 CSS 被页面内联压住 | M1 先做；lint 检查内联；验收对比"删内联前后" |
+| 样式优先级 | 版式 CSS 被页面专属规则压住 | 固定加载顺序 style.css → pages → layouts；lint 校验引用顺序 |
 | 主题×版式破版 | 6×3 组合不可穷举 | 只保证 3×3 核心矩阵；主题侧不改布局，破版面收敛 |
 | 导航与数据不同步 | sections.js 过期 | 与索引同批生成；`--verify` 1:1 校验；前端兜底 |
 | 板块空窗 | 新板块无内容像坏页 | 占位文案 + 计数 0 + "去全部主题" |
@@ -564,4 +569,3 @@ smoke 只断言无溢出、无控制台报错、导航可点，不做像素比�
 5. **设置页暴露默认版式**：`settings.html` 新增「站点外观」面板，三选一写 `site.yml`，生成 `site.js` 供首屏读取。
 
 无遗留待定项。
-</content>

@@ -5,25 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>系列合集 · 集页</title>
   <link rel="stylesheet" href="assets/style.css">
+  <link rel="stylesheet" href="assets/pages/series.css">
   <!-- 主题:阻塞脚本在 <head> 里同步注入主题 CSS,避免首屏闪一下 -->
   <script src="assets/theme.js"></script>
   <noscript><link rel="stylesheet" href="assets/themes/default.css"></noscript>
-  <style>
-    /* ===== 子集合页专属布局(组件规则统一在 assets/style.css) ===== */
-    .hero { padding-top: 8px; }
-    .hero h1 { font-size: clamp(24px, 3.4vw, 30px); font-weight: 650; letter-spacing: -.4px; margin: 0 0 8px; }
-    .hero .sub { color: var(--text-sub); margin: 0 0 20px; }
-
-    /* 列表截断提示:只展示最近 N 条,其余进全量列表页 */
-    .more-bar {
-      display: flex; align-items: center; justify-content: space-between; gap: 14px;
-      margin: 4px 0 var(--layout-section-gap); padding: 14px 18px;
-      background: var(--surface); border: 1px dashed var(--border); border-radius: var(--radius-sm);
-      font-size: 13px; color: var(--text-sub); flex-wrap: wrap;
-    }
-    .more-bar a { color: var(--brand); font-weight: 500; }
-    .more-bar a:hover { text-decoration: underline; }
-  </style>
 </head>
 <body>
   <header class="site-header">

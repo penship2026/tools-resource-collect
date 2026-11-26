@@ -6,57 +6,10 @@
   <title>全部内容 · 集页</title>
   <meta name="description" content="某个主题的全部采集记录,可按关键词、作者、平台筛选,支持分页浏览">
   <link rel="stylesheet" href="assets/style.css">
+  <link rel="stylesheet" href="assets/pages/list.css">
   <!-- 主题:阻塞脚本在 <head> 里同步注入主题 CSS,避免首屏闪一下 -->
   <script src="assets/theme.js"></script>
   <noscript><link rel="stylesheet" href="assets/themes/default.css"></noscript>
-  <style>
-    /* ===== 全量列表页专属样式(卡片/筛选 chip 等组件统一在 assets/style.css) ===== */
-    .hero { padding: 4px 0 18px; }
-    .hero h1 { font-size: 24px; font-weight: 600; margin: 0 0 8px; }
-    .hero h1 em { font-style: normal; font-size: 13px; font-weight: 400; color: var(--text-mute); margin-left: 10px; }
-
-    /* 筛选面板 */
-    .filters {
-      display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: var(--radius); padding: 14px 16px; margin: 6px 0 18px;
-      box-shadow: var(--shadow);
-    }
-    .filters input[type=text] {
-      flex: 1; min-width: 200px; background: var(--bg); border: 1px solid var(--border);
-      border-radius: var(--radius-sm); padding: 9px 12px; color: var(--text); font-size: 13px; outline: none;
-    }
-    .filters input[type=text]:focus { border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-soft); }
-    .filters select {
-      background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm);
-      padding: 9px 10px; color: var(--text); font-size: 13px; outline: none; max-width: 190px;
-    }
-    .chip-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; width: 100%; }
-    .chip-row .label { font-size: 12px; color: var(--text-mute); margin-right: 2px; }
-
-    .list-head { display: flex; align-items: baseline; justify-content: space-between; margin: 0 0 14px; }
-    .list-head h2 { font-size: 17px; font-weight: 600; }
-    .list-head .stat { font-size: 12px; color: var(--text-mute); }
-
-    /* 平台角标:列表页独有(卡片骨架复用公共 .video-card) */
-    .video-thumb .plat-tag {
-      position: absolute; left: 10px; top: 10px;
-      color: #fff; font-size: 11px; padding: 3px 10px; border-radius: var(--radius-pill);
-      letter-spacing: .2px;
-    }
-
-    /* 分页 */
-    .pager { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: center; margin: 6px 0 var(--layout-section-gap); }
-    .pg {
-      min-width: 36px; padding: 7px 12px; font-size: 13px; cursor: pointer;
-      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text-sub);
-    }
-    .pg:hover:not(:disabled) { border-color: var(--brand); color: var(--brand); }
-    .pg.active { background: var(--brand); border-color: var(--brand); color: #fff; }
-    .pg:disabled { opacity: .45; cursor: not-allowed; }
-    .pg-dots { color: var(--text-mute); font-size: 13px; padding: 0 2px; }
-    .pg-info { font-size: 12px; color: var(--text-mute); margin-left: 6px; }
-  </style>
 </head>
 <body>
   <header class="site-header">

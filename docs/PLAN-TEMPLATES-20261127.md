@@ -217,7 +217,7 @@ Design Spec（JSON Schema 校验）
 
 ---
 
-## 八、决策记录（D64–D75，追加）
+## 八、决策记录（D64–D76，追加）
 
 | 编号 | 决策 | 落点 |
 |---|---|---|
@@ -233,6 +233,7 @@ Design Spec（JSON Schema 校验）
 | D73 | 二期交付 3 个试点模板 + 模板库治理（每季复审、内置上限 6 套、回滚 = revert 单提交） | `docs/templates/` |
 | D74 | 确认口径：板块视图链接固定为 `index.html?section=<稳定 id>`，不新增 `section.html`；版式切换器文案固定为「简洁 / 门户 / 画册」，新增版式只在注册表加一行、切换器自动出现 | 本文 4.2、P1 6.3 |
 | D75 | 编辑推荐与外观配置独立成 `site.yml`（根目录），由 `generate.py` 生成 `assets/site.js`：`default_layout` 决定站点默认版式（优先级低于 `?layout` 与本机 `jiye.layout`）；`editorial.<id>.pin/pin_at` 只影响首屏与分节排序，不改索引；`hero_image` 仅画册生效，缺省回退封面；配置不写入采集单元文件，重新采集不会覆盖 | `site.yml`、`assets/site.js`、`collector/settings.html`、`collector/collect.html` |
+| D76 | 页面专属样式外置为 `assets/pages/{series,list,single}.css`，按页引用；页面内不再保留 `<style>`。加载顺序 `style.css → pages/<page>.css → layouts/*.css`，版式层追加在 head 末尾即可覆盖页面样式，不再依赖「内联块位置」 | `assets/pages/`、4 页 `<head>`、`scripts/layout_lint.py` |
 
 ---
 
@@ -244,5 +245,4 @@ Design Spec（JSON Schema 校验）
 | `docs/DESIGN-TEMPLATES-P1-20261127.md` | 一期详细设计（契约、版式规格、文件级改动、验收矩阵） | 本次交付 |
 | `docs/DESIGN-TEMPLATES-P2-20261127.md` | 二期详细设计（Spec schema、编译器、闸门、工坊、治理） | 本次交付 |
 
-代码与数据本轮**不改动**；评审通过后按一期 M1 起实施，实施时按 D34「改动即落档」同步更新 README / TODO / WORKLOG。
-</content>
+代码与数据已按一期 M1 起实施（进度见 `docs/SCHEDULE-TEMPLATES-P1-20261127.md`），实施按 D34「改动即落档」同步更新 README / TODO / WORKLOG。

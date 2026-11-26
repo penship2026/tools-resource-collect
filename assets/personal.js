@@ -269,6 +269,23 @@
       ' data-unit-title="' + esc(s.unitTitle) + '">' + (has(s.unit, s.key) ? '★' : '☆') + '</button>';
   }
 
+  // 整卡收藏:key 固定 __series,与合集里的单条收藏互不覆盖
+  var SERIES_KEY = '__series';
+
+  function seriesButton(t) {
+    return starButton({
+      unit: t.id,
+      key: SERIES_KEY,
+      title: t.title,
+      url: (t.source && t.source.url) || '',
+      cover: t.cover || '',
+      date: t.latest || '',
+      kind: 'series',
+      unitTitle: t.title,
+      note: '合集 · ' + (t.count || 0) + ' 条内容'
+    });
+  }
+
   function readEl(el) {
     return snapshot({
       unit: el.getAttribute('data-unit'),
@@ -349,9 +366,12 @@
     var enabledMap = (opts && opts.units) || {};
     var offline = enabledMap[it.unit] === false;
     // 单元已下线/被关闭时,站内详情页取不到数据,退回原链接
+    var isSeries = it.kind === 'series';
     var href = (offline && it.url)
       ? it.url
-      : 'single.html?id=' + encodeURIComponent(it.unit) + '&k=' + encodeURIComponent(it.key);
+      : (isSeries
+        ? 'series.html?id=' + encodeURIComponent(it.unit)
+        : 'single.html?id=' + encodeURIComponent(it.unit) + '&k=' + encodeURIComponent(it.key));
     var target = (offline && it.url) ? ' target="_blank" rel="noopener noreferrer"' : '';
     var cover = it.cover
       ? '<img src="' + esc(it.cover) + '" alt="' + esc(it.title) + '" loading="lazy" referrerpolicy="no-referrer">'
@@ -360,6 +380,7 @@
       '<a class="fav-thumb" href="' + esc(href) + '"' + target + '>' + cover + '</a>' +
       '<div class="fav-body"><a class="fav-title" href="' + esc(href) + '"' + target + '>' + esc(it.title) + '</a>' +
       '<div class="fav-meta"><span>' + esc(it.unitTitle || it.unit) + '</span>' +
+      (isSeries ? '<span class="fav-kind">合集</span>' : '') +
       (it.date ? '<span>' + esc(it.date) + '</span>' : '') +
       (offline ? '<span class="fav-off">单元已下线 · 快照</span>' : '') + '</div>' +
       (it.note ? '<p class="fav-note">' + esc(it.note) + '</p>' : '') +
@@ -704,7 +725,9 @@
     importText: importText,
     importFile: importFile,
     normalize: normalize,
+    SERIES_KEY: SERIES_KEY,
     starButton: starButton,
+    seriesButton: seriesButton,
     syncStars: syncStars,
     mineTitle: mineTitle,
     setMineTitle: setMineTitle,

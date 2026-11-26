@@ -98,6 +98,15 @@ ok('episodes:上/下一集、序号、当前标记、路由编码', () => {
   assert(first.includes('ep-btn prev disabled'));
 });
 
+ok('topicCard 支持整卡收藏按钮', () => {
+  const html = R.topicCard({ id: 'u1', title: '合集', count: 3 }, {
+    href: 'series.html?id=u1',
+    starHtml: '<button class="fav-btn" data-unit="u1" data-key="__series">☆</button>'
+  });
+  assert(html.includes('data-key="__series"'));
+  assert(html.includes('class="fav-btn"'));
+});
+
 ok('episodes 单条时不渲染导航', () => {
   assert.strictEqual(R.episodes(video, [video], '合集名', 'u'), '');
 });

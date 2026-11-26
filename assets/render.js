@@ -82,7 +82,7 @@
     }).join('');
     var latest = t.latest || opts.updated || '';
     return '<a class="topic-card" href="' + esc(opts.href || '#') + '">' +
-      '<div class="topic-cover">' + cover + typeTag + badge + '</div>' +
+      '<div class="topic-cover">' + cover + typeTag + badge + (opts.starHtml || '') + '</div>' +
       '<div class="topic-body"><h3>' + esc(t.title) + '</h3>' +
       '<p class="slogan">' + esc(t.slogan || '') + '</p>' +
       (tags ? '<div class="tag-line">' + tags + '</div>' : '') +

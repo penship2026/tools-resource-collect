@@ -298,7 +298,9 @@
           href: cardHref(t),
           updated: updated,
           platName: platformOf(t),
-          tags: tagsOf(t)
+          tags: tagsOf(t),
+          // 合集/单条主题卡片也可整卡收藏,key 固定 __series 与条目级收藏区分
+          starHtml: window.Personal ? Personal.seriesButton(t) : ''
         });
       }).join('') : '<div class="empty">没有匹配的主题</div>';
     }

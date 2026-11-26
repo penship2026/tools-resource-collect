@@ -61,6 +61,8 @@ class PagesContractTest(unittest.TestCase):
         self.assertIn("publicLabel", js)
         self.assertIn("filterMine", js)
         self.assertIn("mine-filter-bar", js)
+        self.assertIn("seriesButton", js)
+        self.assertIn("__series", js)
         self.assertIn("mineSubtitle", js)
 
     def test_mine_settings_hooks(self):

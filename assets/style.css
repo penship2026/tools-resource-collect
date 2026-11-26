@@ -233,6 +233,11 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   padding: 0; backdrop-filter: blur(2px);
 }
 .fav-btn:hover { background: rgba(0,0,0,.8); }
+/* 首页主题卡片上的整卡收藏星沿用右下角,避开右上角的「合集/单条」标记 */
+.fav-kind {
+  font-size: 11px; line-height: 1.5; padding: 0 6px; border-radius: 999px;
+  color: var(--brand); border: 1px solid currentColor;
+}
 .fav-btn.on { color: #ffd24a; border-color: #ffd24a; }
 
 .fav-detail { display: flex; align-items: center; gap: 8px; margin: 0 0 14px; font-size: 12px; color: var(--text-mute); }

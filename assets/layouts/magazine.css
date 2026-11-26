@@ -1,0 +1,97 @@
+/* 集页 · 画册版式(magazine)
+ * 单栏宽幅、章节编号、文内目录;章节首篇用 hero_image(缺省封面)做 3:2 大图。
+ * 只改"形":宽窄、比例、间距、字号与编号,不写颜色。
+ */
+html[data-layout="magazine"] {
+  --layout-wrap: 960px;
+  --layout-hero-pad: 54px 0 30px;
+  --layout-section-gap: 64px;
+  --layout-cover-ratio: 3 / 2;
+  --layout-grid-min: 300px;
+  --layout-article-max: 780px;
+  --layout-detail-cols: minmax(0, 1fr);
+}
+
+html[data-layout="magazine"] .hero { text-align: center; }
+html[data-layout="magazine"] .hero h1 { font-size: 38px; letter-spacing: -1px; }
+html[data-layout="magazine"] .hero .sub { max-width: 620px; margin-left: auto; margin-right: auto; }
+html[data-layout="magazine"] .hero .facts { justify-content: center; }
+
+/* 刊头目录:像杂志目录页,两列/三列自适应 */
+.mag-toc-wrap[hidden] { display: none; }
+.mag-toc {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 0 26px;
+  margin: 4px 0 34px; padding: 14px 0; border-top: 3px double var(--border); border-bottom: 1px solid var(--border);
+}
+.mag-toc-title {
+  grid-column: 1 / -1; font-size: 11px; letter-spacing: .28em; color: var(--text-mute);
+  text-transform: uppercase; margin-bottom: 8px;
+}
+.mag-toc a {
+  display: flex; align-items: baseline; gap: 10px; padding: 7px 0;
+  border-bottom: 1px dotted var(--border); color: var(--text); font-size: 14px;
+}
+.mag-toc a span { font-size: 11px; color: var(--brand); font-variant-numeric: tabular-nums; }
+.mag-toc a b { margin-left: auto; font-size: 11px; font-weight: 400; color: var(--text-mute); }
+.mag-toc a:hover { color: var(--brand); }
+
+/* 筛选条弱化,避免打断画册版面 */
+html[data-layout="magazine"] .filter-bar { background: transparent; border-width: 1px 0; border-radius: 0; box-shadow: none; }
+html[data-layout="magazine"] .section-title { display: none; }
+/* 画册首页用目录与章节导航,顶部筛选条让位;板块视图(grid)仍保留筛选 */
+html[data-layout="magazine"] body.page-index:not(.is-section-view) .filter-bar { display: none; }
+
+/* 章节:居中章头 + 通栏主图 + 两次条 */
+.mag-chapter { margin-bottom: var(--layout-section-gap); scroll-margin-top: 84px; }
+.mag-chapter-head {
+  text-align: center; padding: 0 0 18px; margin-bottom: 24px;
+  border-bottom: 1px solid var(--border);
+}
+.mag-no { display: block; font-size: 11px; letter-spacing: .3em; color: var(--brand); margin-bottom: 8px; }
+.mag-chapter-head h2 { font-family: "Songti SC", "Noto Serif CJK SC", Georgia, serif; font-size: 28px; font-weight: 600; letter-spacing: .04em; }
+.mag-chapter-head p { max-width: 620px; margin: 8px auto 0; font-size: 13px; color: var(--text-sub); line-height: 1.75; }
+.mag-chapter-head > a { display: inline-block; margin-top: 8px; font-size: 12px; color: var(--brand); }
+
+.mag-hero {
+  display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr);
+  gap: 26px; align-items: center; color: inherit;
+}
+.mag-cover {
+  position: relative; margin: 0; aspect-ratio: 3 / 2; overflow: hidden;
+  background: var(--brand-soft); border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+.mag-cover img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .4s ease; }
+.mag-cover img[hidden] { display: none; }
+.mag-hero:hover .mag-cover img { transform: scale(1.03); }
+.mag-cover-ph { width: 100%; height: 100%; display: grid; place-items: center; background: linear-gradient(135deg, var(--brand-2), var(--brand)); color: #fff; font-size: 54px; }
+.mag-cover .pin-badge { position: absolute; left: 14px; top: 14px; }
+.mag-hero-body h3 { font-family: "Songti SC", "Noto Serif CJK SC", Georgia, serif; font-size: 26px; line-height: 1.45; font-weight: 600; }
+.mag-hero-body p { margin-top: 10px; font-size: 14px; color: var(--text-sub); line-height: 1.8; }
+.mag-hero-body span { display: block; margin-top: 16px; font-size: 12px; color: var(--text-mute); }
+.mag-hero:hover .mag-hero-body h3 { color: var(--brand); }
+
+.mag-rows { display: grid; grid-template-columns: 1fr 1fr; gap: 0 32px; margin-top: 26px; }
+.mag-row {
+  display: grid; grid-template-columns: 38px minmax(0, 1fr) auto; gap: 8px; align-items: baseline;
+  padding: 12px 0; border-top: 1px solid var(--border); color: var(--text); font-size: 14px;
+}
+.mag-row:hover .mag-row-title { color: var(--brand); }
+.mag-index { font-size: 11px; color: var(--text-mute); font-variant-numeric: tabular-nums; }
+.mag-row-title { line-height: 1.5; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mag-row-meta { font-size: 11px; color: var(--text-mute); white-space: nowrap; }
+.mag-empty { padding: 30px 0; text-align: center; color: var(--text-mute); font-size: 13px; border-top: 1px dashed var(--border); }
+/* 空章节压缩,避免首页被两个空章占掉首屏 */
+.mag-chapter.is-empty { margin-bottom: 36px; }
+.mag-chapter.is-empty .mag-chapter-head { padding-bottom: 10px; margin-bottom: 8px; }
+.mag-chapter.is-empty .mag-chapter-head h2 { font-size: 21px; }
+.mag-chapter.is-empty .mag-empty { padding: 14px 0; border-top: 1px dashed var(--border); }
+
+@media (max-width: 860px) {
+  html[data-layout="magazine"] .hero h1 { font-size: 28px; }
+  .mag-hero { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  .mag-chapter-head h2 { font-size: 23px; }
+  .mag-hero-body h3 { font-size: 22px; }
+  .mag-rows { grid-template-columns: 1fr; }
+  .mag-row-title { white-space: normal; }
+}

@@ -111,6 +111,10 @@ SECTIONS_JS = os.path.join(DATA_DIR, "sections.js")
 # 板块与主题注册表放在项目根,随仓库公开;采集端只读。
 SECTIONS_FILE = os.path.join(ROOT, "sections.yml")
 TOPICS_FILE = os.path.join(ROOT, "topics.yml")
+# 站点外观与编辑推荐(公开配置,设置页维护);site.js 是它的前端产物
+SITE_FILE = os.path.join(ROOT, "site.yml")
+SITE_JS = os.path.join(ASSETS, "site.js")
+LAYOUT_KEYS = ("standard", "news", "magazine")
 # 每次采集是独立单元,数据单独存一个文件,便于局部更新与单独关闭显示
 COLLECTIONS_DIR = os.path.join(DATA_DIR, "collections")
 # 覆盖索引前的自动快照目录(仅本地保留,已在 .gitignore 中排除)
@@ -531,6 +535,208 @@ def index_status():
         return {"ok": False, "count": 0, "reason": str(exc)}
 
 
+SITE_PIN_RE = re.compile(r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$")
+SITE_FIELDS = ("pin", "pin_at", "hero_image")
+
+
+def _site_scalar(raw):
+    """site.yml 只用少量标量:布尔/引号字符串/普通字符串"""
+    value = _strip_yaml_comment(str(raw or "")).strip()
+    if value.lower() == "true":
+        return True
+    if value.lower() == "false":
+        return False
+    if len(value) >= 2 and value[0] == value[-1] and value[0] in ("'", '"'):
+        return value[1:-1]
+    return value
+
+
+def load_site_config(path=None):
+    """读取 site.yml;缺失返回安全默认(不抛错,保证老部署可用)。"""
+    path = path or SITE_FILE
+    config = {"version": 1, "default_layout": "standard", "editorial": {}}
+    if not os.path.exists(path):
+        return config
+    in_site = in_editorial = False
+    unit = ""
+    with open(path, encoding="utf-8") as fh:
+        for line in fh:
+            if not line.strip() or line.lstrip().startswith("#"):
+                continue
+            indent = len(line) - len(line.lstrip(" "))
+            content = line.strip()
+            if ":" not in content:
+                continue
+            key, raw = content.split(":", 1)
+            key = key.strip()
+            if indent == 0:
+                in_site = key == "site"
+                in_editorial = key == "editorial"
+                unit = ""
+                if key == "version":
+                    config["version"] = int(_site_scalar(raw) or 1)
+                continue
+            if in_site and key == "default_layout":
+                config["default_layout"] = str(_site_scalar(raw) or "standard")
+            elif in_editorial:
+                if indent <= 2:
+                    unit = key
+                    config["editorial"].setdefault(unit, {})
+                elif unit and key in SITE_FIELDS:
+                    config["editorial"].setdefault(unit, {})[key] = _site_scalar(raw)
+    return config
+
+
+def _valid_hero_url(value):
+    if not value:
+        return True
+    if len(value) > 500:
+        return False
+    try:
+        parsed = urllib.parse.urlparse(value)
+    except ValueError:
+        return False
+    if parsed.scheme == "https" and parsed.netloc:
+        return True
+    return parsed.scheme == "http" and parsed.hostname in ("127.0.0.1", "localhost")
+
+
+def normalize_site_config(raw, unit_ids=None):
+    """校验 site.yml 配置,返回只含已知字段的干净结构;不合法抛 ValueError。"""
+    if not isinstance(raw, dict):
+        raise ValueError("site 配置必须是对象")
+    layout = str(raw.get("default_layout") or "standard").strip()
+    if layout not in LAYOUT_KEYS:
+        raise ValueError("default_layout 必须是 %s 之一" % " / ".join(LAYOUT_KEYS))
+    editorial = raw.get("editorial") or {}
+    if not isinstance(editorial, dict):
+        raise ValueError("editorial 必须是对象")
+    valid_ids = set(unit_ids) if unit_ids is not None else None
+    clean = {}
+    for uid, item in editorial.items():
+        uid = str(uid or "").strip()
+        if not uid:
+            raise ValueError("editorial 存在空 id")
+        if valid_ids is not None and uid not in valid_ids:
+            raise ValueError("置顶/大图指向的单元不存在:%s" % uid)
+        if not isinstance(item, dict):
+            raise ValueError("editorial.%s 必须是对象" % uid)
+        pin = item.get("pin", False)
+        if not isinstance(pin, bool):
+            raise ValueError("editorial.%s.pin 必须是布尔值" % uid)
+        pin_at = str(item.get("pin_at") or "").strip()
+        if pin:
+            if not SITE_PIN_RE.match(pin_at):
+                raise ValueError("editorial.%s.pin_at 必须形如 yyyy-mm-dd hh:mm" % uid)
+        else:
+            pin_at = ""
+        hero = str(item.get("hero_image") or "").strip()
+        if hero and not _valid_hero_url(hero):
+            raise ValueError("editorial.%s.hero_image 只允许 https:// 或本机 http://127.0.0.1" % uid)
+        entry = {}
+        if pin:
+            entry["pin"] = True
+            entry["pin_at"] = pin_at
+        if hero:
+            entry["hero_image"] = hero
+        if entry:
+            clean[uid] = entry
+    return {"version": 1, "default_layout": layout,
+            "editorial": dict(sorted(clean.items()))}
+
+
+def build_site_payload(config):
+    """site.js 的纯数据部分,供写入与 --verify 比对。"""
+    return {"default_layout": config.get("default_layout", "standard"),
+            "editorial": config.get("editorial") or {}}
+
+
+def dump_site_yaml(config):
+    lines = ["version: 1", "", "site:", "  default_layout: %s" % config["default_layout"], "", "editorial:"]
+    editorial = config.get("editorial") or {}
+    if not editorial:
+        lines.append("  {}")
+    for uid, item in sorted(editorial.items()):
+        lines.append("  %s:" % uid)
+        if item.get("pin"):
+            lines.append("    pin: true")
+            lines.append('    pin_at: "%s"' % item["pin_at"])
+        if item.get("hero_image"):
+            lines.append('    hero_image: "%s"' % item["hero_image"])
+    return "\n".join(lines).rstrip() + "\n"
+
+
+def write_site_js(config):
+    """写 assets/site.js;调用方需持有写锁或单独调用。"""
+    payload = build_site_payload(config)
+    lines = [
+        "// 站点外观与编辑推荐,由 generate.py 从 site.yml 生成",
+        "// 页面用 window.SITE_CONFIG / window.EDITORIAL 读取;修改请改 site.yml",
+        "window.SITE_CONFIG = %s;" % json.dumps({"default_layout": payload["default_layout"]}, ensure_ascii=False),
+        "window.EDITORIAL = %s;" % json.dumps(payload["editorial"], ensure_ascii=False, indent=2),
+        'window.SITE_CONFIG_UPDATED = %s;' % json.dumps(datetime.date.today().isoformat()),
+    ]
+    write_text_atomic(SITE_JS, "\n".join(lines) + "\n", snapshot=True)
+    return payload
+
+
+def read_site_js():
+    if not os.path.exists(SITE_JS):
+        return None
+    with open(SITE_JS, encoding="utf-8") as fh:
+        text = fh.read()
+    cfg = re.search(r"window\.SITE_CONFIG\s*=\s*(\{.*?\});", text, re.S)
+    ed = re.search(r"window\.EDITORIAL\s*=\s*(\{.*?\});", text, re.S)
+    if not cfg or not ed:
+        return None
+    try:
+        return {"default_layout": json.loads(cfg.group(1)).get("default_layout", "standard"),
+                "editorial": json.loads(ed.group(1))}
+    except ValueError:
+        return None
+
+
+@locked_write
+def save_site_patch(patch):
+    """设置页/采集页保存默认版式、置顶、画册大图;校验后原子写 yml + js。"""
+    if not isinstance(patch, dict):
+        raise ValueError("请求体必须是对象")
+    config = load_site_config()
+    ids = {str(t.get("id")) for t in load_index() if t.get("id")}
+    editorial = dict(config.get("editorial") or {})
+    if "default_layout" in patch:
+        config["default_layout"] = str(patch.get("default_layout") or "").strip()
+    unit_id = str(patch.get("id") or "").strip()
+    if unit_id:
+        if unit_id not in ids:
+            raise ValueError("单元不存在:%s" % unit_id)
+        entry = dict(editorial.get(unit_id) or {})
+        if "pin" in patch:
+            if not isinstance(patch["pin"], bool):
+                raise ValueError("pin 必须是布尔值")
+            if patch["pin"]:
+                entry["pin"] = True
+                entry["pin_at"] = str(patch.get("pin_at") or datetime.datetime.now().strftime("%Y-%m-%d %H:%M"))
+            else:
+                entry.pop("pin", None)
+                entry.pop("pin_at", None)
+        if "hero_image" in patch:
+            hero = str(patch.get("hero_image") or "").strip()
+            if hero:
+                entry["hero_image"] = hero
+            else:
+                entry.pop("hero_image", None)
+        if entry:
+            editorial[unit_id] = entry
+        else:
+            editorial.pop(unit_id, None)
+        config["editorial"] = editorial
+    clean = normalize_site_config(config, ids)
+    write_text_atomic(SITE_FILE, dump_site_yaml(clean), snapshot=True)
+    write_site_js(clean)
+    return clean
+
+
 DATE_RE = re.compile(r"^\d{4}[.\-]\d{2}[.\-]\d{2}$")
 # 主题注册表(D32/D40):与 assets/theme.js 的 THEMES 保持一致。单元级 theme 只做提示,不启用渲染分支。
 THEME_NAMES = ("default", "dark", "tech", "campus", "classical", "anime")
@@ -578,6 +784,14 @@ def verify_data(log=print):
         elif actual != expected:
             problems.append("板块注册表: sections.js 与 sections.yml/索引不一致(请重新生成)")
     ids = [t.get("id") for t in items if t.get("id")]
+    # 站点配置:仅当 site.js 存在时比对,避免测试用临时数据目录误判
+    if os.path.exists(SITE_JS):
+        try:
+            site = normalize_site_config(load_site_config())
+            if read_site_js() != build_site_payload(site):
+                problems.append("站点配置: site.js 与 site.yml 不一致(请在设置页保存或重新生成)")
+        except ValueError as exc:
+            problems.append("站点配置: %s" % exc)
     units = 0
     for t in items:
         uid = t.get("id") or ""

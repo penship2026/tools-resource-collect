@@ -184,6 +184,32 @@ ok('sectionBand 空板块占位且查看全部走稳定 id', () => {
   assert(html.includes('本板块还没有内容'));
 });
 
+ok('topicCard 置顶角标', () => {
+  const html = R.topicCard(topic, { href: '#', pin: true });
+  assert(html.includes('class="pin-badge"'));
+  assert(!R.topicCard(topic, { href: '#' }).includes('pin-badge'));
+});
+
+ok('画册章节:hero_image 优先、空章节占位、目录锚点', () => {
+  const sec = { id: 'k12', title: '中小学', description: '说明', count: 4, enabled: true };
+  const html = R.magazineChapter(sec, [topic, { ...topic, id: 'b' }], {
+    href: (t) => 'series.html?id=' + t.id,
+    hero: () => 'https://example.com/hero.jpg',
+    pin: () => true
+  }, 3);
+  assert(html.includes('id="band-k12"'));
+  assert(html.includes('第 03 章'));
+  assert(html.includes('https://example.com/hero.jpg'));
+  assert(html.includes('data-cover="https://i0.hdslb.com/x.jpg"'));
+  assert(html.includes('class="pin-badge"'));
+  assert(html.includes('03.2'));
+  const empty = R.magazineChapter(sec, [], {}, 3);
+  assert(empty.includes('本章还没有内容'));
+  assert(empty.includes('is-empty'));
+  const toc = R.magazineToc([sec], [], {});
+  assert(toc.includes('href="#band-k12"'));
+});
+
 ok('fmtDate 兼容 ISO 与点号', () => {
   assert.strictEqual(R.fmtDate('2026-11-19'), '2026.11.19');
   assert.strictEqual(R.fmtDate('2026.11.19'), '2026.11.19');

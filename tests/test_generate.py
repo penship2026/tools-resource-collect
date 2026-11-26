@@ -52,6 +52,36 @@ class GenerateDataTest(unittest.TestCase):
             item.setdefault("section", "tools")
         generate.write_index(items, "2026-11-26")
 
+    def test_site_config_validate_and_roundtrip(self):
+        cfg = generate.normalize_site_config({
+            "default_layout": "magazine",
+            "editorial": {"u1": {"pin": True, "pin_at": "2026-11-27 10:00",
+                                 "hero_image": "https://example.com/a.jpg"}}
+        }, {"u1"})
+        self.assertEqual(cfg["default_layout"], "magazine")
+        self.assertTrue(cfg["editorial"]["u1"]["pin"])
+        path = os.path.join(TMP, "site.yml")
+        with open(path, "w", encoding="utf-8") as fh:
+            fh.write(generate.dump_site_yaml(cfg))
+        self.assertEqual(generate.load_site_config(path), cfg)
+        self.assertEqual(generate.build_site_payload(cfg), {
+            "default_layout": "magazine", "editorial": cfg["editorial"]})
+
+    def test_site_config_rejects_bad_values(self):
+        for raw in (
+            {"default_layout": "unknown"},
+            {"default_layout": "standard", "editorial": {"nope": {"pin": True, "pin_at": "2026-11-27 10:00"}}},
+            {"default_layout": "standard", "editorial": {"u1": {"pin": True, "pin_at": "2026-11-27"}}},
+            {"default_layout": "standard", "editorial": {"u1": {"hero_image": "javascript:alert(1)"}}},
+            {"default_layout": "standard", "editorial": {"u1": {"pin": "yes", "pin_at": "2026-11-27 10:00"}}},
+        ):
+            with self.assertRaises(ValueError):
+                generate.normalize_site_config(raw, {"u1"})
+
+    def test_site_config_allows_loopback_http(self):
+        cfg = generate.normalize_site_config({"editorial": {"u1": {"hero_image": "http://127.0.0.1:8000/a.jpg"}}}, {"u1"})
+        self.assertEqual(cfg["editorial"]["u1"]["hero_image"], "http://127.0.0.1:8000/a.jpg")
+
     def test_server_unit_page_routes(self):
         import server
         self.assertEqual(server.unit_page({"id": "a", "type": "single"}), "single.html?id=a")

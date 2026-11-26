@@ -116,6 +116,12 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   width: 100%; height: 100%; object-fit: cover; display: block;
   transition: transform .35s ease;
 }
+/* 无封面时的占位:渐变与首字,不用内联样式,主题可整体换色 */
+.topic-ph {
+  width: 100%; height: 100%; display: grid; place-items: center;
+  background: linear-gradient(135deg, var(--brand-2), var(--brand));
+  color: #fff; font-size: 42px;
+}
 .topic-cover .badge {
   /* 统一放左下:不再由页面各自覆盖 top/bottom,避免两条定位同时生效 */
   position: absolute; left: 10px; bottom: 10px; top: auto;
@@ -131,6 +137,13 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   box-shadow: var(--shadow);
 }
 .topic-cover .type-tag.single { background: #7a5cd6; }
+/* 人工置顶角标:与类型角标同尺寸,放左上,编辑一眼能看出首屏为何是它 */
+.topic-cover .pin-badge {
+  position: absolute; left: 10px; top: 10px;
+  font-size: 11px; padding: 4px 9px; border-radius: var(--radius-pill);
+  color: #fff; background: var(--brand); letter-spacing: .2px;
+  box-shadow: var(--shadow);
+}
 .topic-body { padding: var(--layout-card-pad) var(--layout-card-pad) calc(var(--layout-card-pad) + 2px); display: flex; flex-direction: column; flex: 1; }
 .topic-body h3 { font-size: 18px; font-weight: 600; line-height: 1.4; }
 .topic-body .slogan { margin-top: 6px; font-size: 13px; color: var(--text-sub); }

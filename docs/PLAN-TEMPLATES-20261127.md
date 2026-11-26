@@ -217,7 +217,7 @@ Design Spec（JSON Schema 校验）
 
 ---
 
-## 八、决策记录（D64–D78，追加）
+## 八、决策记录（D64–D79，追加）
 
 | 编号 | 决策 | 落点 |
 |---|---|---|
@@ -236,6 +236,7 @@ Design Spec（JSON Schema 校验）
 | D76 | 页面专属样式外置为 `assets/pages/{series,list,single}.css`，按页引用；页面内不再保留 `<style>`。加载顺序 `style.css → pages/<page>.css → layouts/*.css`，版式层追加在 head 末尾即可覆盖页面样式，不再依赖「内联块位置」 | `assets/pages/`、4 页 `<head>`、`scripts/layout_lint.py` |
 | D77 | 版式层只接 4 个公开页（index/series/list/single）；`collector/collect.html` 与 `collector/settings.html` 是本机工具页，不加载 `templates.js` / `layout.js`，避免版式影响采集与设置操作 | 4 页 `<head>`、`tests/test_pages.py` |
 | D78 | 首页专属样式补入页面层：`assets/pages/index.css`（D76 清单原漏 index）。门户首页头条固定「1 主 + 3 副」，空板块在分节保留紧凑占位，板块导航为「全部 + 启用板块」；T1 导航项数口径按 enabled+1 | `assets/pages/index.css`、`assets/layouts/news.css`、`index.html`、P1 10.2 |
+| D79 | 画册首页的空章节不排正文,只在目录保留 0 计数入口,并在板块视图显示空态;章节编号始终按启用板块全序计算,不因隐藏空章而重排错号 | `assets/layouts/magazine.css`、`index.html`、P1 6.4/T3 |
 
 ---
 

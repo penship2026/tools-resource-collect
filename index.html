@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="assets/pages/index.css">
   <!-- 主题:阻塞脚本在 <head> 里同步注入主题 CSS,避免首屏闪一下 -->
   <script src="assets/theme.js"></script>
+  <script src="assets/site.js"></script>
   <script src="assets/templates.js"></script>
   <script src="assets/layout.js"></script>
   <noscript>
@@ -47,8 +48,9 @@
       </div>
     </section>
 
-    <!-- 门户版式(?layout=news):头条区;标准版式下隐藏 -->
+    <!-- 版式结构容器:由 templates.js 的能力声明决定显示;标准版式下全部隐藏 -->
     <section class="lead" id="lead" hidden></section>
+    <div class="mag-toc-wrap" id="magazine-toc" hidden></div>
 
     <div class="section-title" id="all-title">
       <h2 id="all-title-text">全部主题</h2>
@@ -197,6 +199,7 @@
 
     // ===== 板块导航与 ?section 路由(D66/D67) =====
     var SECTION_LIST = (window.SECTIONS || []);
+    var EDITORIAL = window.EDITORIAL || {};
     var routeParam = '';
     try { routeParam = new URLSearchParams(location.search).get('section') || ''; } catch (e) {}
     var routeSection = routeParam && routeParam !== 'all'
@@ -205,6 +208,29 @@
     var routeInvalid = !!routeParam && routeParam !== 'all' && (!routeSection || routeSection.enabled === false);
     if (routeSection && routeSection.enabled !== false) {
       currentSection = routeSection.id;
+    }
+    function editorialOf(t) {
+      return (t && EDITORIAL[t.id]) || {};
+    }
+    function pinOf(t) {
+      return !!editorialOf(t).pin;
+    }
+    function heroOf(t) {
+      return editorialOf(t).hero_image || (t && t.cover) || '';
+    }
+    // 置顶只影响展示顺序:先按 pin_at 倒序,再保持索引原有 last_at 顺序
+    function displayOrder(list) {
+      return list.map(function (t, i) { return { t: t, i: i, ed: editorialOf(t) }; })
+        .sort(function (a, b) {
+          var ap = !!a.ed.pin, bp = !!b.ed.pin;
+          if (ap !== bp) return ap ? -1 : 1;
+          if (ap && bp) {
+            var ac = String(a.ed.pin_at || ''), bc = String(b.ed.pin_at || '');
+            if (ac !== bc) return ac < bc ? 1 : -1;
+          }
+          return a.i - b.i;
+        })
+        .map(function (x) { return x.t; });
     }
     function layoutKey() {
       return document.documentElement.getAttribute('data-layout') || 'standard';
@@ -386,6 +412,7 @@
     var filterBar = document.getElementById('filter-bar');
     var allTitle = document.getElementById('all-title');
     var sectionNavBox = document.getElementById('section-nav');
+    var tocBox = document.getElementById('magazine-toc');
 
     function renderSectionNav() {
       if (!sectionNavBox) return;
@@ -401,7 +428,7 @@
     }
 
     function filtered(base) {
-      return base.filter(function (t) {
+      var picked = base.filter(function (t) {
         if (currentFilter !== 'all' && (t.type || 'series') !== currentFilter) return false;
         if (currentSection !== 'all' && t.section !== currentSection) return false;
         if (currentPlatform !== 'all' && platformsOf(t).indexOf(currentPlatform) < 0) return false;
@@ -412,6 +439,7 @@
         }
         return true;
       });
+      return displayOrder(picked);
     }
 
     function render() {
@@ -424,6 +452,7 @@
 
       renderHero();
       renderSectionNav();
+      document.body.classList.toggle('is-section-view', !!routeSection || routeInvalid);
 
       allTitle.hidden = !!routeSection || routeInvalid || showBands;
       document.getElementById('all-title-text').textContent = hasFilter ? '筛选结果' : '全部主题';
@@ -443,7 +472,8 @@
             updated: updated,
             platName: platformOf(t),
             tags: tagsOf(t),
-            starHtml: starOf(t)
+            starHtml: starOf(t),
+            pin: pinOf(t)
           });
         }).join('') : '<div class="empty">没有匹配的主题</div>';
       } else {
@@ -452,16 +482,27 @@
 
 
       if (showBands) {
-        var enabled = SECTION_LIST.filter(function (s) { return s.enabled !== false; })
+        var ordered = SECTION_LIST.filter(function (s) { return s.enabled !== false; })
           .slice().sort(function (a, b) { return (a.order || 0) - (b.order || 0); });
-        bandsBox.innerHTML = enabled.map(function (sec, i) {
-          return Render.sectionBand(sec, all.filter(function (t) { return t.section === sec.id; }), {
+        var enabled = ordered;
+        // 画册首页只保留有内容的章节;空章节仍在目录与板块视图占位
+        if (layoutKey() === 'magazine') {
+          enabled = ordered.filter(function (sec) {
+            return all.some(function (t) { return t.section === sec.id; });
+          });
+        }
+        bandsBox.innerHTML = enabled.map(function (sec) {
+          var chapterNo = ordered.indexOf(sec) + 1;
+          return Render.sectionBand(sec, displayOrder(all.filter(function (t) { return t.section === sec.id; })), {
             href: cardHref,
             updated: updated,
             plat: platformOf,
             tags: tagsOf,
-            star: starOf
-          }, i + 1);
+            star: starOf,
+            pin: pinOf,
+            hero: heroOf,
+            magazine: layoutKey() === 'magazine'
+          }, chapterNo);
         }).join('');
       } else {
         bandsBox.innerHTML = '';
@@ -470,16 +511,21 @@
       var leadOn = cap('lead') && !routeSection && !routeInvalid && !hasFilter;
       leadBox.hidden = !leadOn;
       if (leadOn) {
-        leadBox.innerHTML = Render.lead(all, {
+        leadBox.innerHTML = Render.lead(displayOrder(all), {
           href: cardHref,
           updated: updated,
           plat: platformOf,
           tags: tagsOf,
-          star: starOf
+          star: starOf,
+          pin: pinOf
         });
       } else {
         leadBox.innerHTML = '';
       }
+
+      var tocOn = cap('toc') && !routeSection && !routeInvalid && !hasFilter;
+      tocBox.hidden = !tocOn;
+      tocBox.innerHTML = tocOn ? Render.magazineToc(SECTION_LIST, all, {}) : '';
 
       if (routeInvalid) {
         emptyBox.hidden = false;
@@ -502,6 +548,19 @@
       keyword = e.target.value.trim().toLowerCase();
       render();
     });
+    // 画册大图坏链:先退回封面,再失败就隐藏图片,不留破图图标
+    bandsBox.addEventListener('error', function (e) {
+      var img = e.target;
+      if (!img || img.tagName !== 'IMG') return;
+      var cover = img.getAttribute('data-cover') || '';
+      if (!img.getAttribute('data-fallback') && cover) {
+        img.setAttribute('data-fallback', '1');
+        img.src = cover;
+        return;
+      }
+      img.hidden = true;
+    }, true);
+
     // 版式切换后结构能力变化(导航/头条/分节),需要重渲染一次
     document.addEventListener('jiye:layout', render);
     document.addEventListener('jiye:layout-fallback', render);

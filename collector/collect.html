@@ -83,7 +83,17 @@
     .topic-type.single { background: #f0ebfa; color: #7a5cd6; }
     .toggle-btn { font-size: 11px; padding: 4px 9px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); color: var(--text-sub); cursor: pointer; white-space: nowrap; }
     .toggle-btn.off { color: #c0392b; }
+    .toggle-btn.pin-on { color: var(--brand); border-color: var(--brand); background: #eef3fb; }
     .topic-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
+    .unit-row { border-bottom: 1px solid var(--border); }
+    .unit-row .topic-item { border-bottom: none; }
+    .hero-editor { padding: 0 0 14px; }
+    .hero-editor label { display: block; font-size: 11px; color: var(--text-mute); margin-bottom: 6px; }
+    .hero-editor .hero-line { display: flex; gap: 6px; flex-wrap: wrap; }
+    .hero-editor input { flex: 1 1 320px; min-width: 0; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 7px 9px; color: var(--text); font-size: 12px; }
+    .hero-editor .toggle-btn { flex: 0 0 auto; }
+    .hero-editor img { display: block; width: 210px; max-width: 100%; aspect-ratio: 3 / 2; object-fit: cover; border-radius: 8px; margin-top: 8px; background: var(--bg); }
+    .hero-editor img[hidden] { display: none; }
     .unit-pager {
       display: flex; align-items: center; justify-content: space-between; gap: 12px;
       margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border);
@@ -326,6 +336,7 @@
     let lastAutoTitle = '';     // 上一次自动生成的默认标题,切方式时据此判断是否可以清掉
     let recollectId = '';       // 非空 = 正在重新采集该单元;为空 = 新建采集
     let recollectEnabled = true; // 该单元当前是否在首页显示(重新采集态用于「下线 / 重新上线」)
+    let siteCsrf = '';           // 站点外观写入需要 CSRF,token 由 GET /api/site 下发
 
     function submitLabel() {
       if (recollectId) return '确认重新采集';
@@ -385,6 +396,7 @@
     const API_COLLECT = 'api/collect';
     const API_TOPICS  = 'api/topics';
     const API_TOGGLE  = 'api/toggle';
+    const API_SITE    = 'api/site';
     const API_INTAKE  = 'api/intake';
     const API_TITLE   = 'api/title';
 
@@ -703,6 +715,26 @@
       }).catch(err => { $('topics').innerHTML = '<div class="tip">加载失败: ' + esc(err.message) + '</div>'; });
     }
 
+    // 站点配置只取 CSRF token 与置顶/大图字段;/api/topics 已带回每个单元的值
+    function loadSiteMeta() {
+      apiFetch(API_SITE, { cache: 'no-store' }).then(readJSON).then(d => {
+        if (d && d.ok) siteCsrf = d.csrf_token || '';
+      }).catch(() => {});
+    }
+
+    async function saveSitePatch(patch, okText) {
+      const resp = await apiFetch(API_SITE, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': siteCsrf },
+        body: JSON.stringify(patch)
+      });
+      const r = await readJSON(resp);
+      if (!r.ok) throw new Error((r.error && r.error.message) || r.error || '保存失败');
+      statusBox.className = 'status ok';
+      statusBox.textContent = okText;
+      return r.site;
+    }
+
     function renderUnitPage() {
       const box = $('topics');
       if (!unitCache.length) { box.innerHTML = '<div class="tip">暂无采集单元</div>'; return; }
@@ -720,7 +752,9 @@
         const last = t.last_at
           ? `<small title="${esc(t.last_mode_label || '')}">上次采集 ${esc(fmtStamp(t.last_at))}</small>`
           : '';
+        const hero = t.hero_image || '';
         return `
+        <div class="unit-row">
         <div class="topic-item ${enabled ? '' : 'off'}">
           <div>
             ${typeTag}<a href="${esc(safePage(t.page))}" target="_blank">${esc(t.title)}</a>
@@ -731,8 +765,20 @@
             <button class="toggle-btn ${enabled ? '' : 'off'}" data-id="${esc(t.id)}" data-enabled="${enabled}">
               ${enabled ? '显示中' : '已关闭'}
             </button>
+            <button class="toggle-btn ${t.pin ? 'pin-on' : ''}" data-pin-id="${esc(t.id)}">${t.pin ? '取消置顶' : '置顶'}</button>
+            <button class="toggle-btn" data-hero-id="${esc(t.id)}">画册大图${hero ? ' ✓' : ''}</button>
             <button class="toggle-btn" data-fill-id="${esc(t.id)}">重新采集</button>
           </div>
+        </div>
+        <div class="hero-editor" data-hero-editor="${esc(t.id)}" hidden>
+          <label>画册大图 URL(只在画册版式生效;留空则用封面)</label>
+          <div class="hero-line">
+            <input type="text" data-hero-input value="${esc(hero)}" placeholder="https://… 3:2 横图效果最好" autocomplete="off">
+            <button class="toggle-btn" data-hero-save="${esc(t.id)}">保存</button>
+            <button class="toggle-btn" data-hero-clear="${esc(t.id)}">用封面</button>
+          </div>
+          <img data-hero-preview alt="" ${hero ? '' : 'hidden'} src="${esc(hero)}">
+        </div>
         </div>`;
       }).join('');
 
@@ -780,6 +826,80 @@
           } finally { btn.disabled = false; }
         });
       });
+      // 人工置顶:只写 site.yml,不改索引顺序
+      box.querySelectorAll('[data-pin-id]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const id = btn.getAttribute('data-pin-id');
+          const item = unitCache.find(x => x.id === id);
+          const next = !(item && item.pin);
+          btn.disabled = true;
+          try {
+            await saveSitePatch({ id: id, pin: next }, '「' + (item ? item.title : id) + '」已' + (next ? '置顶' : '取消置顶'));
+            if (item) item.pin = next;
+            renderUnitPage();
+          } catch (err) {
+            statusBox.className = 'status err';
+            statusBox.textContent = '置顶失败: ' + err.message;
+            btn.disabled = false;
+          }
+        });
+      });
+
+      // 画册大图:展开单元下方编辑区,保存/清除都走 /api/site
+      box.querySelectorAll('[data-hero-id]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = btn.getAttribute('data-hero-id');
+          const editor = box.querySelector('[data-hero-editor="' + id + '"]');
+          if (!editor) return;
+          editor.hidden = !editor.hidden;
+          const input = editor.querySelector('[data-hero-input]');
+          const preview = editor.querySelector('[data-hero-preview]');
+          const show = () => {
+            const v = input.value.trim();
+            preview.hidden = !v;
+            if (v) preview.src = v;
+          };
+          input.oninput = show;
+          show();
+          if (!editor.hidden) input.focus();
+        });
+      });
+      box.querySelectorAll('[data-hero-save]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const id = btn.getAttribute('data-hero-save');
+          const editor = box.querySelector('[data-hero-editor="' + id + '"]');
+          const input = editor ? editor.querySelector('[data-hero-input]') : null;
+          if (!input) return;
+          btn.disabled = true;
+          try {
+            await saveSitePatch({ id: id, hero_image: input.value.trim() }, input.value.trim() ? '画册大图已保存' : '已改为使用封面');
+            const item = unitCache.find(x => x.id === id);
+            if (item) item.hero_image = input.value.trim();
+            renderUnitPage();
+          } catch (err) {
+            statusBox.className = 'status err';
+            statusBox.textContent = '保存大图失败: ' + err.message;
+            btn.disabled = false;
+          }
+        });
+      });
+      box.querySelectorAll('[data-hero-clear]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const id = btn.getAttribute('data-hero-clear');
+          btn.disabled = true;
+          try {
+            await saveSitePatch({ id: id, hero_image: '' }, '已改为使用封面');
+            const item = unitCache.find(x => x.id === id);
+            if (item) item.hero_image = '';
+            renderUnitPage();
+          } catch (err) {
+            statusBox.className = 'status err';
+            statusBox.textContent = '清除大图失败: ' + err.message;
+            btn.disabled = false;
+          }
+        });
+      });
+
       // 「重新采集」:带出上次采集信息并切到重新采集状态,不自动采集,等用户确认
       box.querySelectorAll('[data-fill-id]').forEach(btn => {
         btn.addEventListener('click', () => fillFromUnit(btn.getAttribute('data-fill-id')));
@@ -878,6 +998,7 @@
 
     setMode('url'); // 初始态与默认模式保持一致
     checkBackend();
+    loadSiteMeta();
     loadTopics();
   </script>
 </body>

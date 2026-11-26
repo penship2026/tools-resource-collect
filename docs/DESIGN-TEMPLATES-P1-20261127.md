@@ -365,7 +365,8 @@ window.SITE_CONFIG_UPDATED = "2026-11-27";
 | 导航 | 无 | 顶部板块 tabs | 顶部 + 文内目录锚点 |
 | 详情页 | 双栏 | 双栏 | 单栏 780，正文优先 |
 
-每章首篇的"大图"取自 `EDITORIAL[id].hero_image`，没有则回退该单元封面；大图只做 `object-fit: cover` 裁切，不做拉伸变形。图片加载失败时 `onerror` 换成封面，仍失败则隐藏图、保留文字（不出现破图图标）。
+每章首篇的"大图"取自 `EDITORIAL[id].hero_image`，没有则回退该单元封面；大图只做 `object-fit: cover` 裁切，不做拉伸变形。图片加载失败时先换封面，仍失败则隐藏图、保留文字（不出现破图图标）。
+画册首页的空章节不排正文，只在目录保留 0 计数入口；章节编号按启用板块全序计算，不因隐藏空章重排；空态在板块视图保留。
 
 magazine 只改"形"：封面比例、单栏、章节间距、编号排版，全部来自 `--layout-*` 与 `--ly-*`，不涉及任何颜色。
 
@@ -489,14 +490,15 @@ magazine 只改"形"：封面比例、单栏、章节间距、编号排版，全
 
 **退出条件**：7 板块可导航（含「全部」）；空板块占位；停用板块消失；`?section` 分享可复现；`layout_lint` 纳入首页样式。
 
-### M4 多模板与编辑推荐（2.5–3 人日）
+### M4 多模板与编辑推荐（已完成 2026-11-27）
 
-1. `magazine.css` + 能力声明（toc）；章节首篇大图走 `hero_image` → `cover` → 占位的三级回退。
-2. 页脚三选一切换器定稿（简洁 / 门户 / 画册，后续扩展只在注册表加一行）；`?layout` 与 localStorage 双通道。
-3. `site.yml` + `site.js`：`write_site_config()`、校验、原子写；`layout.js` 读取默认版式。
-4. 设置页「站点外观」面板：默认版式选择与保存。
-5. 采集页单元卡片：置顶开关（`pin` + `pin_at`）、画册大图 URL 与预览。
-6. 首屏/分节置顶排序与角标；6 组演示组合截图；README 补"新增版式三步"与"置顶/大图"。
+1. `assets/layouts/magazine.css`：960 宽栏、刊头居中、目录双线、章节编号、3:2 通栏主图 + 两次条；空章节首页不排正文，只在目录保留 0 计数入口（D79）。
+2. `site.yml`（根目录）+ `assets/site.js`：`load_site_config / normalize_site_config / save_site_patch`；默认版式、`pin/pin_at`、`hero_image` 三类字段；校验默认版式枚举、置顶时间格式、URL（只允许 https 与本机回环 http）；原子写 yml + js，共用 `WRITE_LOCK`。
+3. `layout.js` 优先级保持 `?layout` > `jieye.layout` > `SITE_CONFIG.default_layout` > 注册表默认；四页在 `templates.js` 前加载 `site.js`。
+4. 设置页新增「站点外观」：三选一 + 保存，走 `PUT /api/site`；提示只影响未手动切版的浏览器。
+5. 采集页单元卡片新增「置顶 / 取消置顶」与「画册大图」展开区（URL 输入、3:2 预览、用封面清除），走 `POST /api/site`，接口从 `/api/site` 下发 CSRF token。
+6. 首页展示排序：置顶按 `pin_at` 倒序排在未置顶之前，`index.js` 顺序与列表页语义不变；置顶角标、画册 `hero_image → cover → 隐藏` 三级回退。
+7. `generator --verify` 比对 site.js 与 site.yml；新增 3 个 Python 配置用例、2 个视图画册/置顶用例。
 
 **退出条件**：置顶后首屏主位变化且索引顺序不变；画册有/无大图均正常；设置页改默认版式后新开浏览器生效、已切过版式的浏览器保留本机选择；新增第 4 套版式演练只加 CSS + 1 行注册。
 
@@ -527,7 +529,7 @@ smoke 只断言无溢出、无控制台报错、导航可点，不做像素比�
 |---|---|
 | T1 | 导航项数 = `enabled:true` 板块数 + 1（「全部」）；板块顺序 = `order` |
 | T2 | `?section=k12` 只渲染 k12 单元；`document.title` 含板块名 |
-| T3 | 0 单元板块在导航与分节紧凑占位均出现；停用板块两处都不出现 |
+| T3 | 0 单元板块在导航与板块视图紧凑占位均出现；画册首页只在目录保留入口；停用板块两处都不出现 |
 | T4 | `?layout=magazine` 刷新后回到 `jiye.layout`；`?layout` 不写存储 |
 | T5 | 主题切换后版式不变；版式切换后主题不变 |
 | T6 | 390 / 768 / 1280 三档 `scrollWidth == innerWidth` |

@@ -606,3 +606,14 @@ Chrome 无头截图三页面全部正常:首页卡片标签独立行两行截断
 - 修复首页漏引 `assets/data/sections.js` 导致导航与分节为空；非法板块不再重复渲染两处空态。
 - `layout_lint.py` 将首页纳入页面层检查；新增 3 个视图用例（导航排序/头条 1+3/分节空态）。
 - 验证：Python 71 例、Node 视图 15 例、版式逻辑 11 例、`--verify`、`docs_check`、`layout_lint` 全通过；1280 门户/板块页与 500 窄屏截图复核。
+
+## 十五、页面模板一期 M4：画册版式与编辑推荐(2026-11-27)
+
+- 新增 `assets/layouts/magazine.css`：960 宽栏、居中刊头、双线目录、章节编号、3:2 大图 + 两次条、空章压缩；画册首页不排空章正文，只在目录留入口（D79）。
+- 新增 `site.yml` / `assets/site.js`：`load_site_config`、`normalize_site_config`、`save_site_patch`、`dump_site_yaml`；默认版式枚举、`pin/pin_at`、`hero_image` 校验；URL 只允许 https 与本机回环 http；写入共用写锁。
+- 四页在 `templates.js` 前加载 `site.js`，`layout.js` 的 `SITE_CONFIG.default_layout` 生效；`?layout` 与本机 `jiye.layout` 仍优先。
+- 设置页新增「站点外观」默认版式三选一；采集页单元卡片新增置顶、画册大图展开区（URL + 3:2 预览 + 用封面清除）。
+- 服务端新增 `GET /api/site`、`PUT /api/site`、`POST /api/site`；`/api/topics` 带回 `pin/hero_image`；站点写接口沿用 CSRF/Origin 校验。
+- 首页置顶排序按 `pin_at` 倒序，接口清单顺序不变；置顶角标、画册大图三级回退（hero_image → cover → 隐藏）。
+- 修复 `site.js` 误写到 `assets/data/` 导致页面读不到；已改为 `assets/site.js` 并在 `--verify` 中比对。
+- 验证：Python 74 例、Node 视图 17 例、版式逻辑 11 例、`--verify`、`docs_check`、`layout_lint` 通过；临时置顶 + 大图截图验证后已恢复为空配置。

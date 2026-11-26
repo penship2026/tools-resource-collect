@@ -186,6 +186,21 @@
 
     <aside>
       <div class="panel">
+        <h2>站点外观</h2>
+        <div class="hint">默认版式只影响未手动切过版式的浏览器；已选择过的浏览器保留本机设置。保存后立即写入 <code>site.yml</code> 并生成 <code>assets/site.js</code>。</div>
+        <div class="row">
+          <label for="site-layout">默认版式</label>
+          <select id="site-layout">
+            <option value="standard">简洁</option>
+            <option value="news">门户</option>
+            <option value="magazine">画册</option>
+          </select>
+        </div>
+        <div class="btns"><button class="btn" id="save-site" type="button">保存默认版式</button></div>
+        <div class="status" id="site-status"></div>
+      </div>
+
+      <div class="panel">
         <h2>线上定时</h2>
         <div class="hint">只读；来自 .github/workflows/update-data.yml。</div>
         <div class="kv">
@@ -254,7 +269,7 @@
 <script>
 (function () {
   var state = {
-    sections: [], topics: [], csrf: "", schedule: {},
+    sections: [], topics: [], csrf: "", schedule: {}, site: { default_layout: "standard" },
     editing: { section: {}, topic: {} },
     dirtyKeys: {},
     baselines: { section: [], topic: [] },
@@ -847,6 +862,11 @@
       state.sections = sortSections(state.sections);
       state.csrf = data.csrf_token || "";
       state.schedule = data.schedule || {};
+      try {
+        var siteData = await api("/api/site");
+        state.site = siteData.site || state.site;
+        $("site-layout").value = state.site.default_layout || "standard";
+      } catch (e) { /* site.js 缺失时保持默认，不阻塞主设置加载 */ }
       $("cron-value").textContent = state.schedule.cron || "—";
       $("beijing-value").textContent = state.schedule.beijing || "—";
       $("pages-value").textContent = state.schedule.pages || "—";
@@ -890,6 +910,17 @@
       renderAll();
     } catch (e) { status($("settings-status"), "保存失败：" + e.message, false); }
     finally { $("save").disabled = false; }
+  });
+
+  $("save-site").addEventListener("click", async function () {
+    var btn = $("save-site");
+    btn.disabled = true;
+    try {
+      var data = await api("/api/site", { method: "PUT", body: JSON.stringify({ default_layout: $("site-layout").value }) });
+      state.site = data.site || state.site;
+      status($("site-status"), "已保存。新会话默认使用「" + ({ standard: "简洁", news: "门户", magazine: "画册" }[state.site.default_layout] || state.site.default_layout) + "」版式", true);
+    } catch (e) { status($("site-status"), "保存失败：" + e.message, false); }
+    finally { btn.disabled = false; }
   });
 
   $("export-cron").addEventListener("click", async function () {

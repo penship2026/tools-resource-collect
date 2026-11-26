@@ -57,13 +57,15 @@ class PagesContractTest(unittest.TestCase):
         self.assertIn("jiye.mine.subtitle.v1", js)
         self.assertIn("jiye.mine.switch.v1", js)
         self.assertIn("switchLabel", js)
+        self.assertIn("jiye.mine.public.v1", js)
+        self.assertIn("publicLabel", js)
         self.assertIn("mineSubtitle", js)
 
     def test_mine_settings_hooks(self):
         """我的页设置:标题 + 我的页专属主题,且主题键与公开主题分离"""
         idx = read(os.path.join(ROOT, "index.html"))
         for hook in ('id="mine-settings"', 'id="mine-settings-panel"', 'id="mine-set-title"', 'id="mine-set-sub"',
-                     'id="mine-set-switch"', 'id="mine-set-theme"', 'id="mine-set-save"', 'id="mine-sub"',
+                     'id="mine-set-public"', 'id="mine-set-switch"', 'id="mine-set-theme"', 'id="mine-set-save"', 'id="mine-sub"',
                      'class="mine-hero"'):
             self.assertIn(hook, idx)
         js = read(os.path.join(ROOT, "assets/personal.js"))

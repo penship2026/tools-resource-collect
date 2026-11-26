@@ -17,6 +17,8 @@
   var SUB_KEY = 'jiye.mine.subtitle.v1';
   // 顶部「公开 / 我的」开关里「我的」的显示名称(只显示名称,不显示收藏数)
   var SWITCH_KEY = 'jiye.mine.switch.v1';
+  // 同一开关里「公开」按钮的名称(同样只显示名称)
+  var PUBLIC_KEY = 'jiye.mine.public.v1';
   var SWITCH_MAX = 12;
   var DEFAULT_SWITCH = '我的';
   var SUB_MAX = 120;
@@ -51,6 +53,24 @@
   // 浏览器标签不支持换行,压成单行
   function docTitle() {
     return mineTitle().replace(/\s+/g, ' ') + ' · 集页';
+  }
+
+  function publicLabel() {
+    try {
+      var t = String(global.localStorage.getItem(PUBLIC_KEY) || '').trim();
+      return t ? t.slice(0, SWITCH_MAX) : '公开';
+    } catch (e) {
+      return '公开';
+    }
+  }
+
+  function setPublicLabel(value) {
+    var t = String(value || '').trim().replace(/\s+/g, ' ').slice(0, SWITCH_MAX);
+    try {
+      if (t) global.localStorage.setItem(PUBLIC_KEY, t);
+      else global.localStorage.removeItem(PUBLIC_KEY);
+    } catch (e) { /* 隐私模式忽略 */ }
+    return t || '公开';
   }
 
   function switchLabel() {
@@ -302,6 +322,8 @@
     var n = count();
     wrap.hidden = n === 0;               // 零收藏不出现入口
     var mineBtn = wrap.querySelector('[data-view="mine"]');
+    var publicBtn = wrap.querySelector('[data-view="public"]');
+    if (publicBtn) publicBtn.textContent = publicLabel();
     if (mineBtn) mineBtn.textContent = switchLabel();
   }
 
@@ -436,6 +458,8 @@
       var btn = panel.querySelector('#mine-settings');
       var box = panel.querySelector('#mine-settings-panel');
       var titleInput = panel.querySelector('#mine-set-title');
+      var publicInput = panel.querySelector('#mine-set-public');
+      var publicReset = panel.querySelector('#mine-set-public-reset');
       var switchInput = panel.querySelector('#mine-set-switch');
       var switchReset = panel.querySelector('#mine-set-switch-reset');
       var subInput = panel.querySelector('#mine-set-sub');
@@ -459,6 +483,10 @@
       function fill() {
         titleInput.value = mineTitle() === DEFAULT_TITLE ? '' : mineTitle();
         titleInput.placeholder = DEFAULT_TITLE;
+        if (publicInput) {
+          publicInput.value = publicLabel() === '公开' ? '' : publicLabel();
+          publicInput.placeholder = '公开';
+        }
         if (switchInput) {
           switchInput.value = switchLabel() === DEFAULT_SWITCH ? '' : switchLabel();
           switchInput.placeholder = DEFAULT_SWITCH;
@@ -491,6 +519,12 @@
         titleInput.value = '';
         titleInput.focus();
       });
+      if (publicReset && publicInput) {
+        publicReset.addEventListener('click', function () {
+          publicInput.value = '';
+          publicInput.focus();
+        });
+      }
       if (switchReset && switchInput) {
         switchReset.addEventListener('click', function () {
           switchInput.value = '';
@@ -505,6 +539,7 @@
       }
       saveBtn.addEventListener('click', function () {
         setMineTitle(titleInput.value);
+        if (publicInput) setPublicLabel(publicInput.value);
         if (switchInput) setSwitchLabel(switchInput.value);
         updateSwitchCount();
         if (subInput) setMineSubtitle(subInput.value);
@@ -586,6 +621,8 @@
     setMineSubtitle: setMineSubtitle,
     switchLabel: switchLabel,
     setSwitchLabel: setSwitchLabel,
+    publicLabel: publicLabel,
+    setPublicLabel: setPublicLabel,
     renderMineContent: renderMineContent
   };
 })(window);

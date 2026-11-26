@@ -1136,7 +1136,7 @@ def collect_topic(keyword, pages=30, title=None, up=None, slug=None,
         author = next((v.get("author") for v in videos if v.get("author")), "")
         result["author"] = author
     final_slogan = slogan or (
-        "共收录 %d 期,点击卡片跳转 B站观看" % len(videos) if has_video and not any(
+        "共收录 %d 期,点击分集在当前页播放" % len(videos) if has_video and not any(
             v.get("platform") not in ("", "bilibili") for v in videos)
         else "共收录 %d 条内容 · 点击卡片查看详情" % len(videos)
     )
@@ -1689,7 +1689,7 @@ def _collect_bilibili_single(url, title=None, slug=None, slogan=None, dry_run=Fa
         return result
 
     page_path = "single.html?id=%s" % uid
-    final_slogan = slogan or "单条视频精选 · 点击卡片跳转 B站观看"
+    final_slogan = slogan or "单条视频精选 · 点击进入详情页"
     # 单元标签:视频标签优先;没有标签时退回标题关键词,保证首页筛选有内容
     unit_tags = list(tags)
     if not unit_tags:

@@ -152,6 +152,7 @@
           '" scrolling="no" frameborder="0" allowfullscreen="true" title="B站视频 ' + esc(v.bv) + '"></iframe></div>' +
         '<div class="player-fallback">若上方播放器无法播放(部分 UP 主关闭了站外播放),请' +
           '<a href="' + esc(v.url) + '" target="_blank" rel="noopener">前往 B站 观看 →</a></div>' +
+        '<div class="parts-slot"></div>' +
         '<div class="desc-box"><h3>简介</h3><p>' + esc(v.desc || '该视频暂无简介。') + '</p></div>' +
       '</div>' +
       '<div class="detail">' +
@@ -285,47 +286,42 @@
     return (h ? h + ':' + mm : mm) + ':' + ss;
   }
 
-  // 视频详情页的「所属合集」与「分P 目录」:数据由采集端从 B站 view 接口取回
+  // 视频详情页的「所属合集 / 分P 目录」:横向可滑动,点分集直接在当前播放区切换
   function parts(video, opts) {
     opts = opts || {};
-    var unitId = opts.unitId || '';
-    var list = opts.videos || [];
     var parts = (video && video.parts) || [];
     var season = video && video.season;
     var out = '';
 
+    function strip(heading, note, chips) {
+      return '<section class="parts-strip"><div class="parts-head"><h3>' + esc(heading) + '</h3>' +
+        '<span class="parts-note">' + esc(note) + '</span>' +
+        '<span class="parts-now"></span>' +
+        '<button type="button" class="parts-toggle">展开全部</button></div>' +
+        '<div class="parts-scroll">' + chips + '</div></section>';
+    }
+
+    function chip(no, title, duration, bvid, page) {
+      return '<button type="button" class="part-chip" data-play-bvid="' + esc(bvid) + '"' +
+        ' data-play-page="' + esc(page || 1) + '" title="在当前播放区播放: ' + esc(title) + '">' +
+        '<span class="pc-no">' + esc(no) + '</span>' +
+        '<span class="pc-t">' + esc(title) + '</span>' +
+        '<span class="pc-d">' + esc(fmtDur(duration)) + '</span></button>';
+    }
+
     if (season && Array.isArray(season.episodes) && season.episodes.length) {
-      var eps = season.episodes;
-      var items = eps.map(function (e, idx) {
-        var key = 'bilibili:' + e.bvid;
-        var inSite = list.some(function (x) { return (x.bv || '') === e.bvid; });
-        var href = inSite
-          ? 'single.html?id=' + encodeURIComponent(unitId) + '&k=' + encodeURIComponent(key)
-          : (e.url || ('https://www.bilibili.com/video/' + e.bvid + '/'));
-        var target = inSite ? '' : ' target="_blank" rel="noopener noreferrer"';
-        return '<li class="ep-item"><a href="' + esc(href) + '"' + target + '>' +
-          '<span class="ep-no">' + ('0' + (idx + 1)).slice(-2) + '</span>' +
-          '<span class="ep-t">' + esc(e.title || e.bvid) + '</span>' +
-          '<span class="ep-d">' + esc(fmtDur(e.duration)) + '</span>' +
-          '</a></li>';
+      var eps = season.episodes.map(function (e, idx) {
+        return chip(('0' + (idx + 1)).slice(-2), e.title || e.bvid, e.duration, e.bvid, 1);
       }).join('');
-      out += '<section class="ep-list part-list"><div class="ep-head"><h3>所属合集 · ' + esc(season.title || 'B站合集') +
-        '</h3><span>共 ' + eps.length + ' 集 · 点站内已收录的可直接看详情</span></div>' +
-        '<ol class="ep-items">' + items + '</ol></section>';
+      out += strip('所属合集 · ' + (season.title || 'B站合集'), '共 ' + season.episodes.length + ' 集,点分集在上方播放区直接切播', eps);
     }
 
     if (parts.length > 1) {
       var pitems = parts.map(function (p, idx) {
-        var href = (video.url || '') + '?p=' + (p.p || idx + 1);
-        return '<li class="ep-item' + (p.current ? ' cur' : '') + '"><a href="' + esc(href) + '" target="_blank" rel="noopener noreferrer">' +
-          '<span class="ep-no">P' + ('0' + (p.p || idx + 1)).slice(-2) + '</span>' +
-          '<span class="ep-t">' + esc(p.title || ('第 ' + (idx + 1) + ' P')) + '</span>' +
-          '<span class="ep-d">' + esc(fmtDur(p.duration)) + '</span>' +
-          '</a></li>';
+        return chip('P' + ('0' + (p.p || idx + 1)).slice(-2), p.title || ('第 ' + (idx + 1) + ' P'),
+          p.duration, video.bv, p.p || idx + 1);
       }).join('');
-      out += '<section class="ep-list part-list"><div class="ep-head"><h3>分P 目录</h3>' +
-        '<span>共 ' + parts.length + ' P · 点击在 B站 打开该分P</span></div>' +
-        '<ol class="ep-items">' + pitems + '</ol></section>';
+      out += strip('分P 目录', '共 ' + parts.length + ' P,点击即在下方播放区播放', pitems);
     }
     return out;
   }

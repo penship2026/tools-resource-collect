@@ -9,7 +9,7 @@ window.COLLECTION_INDEX = [
   {
     "id": "bv1j4w16reys",
     "title": "不上班靠AI提车买房！",
-    "slogan": "单条视频精选 · 点击卡片跳转 B站观看",
+    "slogan": "单条视频精选 · 点击进入详情页",
     "source": {
       "platform": "bilibili",
       "name": "椰子酱的AI日常",
@@ -40,7 +40,7 @@ window.COLLECTION_INDEX = [
     "id": "daily-website",
     "type": "series",
     "title": "每天挖掘一个神奇网站",
-    "slogan": "共收录 24 期,点击卡片跳转 B站观看",
+    "slogan": "共收录 24 期,点击分集在当前页播放",
     "source": {
       "platform": "bilibili",
       "name": "草根的异世界",
@@ -111,7 +111,7 @@ window.COLLECTION_INDEX = [
   {
     "id": "guwen-animation",
     "title": "跟着动画学古文",
-    "slogan": "共收录 10 期,点击卡片跳转 B站观看",
+    "slogan": "共收录 10 期,点击分集在当前页播放",
     "source": {
       "platform": "bilibili",
       "name": "宋歌资源库",
@@ -139,7 +139,7 @@ window.COLLECTION_INDEX = [
   {
     "id": "topic-e5b5c763",
     "title": "英语启蒙必备",
-    "slogan": "共收录 1 期,点击卡片跳转 B站观看",
+    "slogan": "共收录 1 期,点击分集在当前页播放",
     "source": {
       "platform": "bilibili",
       "name": "爱学习的柒影",
@@ -167,7 +167,7 @@ window.COLLECTION_INDEX = [
   {
     "id": "topic-df282732",
     "title": "SpringAI",
-    "slogan": "共收录 3 期,点击卡片跳转 B站观看",
+    "slogan": "共收录 3 期,点击分集在当前页播放",
     "source": {
       "platform": "bilibili",
       "name": "徐庶AI实战",
@@ -197,7 +197,7 @@ window.COLLECTION_INDEX = [
   {
     "id": "topic-205064a1",
     "title": "最好的AI数字人项目",
-    "slogan": "共收录 1 期,点击卡片跳转 B站观看",
+    "slogan": "共收录 1 期,点击分集在当前页播放",
     "source": {
       "platform": "bilibili",
       "name": "小全栈",
@@ -227,7 +227,7 @@ window.COLLECTION_INDEX = [
   {
     "id": "topic-621ae722",
     "title": "数学思维启蒙动画",
-    "slogan": "共收录 3 期,点击卡片跳转 B站观看",
+    "slogan": "共收录 3 期,点击分集在当前页播放",
     "source": {
       "platform": "bilibili",
       "name": "乐乐的知识百宝箱",
@@ -257,7 +257,7 @@ window.COLLECTION_INDEX = [
   {
     "id": "bv1wg39zpetl",
     "title": "全158集【影子跟读英语新概念第一册动画",
-    "slogan": "单条视频精选 · 点击卡片跳转 B站观看",
+    "slogan": "单条视频精选 · 点击进入详情页",
     "source": {
       "platform": "bilibili",
       "name": "学霸动画加油站",
@@ -287,7 +287,7 @@ window.COLLECTION_INDEX = [
     "id": "topic-4e6ee53f",
     "type": "series",
     "title": "大模型对比",
-    "slogan": "共收录 2 期,点击卡片跳转 B站观看",
+    "slogan": "共收录 2 期,点击分集在当前页播放",
     "source": {
       "platform": "bilibili",
       "name": "解压秘境",
@@ -308,6 +308,39 @@ window.COLLECTION_INDEX = [
     "last_at": "2026-11-26 09:42",
     "last_mode": "keyword",
     "last_mode_label": "按主题采集",
+    "enabled": true,
+    "created": ""
+  },
+  {
+    "id": "bv1uks66oeeh",
+    "type": "single",
+    "title": "2027吃透SpringAI2.0+Agent-utils全套系统教程，3天仿一个Claude Code代码助手项目实战，让你少走99%的弯路！",
+    "slogan": "单条视频精选 · 点击进入详情页",
+    "source": {
+      "platform": "bilibili",
+      "name": "图灵官方",
+      "url": "https://space.bilibili.com/478728117/video"
+    },
+    "keyword": "https://www.bilibili.com/video/BV1UKs66oEeh/?trackid=web_pegasus_0.router-web-pegasus-2479516-gfll4.1795678968904.781&spm_id_from=333.1007.tianma.5-2-16.click",
+    "tags": [
+      "人工智能",
+      "程序员",
+      "AI",
+      "计算机",
+      "SpringAI",
+      "Claude Code",
+      "Java",
+      "大模型",
+      "Agent"
+    ],
+    "count": 1,
+    "updated": "2026-11-26",
+    "latest": "2026.11.17",
+    "cover": "http://i2.hdslb.com/bfs/archive/4da6ca7a7f48bc0135a58ef20c4f1af98f87cb24.jpg",
+    "last_at": "2026-11-26 16:50",
+    "last_mode": "url",
+    "last_mode_label": "按链接采集",
+    "created": "2026-11-26",
     "enabled": true
   }
 ];

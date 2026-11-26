@@ -34,6 +34,43 @@
     .player-fallback { margin-top: 10px; font-size: 12px; color: var(--text-mute); line-height: 1.6; }
     .player-fallback a { color: var(--brand); text-decoration: none; }
 
+    /* 分集/分P 目录:紧跟播放区,横向滑动;展开全部后切网格 */
+    .parts-slot:empty { display: none; }
+    .parts-strip {
+      margin-top: 16px; padding: 14px 16px; background: var(--surface);
+      border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow);
+    }
+    .parts-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+    .parts-head h3 { font-size: 14px; font-weight: 600; }
+    .parts-note { font-size: 12px; color: var(--text-mute); }
+    .parts-now { margin-left: auto; font-size: 12px; color: var(--brand); }
+    .parts-toggle {
+      border: 1px solid var(--border); background: var(--surface); color: var(--text-sub);
+      font-size: 12px; padding: 4px 10px; border-radius: 999px; cursor: pointer;
+    }
+    .parts-toggle:hover { border-color: var(--brand); color: var(--brand); }
+    .parts-scroll {
+      display: flex; gap: 8px; overflow-x: auto; padding: 2px 0 8px;
+      scrollbar-width: thin; -webkit-overflow-scrolling: touch;
+    }
+    .part-chip {
+      flex: 0 0 auto; display: inline-flex; align-items: center; gap: 8px;
+      max-width: 280px; padding: 7px 10px; cursor: pointer;
+      background: var(--bg); color: var(--text); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); font-size: 12px; line-height: 1.4; text-align: left;
+    }
+    .part-chip:hover { border-color: var(--brand); color: var(--brand); }
+    .part-chip.active { border-color: var(--brand); background: var(--brand-soft); color: var(--brand); font-weight: 600; }
+    .part-chip .pc-no { color: var(--text-mute); font-variant-numeric: tabular-nums; }
+    .part-chip .pc-t { max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .part-chip .pc-d { color: var(--text-mute); font-variant-numeric: tabular-nums; }
+    .parts-strip.expanded .parts-scroll {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+      overflow: visible; max-height: none;
+    }
+    .parts-strip.expanded .part-chip { max-width: none; width: 100%; }
+    .parts-strip.expanded .part-chip .pc-t { max-width: none; }
+
     .detail h1 { font-size: 22px; font-weight: 600; line-height: 1.4; margin: 0 0 12px; }
     .detail .sub { color: var(--text-sub); font-size: 13px; margin: 0 0 18px; }
     .detail-row { display: flex; gap: 10px; font-size: 13px; padding: 9px 0; border-bottom: 1px solid var(--border); }
@@ -216,6 +253,49 @@
       return Render.itemKey(v);
     }
 
+    // 分集目录交互:点分集 / 分P 直接切当前 iframe 播放区,展开全部切换网格布局
+    function mountPartsPlayer() {
+      var frame = root.querySelector('.player-frame iframe');
+      if (!frame) return;
+      var fallback = root.querySelector('.player-fallback a');
+
+      function play(btn, strip) {
+        var bvid = btn.getAttribute('data-play-bvid');
+        var page = btn.getAttribute('data-play-page') || '1';
+        if (!bvid) return;
+        frame.src = 'https://player.bilibili.com/player.html?bvid=' + encodeURIComponent(bvid) +
+          '&page=' + encodeURIComponent(page) + '&autoplay=1&danmaku=0&high_quality=1&as_wide=1';
+        if (fallback) {
+          fallback.href = 'https://www.bilibili.com/video/' + encodeURIComponent(bvid) + '/?p=' + encodeURIComponent(page);
+        }
+        strip.querySelectorAll('.part-chip').forEach(function (c) { c.classList.remove('active'); });
+        btn.classList.add('active');
+        var now = strip.querySelector('.parts-now');
+        if (now) now.textContent = '正在播放 · ' + (btn.getAttribute('title') || '').replace('在当前播放区播放: ', '');
+        try {
+          var u = new URL(location.href);
+          u.searchParams.set('pen', bvid + '-p' + page);
+          history.replaceState(null, '', u);
+        } catch (e) { /* 忽略 */ }
+      }
+
+      root.querySelectorAll('.parts-strip').forEach(function (strip) {
+        var toggle = strip.querySelector('.parts-toggle');
+        if (toggle) {
+          toggle.addEventListener('click', function () {
+            var on = strip.classList.toggle('expanded');
+            toggle.textContent = on ? '收起' : '展开全部';
+          });
+        }
+        strip.querySelectorAll('.part-chip').forEach(function (btn) {
+          btn.addEventListener('click', function () { play(btn, strip); });
+        });
+        // 分P目录默认高亮当前这一 P(数据里带 current 标记时)
+        var cur = strip.querySelector('.part-chip.current');
+        if (cur) cur.classList.add('active');
+      });
+    }
+
     // 详情页收藏按钮:条目级收藏,写入本机 localStorage 的最小快照
     function mountFavButton(v, topic) {
       if (!window.Personal) return;
@@ -299,8 +379,12 @@
         document.getElementById('crumb-title').textContent = topic.title || v.title;
         document.body.setAttribute('data-tpl', out.tpl);
         // 多集内容:详情下方追加「上一集 / 下一集」与全集列表
-        root.innerHTML = out.html + Render.episodes(v, all, topic.title, id) +
-          Render.parts(v, { unitId: id, videos: all });
+        // 分集目录:放在播放区下方;有目录时不再重复渲染底部的全集列表
+        var dir = Render.parts(v, { unitId: id, videos: all });
+        root.innerHTML = out.html + (dir ? '' : Render.episodes(v, all, topic.title, id));
+        var slot = root.querySelector('.parts-slot');
+        if (slot) slot.innerHTML = dir;
+        mountPartsPlayer();
         mountFavButton(v, topic);
         scrollCurrentEpisode();
       });

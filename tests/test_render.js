@@ -120,11 +120,16 @@ ok('parts 渲染分P目录与所属合集', () => {
   assert(html.includes('所属合集 · 测试合集'));
   assert(html.includes('分P 目录'));
   assert(html.includes('P01'));
-  assert(html.includes('?p=2'));
-  // 站内已收录的集走详情页,未收录的走 B站外链
-  assert(html.includes('single.html?id=u1&amp;k=bilibili%3ABV1xx'));
-  assert(html.includes('https://www.bilibili.com/video/BV1aa/'));
+  // 分集以按钮 chip 形式给出,直接驱动当前页内嵌播放器
+  assert(html.includes('parts-strip'));
+  assert(html.includes('parts-scroll'));
+  assert(html.includes('parts-toggle'));
+  assert(html.includes('class="part-chip'));
+  assert(html.includes('data-play-bvid="BV1aa"'));
+  assert(html.includes('data-play-page="2"'));
   assert(html.includes('1:00:00'));
+  // 不再跳站内详情页
+  assert(!html.includes('single.html?id='));
 });
 
 ok('episodes 单条时不渲染导航', () => {

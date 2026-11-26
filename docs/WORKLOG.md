@@ -434,3 +434,8 @@ Chrome 无头截图三页面全部正常:首页卡片标签独立行两行截断
 - /api/collect 支持 merge_mode,仅重新采集(带 unit_id)允许覆盖;CLI 增加 --replace。
 - 采集页重新采集状态下出现「追加/覆盖」单选,覆盖非预览二次确认,退出重采复位为追加;单测覆盖两模式。仅本地提交,未推送。
 
+
+### 08:20–09:05 详情页分集目录上移到播放区
+- 重写 Render.parts 为横向 chip 条(序号/标题/时长 + data-play-*),B站模板播放器下方插入 parts-slot;有目录时不再渲染页底全集列表。
+- single.html 增加 mountPartsPlayer:点分集改 iframe src 切播、当前集高亮、兜底链接与「正在播放」同步,history 记 pen;「展开全部」切两列网格。
+- 12 P 与 53 集两条真实数据截图验证滑动/展开/切播;parts 的 node 用例改为 chip 断言;顺带把 3 处旧 slogan 文案改掉,并 normalize 掉一个未归一化的本地单元。仅本地改动,未推送。

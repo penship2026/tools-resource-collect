@@ -15,7 +15,39 @@
     .fact b { display: block; font-size: 26px; font-weight: 600; }
     .fact span { font-size: 12px; color: var(--text-mute); }
 
-    .filter-bar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 18px; }
+    /* 筛选区分组:类型 / 平台 / 标签各占一行,行间用虚线分隔;搜索单独一行 */
+    .filter-bar {
+      display: flex; flex-direction: column; gap: 0; margin-bottom: 18px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 2px 16px; box-shadow: var(--shadow);
+    }
+    .filter-group {
+      display: flex; align-items: flex-start; gap: 12px; padding: 9px 0;
+      border-top: 1px dashed var(--border);
+    }
+    .filter-group:first-child { border-top: 0; }
+    .filter-label {
+      flex: 0 0 44px; font-size: 12px; letter-spacing: .08em; color: var(--text-mute);
+      line-height: 30px; white-space: nowrap;
+    }
+    .filter-opts { flex: 1 1 auto; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+    .search-group .filter-opts { justify-content: flex-end; }
+    .search-input {
+      width: 320px; max-width: 100%; height: 34px; padding: 0 14px 0 34px;
+      border: 1px solid var(--border); border-radius: var(--radius-pill);
+      background: var(--bg) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238a94a3' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.6-3.6'/%3E%3C/svg%3E") no-repeat 12px center / 15px 15px;
+      font: inherit; font-size: 13px; color: var(--text); outline: none;
+      transition: border-color .15s, box-shadow .15s, background-color .15s;
+    }
+    .search-input::placeholder { color: var(--text-mute); }
+    .search-input:focus { border-color: var(--brand); background-color: var(--surface); box-shadow: 0 0 0 3px var(--brand-soft); }
+    @media (max-width: 600px) {
+      .filter-bar { padding: 2px 12px; }
+      .filter-group { gap: 8px; padding: 8px 0; }
+      .filter-label { flex-basis: 34px; line-height: 28px; }
+      .search-group .filter-opts { justify-content: stretch; }
+      .search-input { width: 100%; }
+    }
     .chip {
       border: 1px solid var(--border); background: var(--surface); color: var(--text-sub);
       border-radius: var(--radius-pill); padding: 7px 15px; font-size: var(--fs-sm);
@@ -97,14 +129,28 @@
     </div>
 
     <div class="filter-bar" id="filter-bar">
-      <button class="chip active" data-filter="all">全部</button>
-      <button class="chip" data-filter="series">系列合集</button>
-      <button class="chip" data-filter="single">单条精选</button>
-      <!-- 平台筛选:动态生成;仅一个渠道时隐藏,接入更多采集渠道后自动出现 -->
-      <span id="platform-chips" style="display:none"></span>
-      <!-- 标签筛选:动态生成,取所有单元标签的并集(按出现次数取前 8 个) -->
-      <span id="tag-chips"></span>
-      <input type="text" id="topic-search" placeholder="搜索主题名称或发布者…" style="margin-left:auto">
+      <div class="filter-group">
+        <span class="filter-label">类型</span>
+        <div class="filter-opts">
+          <button class="chip active" data-filter="all">全部</button>
+          <button class="chip" data-filter="series">系列合集</button>
+          <button class="chip" data-filter="single">单条精选</button>
+        </div>
+      </div>
+      <div class="filter-group" id="platform-group" hidden>
+        <span class="filter-label">平台</span>
+        <div class="filter-opts"><span id="platform-chips"></span></div>
+      </div>
+      <div class="filter-group" id="tag-group" hidden>
+        <span class="filter-label">标签</span>
+        <div class="filter-opts"><span id="tag-chips"></span></div>
+      </div>
+      <div class="filter-group search-group">
+        <span class="filter-label">搜索</span>
+        <div class="filter-opts">
+          <input type="text" class="search-input" id="topic-search" placeholder="搜索主题名称或发布者…">
+        </div>
+      </div>
     </div>
 
     <div class="topic-grid" id="topic-grid"></div>
@@ -166,11 +212,24 @@
       </div>
       <!-- 我的页筛选:与公开首页同一套 .filter-bar 布局(类型 + 标签 + 搜索) -->
       <div class="filter-bar" id="mine-filter-bar">
-        <button class="chip active" data-mine-filter="all">全部</button>
-        <button class="chip" data-mine-filter="series">系列合集</button>
-        <button class="chip" data-mine-filter="single">单条精选</button>
-        <span id="mine-tag-chips"></span>
-        <input type="text" id="mine-search" placeholder="搜索收藏标题或所属主题…" style="margin-left:auto">
+        <div class="filter-group">
+          <span class="filter-label">类型</span>
+          <div class="filter-opts">
+            <button class="chip active" data-mine-filter="all">全部</button>
+            <button class="chip" data-mine-filter="series">系列合集</button>
+            <button class="chip" data-mine-filter="single">单条精选</button>
+          </div>
+        </div>
+        <div class="filter-group" id="mine-tag-group" hidden>
+          <span class="filter-label">标签</span>
+          <div class="filter-opts"><span id="mine-tag-chips"></span></div>
+        </div>
+        <div class="filter-group search-group">
+          <span class="filter-label">搜索</span>
+          <div class="filter-opts">
+            <input type="text" class="search-input" id="mine-search" placeholder="搜索收藏标题或所属主题…">
+          </div>
+        </div>
       </div>
       <div class="mine-mode">
         <label><input type="radio" name="mine-mode" value="merge" checked> 合并(保留较新)</label>
@@ -228,8 +287,9 @@
     document.getElementById('stat-platforms').textContent = platforms.length;
 
     var pWrap = document.getElementById('platform-chips');
+    var pGroup = document.getElementById('platform-group');
     if (platforms.length > 1) {
-      pWrap.style.display = '';
+      if (pGroup) pGroup.hidden = false;
       var chipsHtml = '<button class="chip active" data-platform="all">全平台</button>';
       platforms.forEach(function (p) {
         chipsHtml += '<button class="chip" data-platform="' + esc(p) + '">' + esc(Render.platLabel(p)) + '</button>';
@@ -258,6 +318,8 @@
       });
       var top = Object.keys(counts).sort(function (a, b) { return counts[b] - counts[a]; }).slice(0, 8);
       if (!top.length) return;
+      var tagGroup = document.getElementById('tag-group');
+      if (tagGroup) tagGroup.hidden = false;
       var wrap = document.getElementById('tag-chips');
       var html = '<button class="chip active" data-tag="">全部标签</button>';
       top.forEach(function (tag) {
@@ -308,7 +370,7 @@
     // 只处理类型筛选;平台/标签 chip 有各自的处理器,不能被这里接管
     document.querySelectorAll('.chip[data-filter]').forEach(function (chip) {
       chip.addEventListener('click', function () {
-        document.querySelectorAll('.chip').forEach(function (c) { c.classList.remove('active'); });
+        document.querySelectorAll('#filter-bar .chip[data-filter]').forEach(function (c) { c.classList.remove('active'); });
         chip.classList.add('active');
         currentFilter = chip.getAttribute('data-filter');
         render();

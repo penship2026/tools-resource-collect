@@ -434,6 +434,8 @@
     });
     var names = Object.keys(counts).sort(function (a, b) { return counts[b] - counts[a]; }).slice(0, 8);
     if (mineTag && names.indexOf(mineTag) < 0) mineTag = ''; // 取消收藏后标签消失,自动回到全部
+    var group = document.getElementById('mine-tag-group');
+    if (group) group.hidden = !names.length;
     var html = names.length ? '<button class="chip" data-mine-tag="">全部标签</button>' : '';
     names.forEach(function (tag) {
       html += '<button class="chip" data-mine-tag="' + esc(tag) + '">' + esc(tag) + ' (' + counts[tag] + ')</button>';

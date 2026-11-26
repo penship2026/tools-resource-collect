@@ -25,9 +25,14 @@
 
     /* ---------- 模板 A:B站视频(双栏 + 官方 iframe 播放器) ---------- */
     .single-layout { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(260px, 1fr); gap: 28px; align-items: start; }
-    @media (max-width: 860px) { .single-layout { grid-template-columns: 1fr; } }
+    /* 网格子项默认 min-width:auto,里面横向滑动的分集目录会把整列撑宽,移动端尤其明显 */
+    .single-layout > * { min-width: 0; }
+    @media (max-width: 860px) {
+      .single-layout { grid-template-columns: minmax(0, 1fr); gap: 22px; }
+      .player-frame, .wx-article, .xhs-card, .cover-link { width: 100%; }
+    }
     .player-frame {
-      position: relative; aspect-ratio: 16 / 9; border-radius: var(--radius);
+      position: relative; width: 100%; aspect-ratio: 16 / 9; border-radius: var(--radius);
       overflow: hidden; background: #000; box-shadow: var(--shadow);
     }
     .player-frame iframe { width: 100%; height: 100%; border: 0; display: block; }
@@ -37,7 +42,7 @@
     /* 分集/分P 目录:紧跟播放区,横向滑动;展开全部后切网格 */
     .parts-slot:empty { display: none; }
     .parts-strip {
-      margin-top: 16px; padding: 14px 16px; background: var(--surface);
+      margin-top: 16px; padding: 14px 16px; background: var(--surface); min-width: 0;
       border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow);
     }
     .parts-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
@@ -50,7 +55,7 @@
     }
     .parts-toggle:hover { border-color: var(--brand); color: var(--brand); }
     .parts-scroll {
-      display: flex; gap: 8px; overflow-x: auto; padding: 2px 0 8px;
+      display: flex; gap: 8px; overflow-x: auto; max-width: 100%; padding: 2px 0 8px;
       scrollbar-width: thin; -webkit-overflow-scrolling: touch;
     }
     .part-chip {
@@ -70,6 +75,13 @@
     }
     .parts-strip.expanded .part-chip { max-width: none; width: 100%; }
     .parts-strip.expanded .part-chip .pc-t { max-width: none; }
+    @media (max-width: 600px) {
+      .parts-strip { padding: 12px; }
+      .parts-head h3 { font-size: 13px; }
+      .parts-now { flex-basis: 100%; margin-left: 0; order: 9; }
+      .part-chip { max-width: 230px; }
+      .part-chip .pc-t { max-width: 132px; }
+    }
 
     .detail h1 { font-size: 22px; font-weight: 600; line-height: 1.4; margin: 0 0 12px; }
     .detail .sub { color: var(--text-sub); font-size: 13px; margin: 0 0 18px; }

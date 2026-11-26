@@ -10,6 +10,13 @@ window.COLLECTION_DATA["daily-website"] = {
     "url": "https://space.bilibili.com/3690973370517975/video"
   },
   "keyword": "每天挖掘一个神奇网站",
+  "tags": [
+    "实用工具",
+    "资源分享",
+    "网站推荐",
+    "干货分享",
+    "虚拟资料"
+  ],
   "count": 24,
   "videos": [
     {
@@ -69,18 +76,18 @@ window.COLLECTION_DATA["daily-website"] = {
       "key": "bilibili:BV1R3s56tEwQ"
     },
     {
+      "platform": "bilibili",
+      "kind": "video",
+      "key": "bilibili:BV1QTWi62EjF",
       "title": "一个免费的资源宝库",
       "bv": "BV1QTWi62EjF",
       "url": "https://www.bilibili.com/video/BV1QTWi62EjF/",
       "cover": "https://i2.hdslb.com/bfs/archive/1bfc8ded579ed80df1e73fc25134627ae013e6e0.jpg",
-      "views": "350",
+      "views": "419",
       "date": "2026.11.13",
       "ts": 1794569158,
       "author": "草根的异世界",
-      "desc": "它是互联网上最大的免费资源库，各种影视资源、播客课程、绝版电子书，甚至成套的单机游戏大作，在这里几乎都能找到。",
-      "platform": "bilibili",
-      "kind": "video",
-      "key": "bilibili:BV1QTWi62EjF"
+      "desc": "它是互联网上最大的免费资源库，各种影视资源、播客课程、绝版电子书，甚至成套的单机游戏大作，在这里几乎都能找到。"
     },
     {
       "title": "一个让你的桌面颜值封神的网站",
@@ -349,17 +356,12 @@ window.COLLECTION_DATA["daily-website"] = {
       "key": "bilibili:BV1jHao6TEDs"
     }
   ],
-  "enabled": true,
-  "created": "",
-  "updated": "2026-11-25",
-  "cover": "https://i2.hdslb.com/bfs/archive/2a2da89665dc1cc8f21f1837861f833731fb51df.png",
-  "latest": "2026.11.19",
-  "tags": [
-    "拼音拼读",
-    "拼音识字",
-    "实用工具",
-    "汉语拼音",
-    "网站推荐"
+  "section": "tools",
+  "platforms": [
+    "bilibili"
   ],
-  "section": "tools"
+  "updated": "2026-11-27",
+  "latest": "2026.11.19",
+  "created": "2026-11-26",
+  "enabled": true
 };

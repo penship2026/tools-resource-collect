@@ -7,6 +7,131 @@ window.SITE = {
 };
 window.COLLECTION_INDEX = [
   {
+    "id": "daily-website",
+    "type": "series",
+    "title": "每天挖掘一个神奇网站",
+    "slogan": "共收录 24 期,点击分集在当前页播放",
+    "source": {
+      "platform": "bilibili",
+      "name": "草根的异世界",
+      "url": "https://space.bilibili.com/3690973370517975/video"
+    },
+    "keyword": "每天挖掘一个神奇网站",
+    "tags": [
+      "实用工具",
+      "资源分享",
+      "网站推荐",
+      "干货分享",
+      "虚拟资料"
+    ],
+    "count": 24,
+    "section": "tools",
+    "platforms": [
+      "bilibili"
+    ],
+    "updated": "2026-11-27",
+    "latest": "2026.11.19",
+    "created": "2026-11-26",
+    "enabled": true,
+    "cover": "https://i2.hdslb.com/bfs/archive/2a2da89665dc1cc8f21f1837861f833731fb51df.png",
+    "section_title": "工具与效率",
+    "section_enabled": true
+  },
+  {
+    "id": "topic-df282732",
+    "type": "series",
+    "title": "SpringAI",
+    "slogan": "共收录 3 期,点击分集在当前页播放",
+    "source": {
+      "platform": "bilibili",
+      "name": "徐庶AI实战",
+      "url": "https://space.bilibili.com/3493131121068547/video"
+    },
+    "keyword": "SpringAI",
+    "tags": [
+      "AI",
+      "程序员",
+      "编程",
+      "Java后端开发",
+      "大模型开发",
+      "Spring AI",
+      "后端转AI",
+      "Java",
+      "Agent",
+      "AI开发"
+    ],
+    "count": 3,
+    "section": "ai",
+    "platforms": [
+      "bilibili"
+    ],
+    "updated": "2026-11-27",
+    "latest": "2026.11.24",
+    "created": "2026-11-26",
+    "enabled": true,
+    "cover": "https://i2.hdslb.com/bfs/archive/7f4ef0ca45c592134ca812cbbeb587835e60b5a9.jpg",
+    "section_title": "AI 与智能工具",
+    "section_enabled": true
+  },
+  {
+    "id": "topic-e5b5c763",
+    "type": "series",
+    "title": "英语启蒙必备",
+    "slogan": "共收录 1 期,点击分集在当前页播放",
+    "source": {
+      "platform": "bilibili",
+      "name": "爱学习的柒影",
+      "url": "https://space.bilibili.com/3546645132216606/video"
+    },
+    "keyword": "英语启蒙必备",
+    "tags": [
+      "英语",
+      "儿童",
+      "学习视频",
+      "学前",
+      "早教",
+      "英语学习",
+      "少儿英语",
+      "英语启蒙"
+    ],
+    "count": 1,
+    "section": "k12",
+    "platforms": [
+      "bilibili"
+    ],
+    "updated": "2026-11-27",
+    "latest": "2024.03.14",
+    "created": "2026-11-26",
+    "enabled": true,
+    "cover": "https://i0.hdslb.com/bfs/archive/ebcd3c7807fb70574d651216cc4063b7e109c305.jpg",
+    "section_title": "中小学教育",
+    "section_enabled": true
+  },
+  {
+    "id": "wx-nxpxhhghan9dvfzoat5avg",
+    "type": "single",
+    "title": "《沿着纬度听中国》第二季城市篇从福建将乐启程",
+    "slogan": "单条内容精选 · 前往公众号阅读原文",
+    "source": {
+      "platform": "wechat",
+      "name": "央广网",
+      "url": "https://mp.weixin.qq.com/s/nxpXHhgHan9dVfZOAt5avg"
+    },
+    "keyword": "https://mp.weixin.qq.com/s/nxpXHhgHan9dVfZOAt5avg",
+    "tags": [
+      "央广网"
+    ],
+    "count": 1,
+    "updated": "2026-11-27",
+    "latest": "2026.11.24",
+    "section": "humanities",
+    "cover": "https://mmbiz.qpic.cn/mmbiz_jpg/eT2Hxs8JQmMYuUGAPiaibwuBm9JslsPRcDz78NnibsEBKY89feEvibT0Qkf4BT2F0SXsnnGsA6VVa0NSn1IiajTvwkUicMo9ekQ3XFVHzonAZduzo/0?wx_fmt=jpeg",
+    "section_title": "人文与通识",
+    "section_enabled": false,
+    "created": "2026-11-26",
+    "enabled": true
+  },
+  {
     "id": "bv1uks66oeeh",
     "type": "single",
     "title": "2027吃透SpringAI2.0+Agent-utils全套系统教程，3天仿一个Claude Code代码助手项目实战，让你少走99%的弯路！",
@@ -231,94 +356,6 @@ window.COLLECTION_INDEX = [
     "created": "2026-11-26"
   },
   {
-    "id": "topic-df282732",
-    "title": "SpringAI",
-    "slogan": "共收录 3 期,点击分集在当前页播放",
-    "source": {
-      "platform": "bilibili",
-      "name": "徐庶AI实战",
-      "url": "https://space.bilibili.com/3493131121068547/video"
-    },
-    "count": 3,
-    "type": "series",
-    "enabled": true,
-    "created": "2026-11-26",
-    "updated": "2026-11-26",
-    "keyword": "",
-    "cover": "https://i2.hdslb.com/bfs/archive/7f4ef0ca45c592134ca812cbbeb587835e60b5a9.jpg",
-    "latest": "2026.11.24",
-    "tags": [
-      "程序员",
-      "AI",
-      "编程",
-      "Java后端开发",
-      "大模型开发",
-      "Spring AI",
-      "后端转AI",
-      "Java",
-      "Agent",
-      "AI开发"
-    ],
-    "section": "ai",
-    "section_title": "AI 与智能工具",
-    "section_enabled": true
-  },
-  {
-    "id": "topic-e5b5c763",
-    "title": "英语启蒙必备",
-    "slogan": "共收录 1 期,点击分集在当前页播放",
-    "source": {
-      "platform": "bilibili",
-      "name": "爱学习的柒影",
-      "url": "https://space.bilibili.com/3546645132216606/video"
-    },
-    "count": 1,
-    "type": "series",
-    "enabled": true,
-    "created": "2026-11-26",
-    "updated": "2026-11-26",
-    "keyword": "",
-    "cover": "https://i0.hdslb.com/bfs/archive/ebcd3c7807fb70574d651216cc4063b7e109c305.jpg",
-    "latest": "2024.03.14",
-    "tags": [
-      "儿童",
-      "英语",
-      "少儿英语",
-      "英语学习",
-      "早教",
-      "学习视频",
-      "学前",
-      "英语启蒙"
-    ],
-    "section": "k12",
-    "section_title": "中小学教育",
-    "section_enabled": true
-  },
-  {
-    "id": "wx-nxpxhhghan9dvfzoat5avg",
-    "type": "single",
-    "title": "一座城市的纬度密码！《沿着纬度听中国》第二季城市篇从福建将乐启程",
-    "slogan": "单条内容精选 · 前往公众号阅读原文",
-    "source": {
-      "platform": "wechat",
-      "name": "央广网",
-      "url": "https://mp.weixin.qq.com/s/nxpXHhgHan9dVfZOAt5avg"
-    },
-    "keyword": "https://mp.weixin.qq.com/s/nxpXHhgHan9dVfZOAt5avg",
-    "tags": [
-      "央广网"
-    ],
-    "count": 1,
-    "updated": "2026-11-26",
-    "latest": "2026.11.24",
-    "section": "humanities",
-    "cover": "https://mmbiz.qpic.cn/mmbiz_jpg/eT2Hxs8JQmMYuUGAPiaibwuBm9JslsPRcDz78NnibsEBKY89feEvibT0Qkf4BT2F0SXsnnGsA6VVa0NSn1IiajTvwkUicMo9ekQ3XFVHzonAZduzo/0?wx_fmt=jpeg",
-    "section_title": "人文与通识",
-    "section_enabled": false,
-    "created": "2026-11-26",
-    "enabled": true
-  },
-  {
     "id": "bv1j4w16reys",
     "title": "不上班靠AI提车买房！",
     "slogan": "单条视频精选 · 点击进入详情页",
@@ -349,34 +386,6 @@ window.COLLECTION_INDEX = [
     ],
     "section": "ai",
     "section_title": "AI 与智能工具",
-    "section_enabled": true
-  },
-  {
-    "id": "daily-website",
-    "type": "series",
-    "title": "每天挖掘一个神奇网站",
-    "slogan": "共收录 24 期,点击分集在当前页播放",
-    "source": {
-      "platform": "bilibili",
-      "name": "草根的异世界",
-      "url": "https://space.bilibili.com/3690973370517975/video"
-    },
-    "keyword": "每天挖掘一个神奇网站",
-    "count": 24,
-    "enabled": true,
-    "created": "2026-11-26",
-    "updated": "2026-11-25",
-    "cover": "https://i2.hdslb.com/bfs/archive/2a2da89665dc1cc8f21f1837861f833731fb51df.png",
-    "latest": "2026.11.19",
-    "tags": [
-      "拼音拼读",
-      "拼音识字",
-      "实用工具",
-      "汉语拼音",
-      "网站推荐"
-    ],
-    "section": "tools",
-    "section_title": "工具与效率",
     "section_enabled": true
   }
 ];

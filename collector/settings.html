@@ -54,6 +54,11 @@
     .mini input[type=text] { flex: 1 1 180px; }
     .check { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-sub); }
     .check input { accent-color: var(--brand); }
+    .channel-picker { display: flex; flex-wrap: wrap; gap: 8px; }
+    .channel-chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); font-size: 13px; color: var(--text-sub); cursor: pointer; }
+    .channel-chip:has(input:checked) { border-color: var(--brand); background: #eef3fb; color: var(--text); }
+    .channel-chip input { margin: 0; accent-color: var(--brand); }
+    .channel-chip:has(input:disabled) { cursor: default; opacity: .72; }
     .btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; background: var(--brand); color: #fff; border: none; border-radius: 8px; padding: 10px 16px; font-size: 13px; cursor: pointer; }
     .btn:disabled { opacity: .55; cursor: not-allowed; }
     .btn.ghost { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
@@ -76,6 +81,12 @@
     .cron { width: 100%; box-sizing: border-box; min-height: 112px; font-family: var(--font-mono); font-size: 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 10px; color: var(--text); }
     .pill { display: inline-block; font-size: 11px; padding: 3px 7px; border-radius: 999px; background: #eef3fb; color: #2d7ff9; margin-left: 6px; }
     .bar { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 12px; }
+    .bar-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .area-tools { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+    .area-tools input[type=search] { flex: 1 1 auto; min-width: 0; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; color: var(--text); font-size: 13px; font-family: inherit; }
+    .area-tools input[type=search]:focus { outline: 2px solid var(--brand); outline-offset: 0; }
+    .area-tools .btn { flex: 0 0 auto; padding: 8px 12px; font-size: 12px; }
+    .empty { border: 1px dashed var(--border); border-radius: 8px; padding: 14px; color: var(--text-mute); font-size: 13px; text-align: center; }
     .unsaved { color: #c0392b; font-size: 12px; }
     @media (max-width: 520px) {
       .top { flex-wrap: wrap; }
@@ -98,11 +109,11 @@
   <div class="top">
     <div>
       <h1>采集设置</h1>
-      <p>本机设置页；默认只监听 127.0.0.1，使用 --lan 启动后同一 Wi-Fi 下手机可访问。卡片可单独编辑保存；底部「保存设置」仍可整页保存。</p>
+      <p>本机设置页；默认只监听 127.0.0.1，使用 --lan 启动后同一 Wi-Fi 下手机可访问。卡片可单独编辑保存；底部「保存全部改动」用于批量保存和删除落盘。</p>
     </div>
     <div class="top-actions">
       <a href="/collector/settings-guide.html">填写说明</a>
-      <button class="btn ghost" id="toggle-all" type="button">全部展开</button>
+      <button class="btn ghost" id="toggle-all" type="button">整页展开</button>
       <a href="/collect.html">← 返回采集页</a>
     </div>
   </div>
@@ -112,24 +123,41 @@
       <div class="panel">
         <div class="bar">
           <div>
-            <h2>板块</h2>
+            <h2>板块 <span class="pill" id="section-count">—</span></h2>
             <div class="hint">0–18 岁三段不可删除、不可改边界；其他板块只能全龄。</div>
           </div>
-          <button class="btn ghost" id="add-section">+ 新增板块</button>
+          <div class="bar-actions">
+            <button class="btn ghost" id="add-section">+ 新增板块</button>
+          </div>
+        </div>
+        <div class="area-tools">
+          <input type="search" id="search-sections" placeholder="搜索板块名称、id 或说明" autocomplete="off">
+          <button class="btn ghost" id="toggle-sections" type="button">全部展开</button>
         </div>
         <div id="sections"></div>
         <div class="btns">
-          <button class="btn" id="save">保存设置</button>
+          <button class="btn" id="save">保存全部改动</button>
           <span id="save-state"></span>
         </div>
+        <div class="hint">单卡改完可点卡片内「保存本卡」；这里用于一次保存多张卡片，以及删除板块/主题后落盘。</div>
         <div class="status" id="settings-status"></div>
       </div>
 
       <div class="panel">
-        <h2>主题</h2>
-        <div class="hint">must 全部命中 + any 至少命中一个；主题 id 同时是采集单元 id，保存后不可改。</div>
+        <div class="bar">
+          <div>
+            <h2>主题 <span class="pill" id="topic-count">—</span></h2>
+            <div class="hint">must 全部命中 + any 至少命中一个；主题 id 同时是采集单元 id，保存后不可改。</div>
+          </div>
+          <div class="bar-actions">
+            <button class="btn ghost" id="add-topic">+ 新增主题</button>
+          </div>
+        </div>
+        <div class="area-tools">
+          <input type="search" id="search-topics" placeholder="搜索主题、板块或关键词" autocomplete="off">
+          <button class="btn ghost" id="toggle-topics" type="button">全部展开</button>
+        </div>
         <div id="topics"></div>
-        <button class="btn ghost" id="add-topic">+ 新增主题</button>
       </div>
     </div>
 
@@ -193,8 +221,14 @@
     sections: [], topics: [], csrf: "", schedule: {},
     editing: { section: {}, topic: {} },
     dirtyKeys: {},
-    baselines: { section: [], topic: [] }
+    baselines: { section: [], topic: [] },
+    search: { section: "", topic: "" }
   };
+  var CHANNEL_OPTIONS = [
+    { id: "bilibili", label: "B站" },
+    { id: "wechat", label: "公众号" },
+    { id: "xhs", label: "小红书" }
+  ];
   var $ = function (id) { return document.getElementById(id); };
   var esc = function (s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"})[c]; }); };
   var status = function (el, text, ok) { el.textContent = text || ""; el.className = "status" + (text ? (ok ? " ok" : " err") : ""); };
@@ -237,6 +271,30 @@
     updateDirtyLabel();
   };
   var clone = function (value) { return JSON.parse(JSON.stringify(value)); };
+  var sortSections = function (sections) {
+    return sections.slice().sort(function (a, b) {
+      var oa = Number(a.order), ob = Number(b.order);
+      if (oa !== ob) return oa - ob;
+      return String(a.id).localeCompare(String(b.id));
+    });
+  };
+  var normSearch = function (value) { return String(value == null ? "" : value).toLowerCase().trim(); };
+  var sectionMatches = function (s, query) {
+    if (!query) return true;
+    var age = s.age_min_months == null ? "全龄" : (s.age_min_months + "–" + s.age_max_months + " 月");
+    return normSearch([s.title, s.id, s.description || "", age].join(" ")).indexOf(query) >= 0;
+  };
+  var topicMatches = function (t, query) {
+    if (!query) return true;
+    var sec = state.sections.filter(function (s) { return s.id === t.section; })[0];
+    var channels = (t.channels || []).map(function (id) {
+      var opt = CHANNEL_OPTIONS.filter(function (c) { return c.id === id; })[0];
+      return opt ? opt.label : id;
+    });
+    var text = [t.title, t.id, t.section, sec ? sec.title : "", (t.must_keywords || []).join(" "),
+      (t.any_keywords || []).join(" "), channels.join(" "), t.enabled === false ? "停用" : "启用"].join(" ");
+    return normSearch(text).indexOf(query) >= 0;
+  };
   var listFor = function (kind) { return kind === "section" ? state.sections : state.topics; };
   var baselineFor = function (kind) { return kind === "section" ? state.baselines.section : state.baselines.topic; };
   var findItem = function (kind, id) {
@@ -290,6 +348,25 @@
   function collapseCards() {
     return document.querySelectorAll("[data-collapse-kind][data-collapse-id]");
   }
+  function cardsFor(kind) {
+    return document.querySelectorAll('[data-collapse-kind="' + kind + '"][data-collapse-id]');
+  }
+  function allCardsOpen(cards) {
+    return cards.length > 0 && Array.prototype.every.call(cards, function (card) {
+      return !card.classList.contains("is-collapsed");
+    });
+  }
+  function updateAreaToggle(kind, cards) {
+    var btn = $(kind === "section" ? "toggle-sections" : "toggle-topics");
+    if (!btn) return;
+    if (!cards.length) {
+      btn.disabled = true;
+      btn.textContent = "无结果";
+      return;
+    }
+    btn.disabled = false;
+    btn.textContent = allCardsOpen(cards) ? "全部收起" : "全部展开";
+  }
   function applyCollapseState() {
     var cards = collapseCards();
     cards.forEach(function (card) {
@@ -300,11 +377,19 @@
       var btn = card.querySelector("[data-collapse-btn]");
       if (btn) btn.setAttribute("aria-expanded", open ? "true" : "false");
     });
-    var total = cards.length;
-    var allClosed = total > 0 && Array.prototype.every.call(cards, function (card) {
-      return card.classList.contains("is-collapsed");
+    updateAreaToggle("section", cardsFor("section"));
+    updateAreaToggle("topic", cardsFor("topic"));
+    $("toggle-all").disabled = cards.length === 0;
+    $("toggle-all").textContent = allCardsOpen(cards) ? "整页收起" : "整页展开";
+  }
+  function toggleAreaCards(kind) {
+    var cards = cardsFor(kind);
+    var target = !allCardsOpen(cards);
+    cards.forEach(function (card) {
+      setExpanded(kind, card.getAttribute("data-collapse-id"), target);
     });
-    $("toggle-all").textContent = allClosed ? "全部展开" : "全部收起";
+    applyCollapseState();
+    saveExpanded();
   }
   function toggleAllCards() {
     var cards = collapseCards();
@@ -338,7 +423,15 @@
 
   function renderSections() {
     var box = $("sections");
-    box.innerHTML = state.sections.map(function (s, idx) {
+    var query = normSearch(state.search.section);
+    var all = sortSections(state.sections);
+    var shown = all.filter(function (s) { return sectionMatches(s, query); });
+    $("section-count").textContent = query ? (shown.length + "/" + all.length) : String(all.length);
+    if (!shown.length) {
+      box.innerHTML = '<div class="empty">没有匹配的板块，换个关键词试试。</div>';
+      return;
+    }
+    box.innerHTML = shown.map(function (s, idx) {
       var reserved = ["infant-care", "preschool", "k12"].indexOf(s.id) >= 0;
       var age = s.age_min_months == null ? "全龄" : (s.age_min_months + "–" + s.age_max_months + " 月");
       var editing = isEditing("section", s.id);
@@ -365,13 +458,25 @@
 
   function renderTopics() {
     var box = $("topics");
-    if (!state.topics.length) { box.innerHTML = '<div class="hint">还没有主题。新增板块后请至少加一个启用主题，才能参与自动采集。</div>'; return; }
-    box.innerHTML = state.topics.map(function (t, idx) {
+    var query = normSearch(state.search.topic);
+    var shown = state.topics.filter(function (t) { return topicMatches(t, query); });
+    $("topic-count").textContent = query ? (shown.length + "/" + state.topics.length) : String(state.topics.length);
+    if (!shown.length) {
+      box.innerHTML = state.topics.length
+        ? '<div class="empty">没有匹配的主题，换个关键词试试。</div>'
+        : '<div class="hint">还没有主题。新增板块后请至少加一个启用主题，才能参与自动采集。</div>';
+      return;
+    }
+    box.innerHTML = shown.map(function (t, idx) {
       var sec = state.sections.filter(function (s) { return s.id === t.section; })[0];
       var editing = isEditing("topic", t.id);
       var dis = editing ? "" : " disabled";
       var options = state.sections.map(function (s) {
         return '<option value="' + esc(s.id) + '"' + (s.id === t.section ? " selected" : "") + '>' + esc(s.title) + '（' + esc(s.id) + '）</option>';
+      }).join("");
+      var channelPicker = CHANNEL_OPTIONS.map(function (c) {
+        var checked = (t.channels || []).indexOf(c.id) >= 0;
+        return '<label class="channel-chip"><input type="checkbox" data-f="channels" value="' + esc(c.id) + '"' + (checked ? " checked" : "") + dis + '><span>' + esc(c.label) + '</span></label>';
       }).join("");
       return '<div class="topic-row is-collapsed' + (editing ? ' is-editing' : '') + '" data-top="' + idx + '" data-collapse-kind="topic" data-collapse-id="' + esc(t.id) + '">' +
         '<div class="topic-head">' +
@@ -387,7 +492,7 @@
           '<div class="row"><label>板块</label><select data-f="section"' + dis + '>' + options + '</select></div>' +
           '<div class="row"><label>must</label><input type="text" data-f="must_keywords" value="' + esc((t.must_keywords || []).join("，")) + '" placeholder="1–4 个，全部命中"' + dis + '></div>' +
           '<div class="row"><label>any</label><input type="text" data-f="any_keywords" value="' + esc((t.any_keywords || []).join("，")) + '" placeholder="0–5 个，至少一个"' + dis + '></div>' +
-          '<div class="row"><label>渠道</label><input type="text" data-f="channels" value="' + esc((t.channels || []).join("，")) + '" placeholder="bilibili，wechat，xhs"' + dis + '></div>' +
+          '<div class="row"><label>渠道</label><div class="channel-picker">' + channelPicker + '</div></div>' +
           '<div class="row"><label>显示/采集</label><label class="check"><input type="checkbox" data-f="enabled"' + (t.enabled !== false ? " checked" : "") + dis + '> 启用</label></div>' +
           (editing ? '<div class="card-actions"><span class="card-status" data-card-status="topic:' + esc(t.id) + '"></span><button class="btn" data-save-topic="' + esc(t.id) + '">保存本卡</button><button class="btn ghost" data-cancel-topic="' + esc(t.id) + '">取消</button><button class="btn danger" data-del-topic="' + idx + '">删除主题</button></div>' : '') +
         '</div>' +
@@ -416,7 +521,13 @@
           markDirty("section", id);
         };
         input.addEventListener("input", handler);
-        input.addEventListener("change", function () { if (input.type === "checkbox") handler(); });
+        input.addEventListener("change", function () {
+          if (input.type === "checkbox" || f === "order") handler();
+          if (f === "order") {
+            state.sections = sortSections(state.sections);
+            renderAll();
+          }
+        });
       });
       var edit = card.querySelector("[data-edit-section]");
       if (edit) edit.addEventListener("click", function () { startEdit("section", id); });
@@ -441,7 +552,10 @@
           var t = findItem("topic", id);
           if (!t) return;
           if (f === "enabled") t[f] = input.checked;
-          else if (f === "must_keywords" || f === "any_keywords" || f === "channels") {
+          else if (f === "channels" && input.type === "checkbox") {
+            t.channels = Array.prototype.map.call(card.querySelectorAll('[data-f="channels"]:checked'), function (box) { return box.value; });
+          }
+          else if (f === "must_keywords" || f === "any_keywords") {
             t[f] = input.value.split(/[,，\s|]+/).filter(Boolean);
           } else {
             t[f] = input.value;
@@ -485,6 +599,7 @@
       var idx = list.findIndex(function (item) { return item.id === id; });
       if (idx >= 0) list.splice(idx, 1);
     }
+    if (kind === "section") state.sections = sortSections(state.sections);
     setEditing(kind, id, false);
     clearDirty(kind, id);
     renderAll();
@@ -493,6 +608,11 @@
   async function saveCard(kind, id) {
     var item = findItem(kind, id);
     if (!item) { status($("settings-status"), "卡片不存在，无法保存", false); return; }
+    if (kind === "topic" && !(item.channels || []).length) {
+      cardStatus(kind, id, "至少选择一个渠道", false);
+      status($("settings-status"), "保存本卡失败：至少选择一个渠道", false);
+      return;
+    }
     var path = kind === "section"
       ? "/api/settings/sections/" + encodeURIComponent(id)
       : "/api/settings/topics/" + encodeURIComponent(id);
@@ -503,6 +623,7 @@
         replaceItem(kind, id, saved);
         replaceBaseline(kind, id, saved);
       }
+      if (kind === "section") state.sections = sortSections(state.sections);
       setEditing(kind, id, false);
       clearDirty(kind, id);
       var warns = (data.warnings || []).join("；");
@@ -519,6 +640,7 @@
       var data = await api("/api/settings");
       state.sections = data.sections || [];
       state.topics = data.topics || [];
+      state.sections = sortSections(state.sections);
       state.csrf = data.csrf_token || "";
       state.schedule = data.schedule || {};
       $("cron-value").textContent = state.schedule.cron || "—";
@@ -540,6 +662,7 @@
     if (!title) return;
     if (state.sections.some(function (s) { return s.id === id; })) { alert("板块 id 已存在"); return; }
     state.sections.push({ id: id, title: title, age_min_months: null, age_max_months: null, order: state.sections.length + 1, enabled: true, description: "" });
+    state.sections = sortSections(state.sections);
     setExpanded("section", id, true);
     saveExpanded();
     setEditing("section", id, true);
@@ -566,11 +689,17 @@
   });
 
   $("save").addEventListener("click", async function () {
+    var emptyChannel = state.topics.filter(function (t) { return !(t.channels || []).length; })[0];
+    if (emptyChannel) {
+      status($("settings-status"), "保存失败：主题「" + emptyChannel.title + "」至少选择一个渠道", false);
+      return;
+    }
     $("save").disabled = true;
     try {
       var data = await api("/api/settings", { method: "PUT", body: JSON.stringify({ sections: state.sections, topics: state.topics }) });
       state.sections = data.sections || state.sections;
       state.topics = data.topics || state.topics;
+      state.sections = sortSections(state.sections);
       state.editing = { section: {}, topic: {} };
       resetBaselines();
       clearAllDirty();
@@ -642,6 +771,16 @@
   });
 
   $("toggle-all").addEventListener("click", toggleAllCards);
+  $("toggle-sections").addEventListener("click", function () { toggleAreaCards("section"); });
+  $("toggle-topics").addEventListener("click", function () { toggleAreaCards("topic"); });
+  $("search-sections").addEventListener("input", function () {
+    state.search.section = this.value;
+    renderAll();
+  });
+  $("search-topics").addEventListener("input", function () {
+    state.search.topic = this.value;
+    renderAll();
+  });
   document.addEventListener("click", function (e) {
     var btn = e.target.closest && e.target.closest("[data-collapse-btn]");
     if (!btn) return;

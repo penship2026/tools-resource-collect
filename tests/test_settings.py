@@ -59,12 +59,13 @@ class SettingsStoreTest(unittest.TestCase):
         merged = settings_store.merge_topic(topics, "daily-website", {
             "title": "每天一个网站",
             "any_keywords": ["网站", "工具"],
-            "channels": ["bilibili"],
+            "channels": ["bilibili", "wechat"],
         })
         item = next(t for t in merged if t["id"] == "daily-website")
         self.assertEqual(item["section"], "tools")
         self.assertEqual(item["title"], "每天一个网站")
         self.assertEqual(item["any_keywords"], ["网站", "工具"])
+        self.assertEqual(item["channels"], ["bilibili", "wechat"])
 
     def test_git_path_whitelist(self):
         self.assertTrue(git_sync._allowed("assets/data/index.js"))

@@ -44,6 +44,19 @@ class SettingsPageTest(unittest.TestCase):
         for text in ("must", "any", "作者锁", "立即执行", "数据同步 Git"):
             self.assertIn(text, guide)
 
+    def test_channel_picker_and_section_sorting(self):
+        html = (ROOT / "collector" / "settings.html").read_text(encoding="utf-8")
+        self.assertIn('class="channel-picker"', html)
+        self.assertIn('data-f="channels" value=', html)
+        self.assertIn("var sortSections = function", html)
+        self.assertIn("state.sections = sortSections(state.sections)", html)
+
+    def test_area_search_and_independent_toggles(self):
+        html = (ROOT / "collector" / "settings.html").read_text(encoding="utf-8")
+        for text in ('id="search-sections"', 'id="search-topics"', 'id="toggle-sections"',
+                     'id="toggle-topics"', "function toggleAreaCards", "function cardsFor"):
+            self.assertIn(text, html)
+
 
 if __name__ == "__main__":
     unittest.main()

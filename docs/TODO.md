@@ -230,6 +230,13 @@
 - **文档**:PLAN 追加 10.5(D42),README/GITHUB-PAGES 五套→六套同步。
 - **验证**:32 个 Python 用例、10 个 node 用例、`--verify`、docs-check 全通过;截图对比 `tech`/`dark`、`anime`/`classical`,区分明显。
 
+### ✅ 22. 布局 token 化清单落档 + 我的页仅收藏与自定义标题(D43/D44)(2026-11-26)
+
+- **清单落档**:PLAN 追加第十一章,含重复声明冲突表(10 处)、五组布局 token 建议值、哪些进主题/哪些走独立布局维度、实施顺序与验收矩阵、成本风险。
+- **我的页内容**:`?view=mine` 只渲染 `localStorage` 收藏,不混入公开主题/条目;修复 `.topic-grid` 等 `display` 覆盖 `[hidden]` 导致公开网格仍然显示的缺陷(新增全局 `[hidden]` 兜底)。
+- **自定义标题**:标题旁 ✎ → 行内输入,Enter/失焦保存、Esc 取消(抑制 blur 回写),上限 20 字、留空恢复默认;存 `jiye.mine.title.v1`,同步 `document.title`;新增 `test_pages.py::test_mine_title_hooks`。
+- **验证**:33 个 Python 用例、10 个 node 用例、`--verify`、docs-check 通过;截图确认 `?view=mine` 不再出现公开网格。
+
 ---
 
 ## 新增待办

@@ -10,6 +10,9 @@
   'use strict';
 
   var STORE_KEY = 'jiye.mine.v1';
+  var TITLE_KEY = 'jiye.mine.title.v1';
+  var TITLE_MAX = 20;
+  var DEFAULT_TITLE = '我的收藏';
   var LIMIT = 800;
 
   function esc(v) {
@@ -17,6 +20,24 @@
     return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) {
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
     });
+  }
+
+  function mineTitle() {
+    try {
+      var t = String(global.localStorage.getItem(TITLE_KEY) || '').trim();
+      return t ? t.slice(0, TITLE_MAX) : DEFAULT_TITLE;
+    } catch (e) {
+      return DEFAULT_TITLE;
+    }
+  }
+
+  function setMineTitle(value) {
+    var t = String(value || '').trim().slice(0, TITLE_MAX);
+    try {
+      if (t) global.localStorage.setItem(TITLE_KEY, t);
+      else global.localStorage.removeItem(TITLE_KEY);
+    } catch (e) { /* 隐私模式忽略 */ }
+    return t || DEFAULT_TITLE;
   }
 
   function uid(unit, key) { return String(unit || '') + '|' + String(key || ''); }
@@ -288,6 +309,9 @@
     var panel = document.getElementById('mine-panel');
     if (!panel) return;
     var body = panel.querySelector('#mine-body');
+    var titleEl = panel.querySelector('#mine-title');
+    if (titleEl) titleEl.textContent = mineTitle();
+    // 我的视图只渲染本机收藏(localStorage),不混入公开数据
     var items = list();
     var units = unitsEnabledMap();
     body.innerHTML = items.length
@@ -318,7 +342,42 @@
       m.content = 'noindex, nofollow';
       document.head.appendChild(m);
     }
-    document.title = '我的收藏 · 集页';
+    document.title = mineTitle() + ' · 集页';
+
+    // 自定义页面标题:点击 ✎ 变输入框,回车/失焦保存,Esc 取消(只存本机)
+    (function () {
+      var edit = panel.querySelector('#mine-title-edit');
+      var input = panel.querySelector('#mine-title-input');
+      var titleEl = panel.querySelector('#mine-title');
+      var cancelled = false;
+      if (!edit || !input || !titleEl) return;
+      function showInput() {
+        input.value = mineTitle();
+        titleEl.hidden = true;
+        edit.hidden = true;
+        input.hidden = false;
+        input.focus();
+        input.select();
+      }
+      function commit(save) {
+        if (save) setMineTitle(input.value);
+        input.hidden = true;
+        edit.hidden = false;
+        titleEl.hidden = false;
+        titleEl.textContent = mineTitle();
+        document.title = mineTitle() + ' · 集页';
+      }
+      edit.addEventListener('click', showInput);
+      input.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') { e.preventDefault(); commit(true); }
+        else if (e.key === 'Escape') { e.preventDefault(); cancelled = true; commit(false); }
+      });
+      // Esc 取消后隐藏输入框还会触发一次 blur,用标记避免把已取消的值写回
+      input.addEventListener('blur', function () {
+        if (cancelled) { cancelled = false; return; }
+        commit(true);
+      });
+    })();
 
     panel.querySelector('#mine-export').addEventListener('click', function () {
       if (!count()) { alert('还没有收藏可导出'); return; }
@@ -379,6 +438,8 @@
     normalize: normalize,
     starButton: starButton,
     syncStars: syncStars,
+    mineTitle: mineTitle,
+    setMineTitle: setMineTitle,
     renderMineContent: renderMineContent
   };
 })(window);

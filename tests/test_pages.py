@@ -46,6 +46,15 @@ class PagesContractTest(unittest.TestCase):
             self.assertNotIn("class=\"topic-card\" href=", html, page)
             self.assertNotIn("<div class=\"video-thumb\">", html, page)
 
+    def test_mine_title_hooks(self):
+        """我的视图:标题可自定义(本机存储),且页面只渲染收藏"""
+        idx = read(os.path.join(ROOT, "index.html"))
+        for hook in ('id="mine-title"', 'id="mine-title-edit"', 'id="mine-title-input"'):
+            self.assertIn(hook, idx)
+        js = read(os.path.join(ROOT, "assets/personal.js"))
+        self.assertIn("jiye.mine.title.v1", js)
+        self.assertIn("mineTitle", js)
+
     def test_all_theme_files_registered(self):
         """D40:themes/ 下每个 css 都要在 theme.js 的 THEMES 里注册,避免加了文件却切不到"""
         base = os.path.join(ROOT, "assets/themes")

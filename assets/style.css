@@ -4,6 +4,9 @@
  */
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
+/* 组件样式里的 display:grid/flex 会盖掉 UA 的 [hidden],这里统一兜住:
+ * 「我的」视图靠 hidden 隐藏公开网格/筛选栏,没有这条会照旧显示公开内容。 */
+[hidden] { display: none !important; }
 html { scroll-behavior: smooth; }
 body {
   font-family: var(--font-sans, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", sans-serif);
@@ -238,7 +241,17 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 
 .mine-panel { margin: 18px 0 40px; }
 .mine-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
-.mine-head h2 { font-size: 18px; }
+.mine-head h2 { font-size: 18px; display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.mine-title-btn {
+  border: 0; background: transparent; color: var(--text-mute);
+  font-size: 13px; cursor: pointer; padding: 2px 4px; line-height: 1;
+}
+.mine-title-btn:hover { color: var(--brand); }
+.mine-title-input {
+  font: inherit; font-size: 15px; color: var(--text);
+  background: var(--surface); border: 1px solid var(--brand);
+  border-radius: var(--radius-sm); padding: 4px 8px; max-width: 220px; outline: none;
+}
 .mine-head small { font-size: 12px; color: var(--text-mute); font-weight: 400; margin-left: 8px; }
 .mine-tools { display: flex; gap: 8px; }
 .mine-btn {

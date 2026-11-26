@@ -368,3 +368,9 @@ Chrome 无头截图三页面全部正常:首页卡片标签独立行两行截断
 - 同步 `THEME_NAMES`、页面主题数量基线、README/GITHUB-PAGES 文案;PLAN 追加 10.5(D42)。
 - 验证:32 个 Python + 10 个 node 用例、`--verify`、docs-check 通过;截图对比通过。
 
+### 22:40–23:30 布局 token 化清单落档 + 我的页仅收藏/自定义标题
+- PLAN 追加第十一章「布局 token 化清单」:重复声明冲突 10 处、五组 token 建议值、主题级与结构级边界、实施顺序与验收矩阵。
+- `?view=mine` 只渲染本机收藏;修复组件 `display:grid/flex` 盖掉 `[hidden]` 导致公开网格仍显示的缺陷,新增 `[hidden] { display:none !important }`。
+- 我的页标题可自定义(✎ 行内编辑,Enter/失焦保存、Esc 取消,上限 20 字,存 `jiye.mine.title.v1`,同步浏览器标题);新增页面契约测试。
+- 验证:33 个 Python + 10 个 node 用例、`--verify`、docs-check 通过;截图确认我的视图无公开内容。
+

@@ -460,3 +460,12 @@ Chrome 无头截图三页面全部正常:首页卡片标签独立行两行截断
 - 核对 git 历史、TODO、PLAN 与工作区:数据层/采集/展示/个人收藏/主题/工程化主线均已落地,当前 12 单元、39 Python + 12 node 用例、verify 0 问题。
 - 识别遗留:采集服务单线程、单元身份靠标题匹配、索引双写、9 个存量 slogan 旧文案、intake id 未白名单、超长输入截断、移动端仅 500px 验证、5 个提交待推送。
 - PLAN 新增第十五章(D60)记录完成度与收尾顺序;TODO 关闭已完成的 legacy 清理并登记遗留;README/REVIEW 同步当前状态。
+
+### 13:00–14:10 遗留问题顺序清理(D61)
+- 推送 D55–D60 的 6 个提交;直接推送仍遇 HTTP2 framing,改用 `http.version=HTTP/1.1` 成功。
+- 9 个存量单元 slogan 按类型替换为「点击分集在当前页播放」/「点击进入详情页」。
+- 采集服务 `ThreadingMixIn` 化;采集任务由 `COLLECT_LOCK` 串行,索引/单元/开关/改名共用 `WRITE_LOCK`。
+- 单条/批量 id 改为链接派生稳定值,B站默认 BV;按主题标题匹配降为兼容回退并打印提示。
+- 新增 `rebuild_index()`:索引以单元文件为唯一事实源,`created/enabled` 随单元文件保存,老数据沿用旧索引兜底。
+- `/api/intake`、开关、改名入口补 `valid_unit_id()` 白名单;超长 `intake.input` 保留最近 8000 字并标注。
+- Playwright 390×844 复验:详情页无横向溢出,播放器 358×201,目录在下方;首页筛选/搜索正常。44 Python + 12 node + verify/docs-check 全通过。

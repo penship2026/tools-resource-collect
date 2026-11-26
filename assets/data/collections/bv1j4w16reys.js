@@ -2,7 +2,7 @@
 window.COLLECTION_DATA["bv1j4w16reys"] = {
   "id": "bv1j4w16reys",
   "title": "不上班靠AI提车买房！",
-  "slogan": "单条视频精选 · 点击卡片跳转 B站观看",
+  "slogan": "单条视频精选 · 点击进入详情页",
   "source": {
     "platform": "bilibili",
     "name": "椰子酱的AI日常",

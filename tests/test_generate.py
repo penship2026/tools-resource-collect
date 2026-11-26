@@ -54,6 +54,11 @@ class GenerateDataTest(unittest.TestCase):
         self.assertEqual(server.unit_page({"id": "a", "type": "single"}), "single.html?id=a")
         self.assertEqual(server.unit_page({"id": "b"}), "series.html?id=b")
 
+    def test_server_is_threaded(self):
+        import socketserver
+        import server
+        self.assertTrue(issubclass(server.ReusableTCPServer, socketserver.ThreadingMixIn))
+
     def test_index_sorted_by_last_at_desc(self):
         items = [
             {"id": "old", "type": "single", "count": 1, "last_at": "2026-11-25 08:00", "updated": "2026-11-25"},
@@ -231,6 +236,43 @@ class GenerateDataTest(unittest.TestCase):
         self.assertTrue(generate.title_match("跟着动画学古文:第 1 集", "跟着动画学古文"))
         self.assertFalse(generate.title_match("古文动画合集", "跟着动画学古文"))
 
+
+    def test_rebuild_index_from_units(self):
+        """索引只是派生缓存:期数/标题/开关/创建日期都以单元文件为准"""
+        data = {"id": "u1", "type": "series", "title": "文件里的标题", "count": 99,
+                "videos": [video(0), video(1)], "enabled": False,
+                "updated": "2026-11-20", "intake": {"at": "2026-11-20 10:00", "mode": "url"}}
+        with open(os.path.join(generate.COLLECTIONS_DIR, "u1.js"), "w", encoding="utf-8") as fh:
+            fh.write("window.COLLECTION_DATA[\"u1\"] = %s;\n" % json.dumps(data, ensure_ascii=False))
+        self.write_index([{"id": "u1", "title": "旧标题", "count": 1, "enabled": True,
+                           "created": "2026-11-01", "updated": "2026-11-01"}])
+        items = generate.rebuild_index()
+        self.assertEqual(len(items), 1)
+        it = items[0]
+        self.assertEqual(it["title"], "文件里的标题")
+        self.assertEqual(it["count"], 2)
+        self.assertEqual(it["enabled"], False)
+        self.assertEqual(it["created"], "2026-11-01")
+        self.assertEqual(it["updated"], "2026-11-20")
+        self.assertEqual(it["last_at"], "2026-11-20 10:00")
+
+    def test_valid_unit_id_whitelist(self):
+        self.assertTrue(generate.valid_unit_id("bv1uks66oeeh"))
+        self.assertTrue(generate.valid_unit_id("topic-4e6ee53f"))
+        for bad in ("../x", "a/b", "a.js", "", "x" * 81):
+            self.assertFalse(generate.valid_unit_id(bad))
+        self.assertIsNone(generate.load_collection_data("../index"))
+
+    def test_slugify_reuse_for_batch_rerun(self):
+        uid = generate.slugify("bilibili:BV1|wechat:abc", None, set())
+        self.assertEqual(generate.slugify("bilibili:BV1|wechat:abc", None, {uid}, reuse=True), uid)
+        self.assertNotEqual(generate.slugify("bilibili:BV1|wechat:abc", None, {uid}), uid)
+
+    def test_normalize_intake_truncates_tail(self):
+        raw = {"mode": "batch", "input": "A" * 4000 + "B" * 8000}
+        got = generate.normalize_intake(raw)
+        self.assertTrue(got["input"].startswith("…(更早内容已截断"))
+        self.assertTrue(got["input"].endswith("B" * 8000))
 
 class CliSmokeTest(unittest.TestCase):
     """在真实仓库数据上跑 CLI(只读)"""

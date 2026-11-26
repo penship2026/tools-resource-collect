@@ -2,7 +2,7 @@
 window.COLLECTION_DATA["topic-df282732"] = {
   "id": "topic-df282732",
   "title": "SpringAI",
-  "slogan": "共收录 3 期,点击卡片跳转 B站观看",
+  "slogan": "共收录 3 期,点击分集在当前页播放",
   "source": {
     "platform": "bilibili",
     "name": "徐庶AI实战",

@@ -47,12 +47,14 @@ series.html / single.html),由人工单独维护布局样式,通过 ?id= 读取�
 
 import argparse
 import datetime
+import functools
 import hashlib
 import html
 import json
 import os
 import re
 import sys
+import threading
 import time
 import urllib.parse
 import urllib.request
@@ -67,6 +69,29 @@ import platforms as channels
 ROOT = (os.environ.get("VIDEO_PROJECT_ROOT") or "").strip() or \
        os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ROOT = os.path.abspath(ROOT)
+
+# 采集任务串行:服务端多线程后,同一时间只允许一个采集任务跑(其余请求照常响应)
+COLLECT_LOCK = threading.RLock()
+# 数据写入串行:索引/单元文件/开关/改名共用一把可重入锁,避免交叉覆盖
+WRITE_LOCK = threading.RLock()
+
+
+def serialized_collect(fn):
+    """把整次采集包成串行任务,避免两个采集同时读旧索引再互相覆盖"""
+    @functools.wraps(fn)
+    def wrapper(*args, **kwargs):
+        with COLLECT_LOCK:
+            return fn(*args, **kwargs)
+    return wrapper
+
+
+def locked_write(fn):
+    """所有落盘入口共用的可重入写锁"""
+    @functools.wraps(fn)
+    def wrapper(*args, **kwargs):
+        with WRITE_LOCK:
+            return fn(*args, **kwargs)
+    return wrapper
 ASSETS = os.path.join(ROOT, "assets")
 
 # 数据目录可通过环境变量覆盖,便于「采集端 / 展示端」分离部署时指向同一共享目录。
@@ -231,13 +256,15 @@ def normalize(video, keyword=""):
     return out
 
 
-def slugify(keyword, slug_arg, existing_ids):
-    """生成唯一且安全的文件名"""
+def slugify(keyword, slug_arg, existing_ids, reuse=False):
+    """生成唯一且安全的文件名;reuse=True 表示同一内容派生的 id 直接复用"""
     if slug_arg:
         base = re.sub(r"[^a-zA-Z0-9_-]", "", slug_arg)
         return base or "topic"
     digest = hashlib.md5(keyword.encode("utf-8")).hexdigest()[:8]
     base = "topic-" + digest
+    if reuse:
+        return base
     while base in existing_ids:
         digest = hashlib.md5((digest + "x").encode()).hexdigest()[:8]
         base = "topic-" + digest
@@ -546,6 +573,7 @@ def unit_sort_key(item):
     return (stamp, str(item.get("created") or "").strip())
 
 
+@locked_write
 def write_index(items, updated):
     """重写采集单元索引文件(按采集时间降序,新采集的排最前)"""
     items = sorted(items, key=unit_sort_key, reverse=True)
@@ -563,6 +591,7 @@ def write_index(items, updated):
     write_text_atomic(INDEX_JS, "\n".join(lines) + "\n", snapshot=True)
 
 
+@locked_write
 def write_collection_file(collection):
     """写入单个采集单元的数据文件(独立文件,不覆盖其他单元)"""
     os.makedirs(COLLECTIONS_DIR, exist_ok=True)
@@ -574,8 +603,18 @@ def write_collection_file(collection):
     return path
 
 
+UNIT_ID_RE = re.compile(r"[A-Za-z0-9_-]{1,80}")
+
+
+def valid_unit_id(unit_id):
+    """单元 id 白名单:只允许字母/数字/下划线/短横,防止路径拼接"""
+    return bool(UNIT_ID_RE.fullmatch(str(unit_id or "").strip()))
+
+
 def load_collection_data(unit_id):
     """读取某个采集单元已有的数据,用于增量合并(只读 collections/ 下新位置)"""
+    if not valid_unit_id(unit_id):
+        return None
     path = os.path.join(COLLECTIONS_DIR, "%s.js" % unit_id)
     if not os.path.exists(path):
         return None
@@ -614,25 +653,53 @@ def meta_from_collection(collection, created=None):
     return meta
 
 
+@locked_write
+def rebuild_index(fallback=None, updated=None):
+    """以采集单元文件为唯一事实源,重建整份索引(索引只是派生缓存)。
+
+    标题/期数/封面/最新日期/最近采集时间都从 <id>.js 重新算;created/enabled
+    优先取单元内部字段,老数据缺这两个字段时才沿用原索引值,避免历史丢失。
+    """
+    prev = {t.get("id"): t for t in (fallback if fallback is not None else load_index())}
+    items = []
+    if os.path.isdir(COLLECTIONS_DIR):
+        for name in sorted(os.listdir(COLLECTIONS_DIR)):
+            if not name.endswith(".js") or name.startswith("."):
+                continue
+            uid = name[:-3]
+            data = load_collection_data(uid)
+            old = prev.get(uid) or {}
+            if not data:
+                # 文件损坏时保留原索引条目,避免重建把单元从列表里抹掉
+                if old:
+                    items.append(old)
+                continue
+            created = data.get("created") or old.get("created") or datetime.date.today().isoformat()
+            meta = meta_from_collection(data, created=created)
+            meta["updated"] = data.get("updated") or old.get("updated") or datetime.date.today().isoformat()
+            meta["enabled"] = bool(data.get("enabled", old.get("enabled", True)))
+            items.append(meta)
+    write_index(items, updated or datetime.date.today().isoformat())
+    return items
+
+
+@locked_write
 def save_collection(collection, index):
     """写入单元数据文件并更新索引中的对应条目(只动这一个单元)"""
     os.makedirs(COLLECTIONS_DIR, exist_ok=True)
     # 单元数据文件里也记下采集时间与最新日期:页面直接读数据文件,缺了会显示「—」
-    collection["updated"] = datetime.date.today().isoformat()
+    today = datetime.date.today().isoformat()
+    collection["updated"] = today
     videos = collection.get("videos") or []
     if videos:
         collection["latest"] = videos[0].get("date", "")
-    data_path = write_collection_file(collection)
     unit_id = collection["id"]
-    existing = next((t for t in index if t.get("id") == unit_id), None)
-    created = existing.get("created") if existing else datetime.date.today().isoformat()
-    meta = meta_from_collection(collection, created=created)
-    # 保留原有显示开关:重新采集不应改变用户的开关状态
-    if existing and "enabled" in existing:
-        meta["enabled"] = existing["enabled"]
-    index = [t for t in index if t.get("id") != unit_id]
-    index.append(meta)
-    write_index(index, datetime.date.today().isoformat())
+    existing = next((t for t in (index or []) if t.get("id") == unit_id), None)
+    # created/enabled 写进单元文件,索引完全由单元文件派生,不再手工双写
+    collection["created"] = (existing or {}).get("created") or collection.get("created") or today
+    collection["enabled"] = bool(collection.get("enabled", (existing or {}).get("enabled", True)))
+    data_path = write_collection_file(collection)
+    index = rebuild_index(index, today)
     return data_path, index
 
 
@@ -712,22 +779,21 @@ def enrich_bilibili_metadata(unit_id=None, log=print):
     return {"ok": True, "units": touched_units, "videos": touched_videos}
 
 
+@locked_write
 def set_enabled(unit_id, enabled, log=print):
     """开启/关闭某个采集单元的显示:同步改索引和数据文件,不动其他单元"""
     index = load_index()
     target = next((t for t in index if t.get("id") == unit_id), None)
     if not target:
         return {"ok": False, "error": "未找到采集单元: %s" % unit_id}
-    target["enabled"] = bool(enabled)
-    write_index(index, datetime.date.today().isoformat())
-    # 数据文件内也保存开关,便于单独还原/迁移
+    # 开关先落到单元文件(唯一事实源),再重建索引
     data = load_collection_data(unit_id)
     if data is not None:
         data["enabled"] = bool(enabled)
-        os.makedirs(COLLECTIONS_DIR, exist_ok=True)
-        text = ("// 采集单元数据: %s (由 generate.py 生成)\n" % data.get("title", "")) + \
-               ("window.COLLECTION_DATA[%s] = %s;\n" % (json.dumps(unit_id), js(data)))
-        write_text_atomic(os.path.join(COLLECTIONS_DIR, "%s.js" % unit_id), text, snapshot=True)
+        data["updated"] = datetime.date.today().isoformat()
+        write_collection_file(data)
+    rebuild_index()
+    target = next((t for t in load_index() if t.get("id") == unit_id), target)
     log("%s 显示已%s: %s" % (unit_id, "开启" if enabled else "关闭", target.get("title", "")))
     return {"ok": True, "id": unit_id, "enabled": bool(enabled), "title": target.get("title", "")}
 
@@ -763,9 +829,13 @@ def normalize_intake(raw):
         pages = 30
     if pages <= 0:
         pages = 30
+    raw_input = (raw.get("input") or "").strip()
+    if len(raw_input) > 8000:
+        # 超长批量链接:保留最近部分并标注,避免回填时悄悄丢链接
+        raw_input = "…(更早内容已截断,以下保留最近 8000 字)\n" + raw_input[-8000:]
     return {
         "mode": mode,
-        "input": (raw.get("input") or "").strip()[:8000],
+        "input": raw_input,
         "title": (raw.get("title") or "").strip(),
         "up": (raw.get("up") or "").strip(),
         "pages": pages,
@@ -810,6 +880,7 @@ def attach_intake(collection, existing, intake, report):
     return collection
 
 
+@locked_write
 def record_intake_only(unit_id, intake, report, title=None, log=print):
     """
     采集结果没有变化时,仍然记下本次填写信息;顺带允许只改显示标题。
@@ -828,22 +899,15 @@ def record_intake_only(unit_id, intake, report, title=None, log=print):
     runs = list(data.get("runs") or [])
     runs.insert(0, _make_run(intake, data.get("title", ""), report))
     data["runs"] = runs[:20]
+    data["updated"] = datetime.date.today().isoformat()
     write_collection_file(data)
-    # 索引同步标题与最近采集时间,列表不用读数据文件就能显示
-    today = datetime.date.today().isoformat()
-    index = load_index()
-    for t in index:
-        if t.get("id") == unit_id:
-            t["title"] = data.get("title", t.get("title", ""))
-            t["last_at"] = intake.get("at", "")
-            t["last_mode"] = intake.get("mode", "")
-            t["last_mode_label"] = MODE_LABELS.get(intake.get("mode", ""), "")
-            t["updated"] = today
-    write_index(index, today)
+    # 索引由单元文件重建(标题/期数/最近采集时间都会跟着变)
+    rebuild_index()
     log("已记录本次采集信息(内容无变化)")
     return True
 
 
+@locked_write
 def update_title(unit_id, title, log=print):
     """
     只更新显示标题,不重新采集内容。
@@ -860,21 +924,21 @@ def update_title(unit_id, title, log=print):
     if not target:
         return {"ok": False, "error": "未找到采集单元: %s" % unit_id}
     old_title = target.get("title", "")
-    today = datetime.date.today().isoformat()
-    target["title"] = title
-    target["updated"] = today
-    write_index(index, today)
     data = load_collection_data(unit_id)
-    if data is not None:
-        data["title"] = title
-        if data.get("intake"):
-            data["intake"] = dict(data["intake"], title=title)
-        if data.get("runs"):
-            # 历史记录保留当时的标题,只有最新一条跟随本次改名
-            runs = list(data["runs"])
-            runs[0] = dict(runs[0], title=title)
-            data["runs"] = runs
-        write_collection_file(data)
+    if data is None:
+        return {"ok": False, "error": "未找到单元数据文件: %s" % unit_id}
+    data["title"] = title
+    data["updated"] = datetime.date.today().isoformat()
+    if data.get("intake"):
+        data["intake"] = dict(data["intake"], title=title)
+    if data.get("runs"):
+        # 历史记录保留当时的标题,只有最新一条跟随本次改名
+        runs = list(data["runs"])
+        runs[0] = dict(runs[0], title=title)
+        data["runs"] = runs
+    write_collection_file(data)
+    rebuild_index()
+    target = next((t for t in load_index() if t.get("id") == unit_id), target)
     log("标题已更新: %s → %s" % (old_title or "(空)", title))
     page = ("single.html?id=%s" if (target.get("type") or "series") == "single"
             else "series.html?id=%s") % unit_id
@@ -986,6 +1050,7 @@ def normalize_topic_channels(value, log=print):
     return out
 
 
+@serialized_collect
 def collect_topic(keyword, pages=30, title=None, up=None, slug=None,
                   slogan=None, dry_run=False,
                   unit_id=None, log=print, intake=None, topic_channels=None, replace=False):
@@ -1103,7 +1168,9 @@ def collect_topic(keyword, pages=30, title=None, up=None, slug=None,
     if wanted:
         uid = re.sub(r"[^a-zA-Z0-9_-]", "", wanted) or "topic"
     elif matched:
+        # 兼容旧行为:没显式传 id 时按标题复用;提示用户,避免重名时误合并
         uid = matched["id"]
+        log("未指定 unit_id,按同名标题复用已有单元「%s」(%s);如非本意请显式指定 id" % (matched.get("title"), uid))
     else:
         uid = slugify(keyword, None, existing_ids)
     result["unit_id"] = uid
@@ -1396,6 +1463,7 @@ def fetch_video_tags(bvid, log=print):
     return []
 
 
+@serialized_collect
 def collect_by_url(url, title=None, slug=None, slogan=None, dry_run=False,
                    unit_id=None, log=print, manual=None, intake=None, replace=False):
     """
@@ -1489,8 +1557,8 @@ def _collect_article_single(url, plat, title=None, slug=None, slogan=None,
     if wanted:
         uid = re.sub(r"[^a-zA-Z0-9_-]", "", wanted) or _unit_id_from_item(item, plat, existing_ids)
     else:
-        matched = next((t for t in index if t.get("title") == final_title), None)
-        uid = matched["id"] if matched else _unit_id_from_item(item, plat, existing_ids)
+        # 单条内容用链接派生的稳定 id,不再靠标题匹配(重名会串数据)
+        uid = _unit_id_from_item(item, plat, existing_ids)
     result["unit_id"] = uid
     is_update = uid in existing_ids
 
@@ -1536,6 +1604,7 @@ def _collect_article_single(url, plat, title=None, slug=None, slogan=None,
     return result
 
 
+@serialized_collect
 def collect_batch(text, title=None, slug=None, slogan=None, dry_run=False,
                   unit_id=None, log=print, intake=None, replace=False):
     """
@@ -1597,10 +1666,8 @@ def collect_batch(text, title=None, slug=None, slogan=None, dry_run=False,
     if wanted:
         uid = re.sub(r"[^a-zA-Z0-9_-]", "", wanted) or slugify("", None, existing_ids)
     else:
-        raw_title = (title or "").strip()
-        matched = next((t for t in index if t.get("title") == raw_title), None) if raw_title else None
-        uid = matched["id"] if matched else slugify(
-            "|".join(sorted(item_key(i) for i in items)), None, existing_ids)
+        # 批量采集用链接集合派生稳定 id;重跑同一批链接会更新同一单元
+        uid = slugify("|".join(sorted(item_key(i) for i in items)), None, existing_ids, reuse=True)
     result["unit_id"] = uid
     is_update = uid in existing_ids
 
@@ -1728,8 +1795,8 @@ def _collect_bilibili_single(url, title=None, slug=None, slogan=None, dry_run=Fa
     if wanted:
         uid = re.sub(r"[^a-zA-Z0-9_-]", "", wanted) or bvid.lower()
     else:
-        uid = next((t["id"] for t in index if t.get("title") == final_title),
-                   bvid.lower())
+        # B站单条默认用 BV 号做稳定 id,不再按标题猜测(标题改名/重名都不会串单元)
+        uid = bvid.lower()
     result["unit_id"] = uid
     is_update = uid in existing_ids
 

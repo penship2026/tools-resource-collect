@@ -83,7 +83,7 @@
 | `season` | 单元级合集目录(单链接采集命中所属合集时写入,`{title,id,episodes[]}`;索引不收录该字段,避免膨胀) |
 | `platforms` | 多渠道合集的平台 key 列表(可选,如 `["bilibili","wechat"]`) |
 
-索引(`assets/data/index.js`)汇总每个单元的元信息(不含视频列表、`intake`、`runs`、`season`,只留 `last_at` / `last_mode_label` 摘要)+ 显示开关,供首页渲染;写入时按 `last_at` 倒序,新采集单元在最前。
+索引(`assets/data/index.js`)汇总每个单元的元信息(不含视频列表、`intake`、`runs`、`season`,只留 `last_at` / `last_mode_label` 摘要)+ 显示开关,供首页渲染;写入时按 `last_at` 倒序,新采集单元在最前。索引只是**派生缓存**:任何写入都以 `collections/<id>.js` 为唯一事实源,由 `rebuild_index()` 重算 `title/count/cover/latest/created/enabled/updated`,不再手工双写。
 
 ## 使用方式
 
@@ -101,6 +101,7 @@ python3 collector/server.py 8765
 **采集规则**:
 
 - **排序**:采集单元索引按采集时间(`last_at`)倒序,新采集的排最前;缺时间的老单元按更新日期排在后面。
+- **单元 ID**:显式 `--id` 永远优先;单条 B站 默认用 BV 号,公众号/小红书用链接派生的稳定 id,批量采集用链接集合派生的稳定 id(重跑同一批链接更新同一单元);按主题才保留「同名标题复用」兼容回退,并会打印提示。单元 id 只允许 `[A-Za-z0-9_-]`,服务端读写入口统一校验。
 - **单条采集带合集**:按链接采集 B站 视频且命中所属合集时,一次 view 响应就把合集内每一集都作为记录入库(封面/日期/播放数/作者取自合集响应),单元自动变为合集页;合集目录挂在单元级数据上,每集详情页都能看到。
 - **B站分P/合集目录**:采集 B站 时顺带读取 view 接口的 `pages`(多分P)与 `ugc_season`(合集),写进单元数据;视频详情页在播放区正下方展示「所属合集」与「分P 目录」:横向滑动的分集按钮,「展开全部」切网格,点分集/分P 直接在当前页内嵌播放器切播(不跳站内详情页)。老数据用 `--enrich-bili`(可配 `--id` 限定单元)补齐,页面上不再需要实时请求 B站(避免 CORS 与风控)。
 - **重新采集的采集方式**:采集页在「重新采集」状态下出现「追加 / 覆盖」选择——追加(默认)保留旧条目只补新的;覆盖只保留本次结果,旧条目全部丢弃(前端二次确认,建议先预览)。CLI 对应 `--replace`。
@@ -141,6 +142,8 @@ python3 collector/generate.py --toggle daily-website --on            # 开启显
 ```
 
 ### 部署到服务器
+
+采集服务已改为多线程(ThreadingMixIn):一次长采集不会阻塞页面/健康检查;采集任务本身仍串行(`COLLECT_LOCK`),索引与单元文件写入共用 `WRITE_LOCK`,避免并发覆盖。
 
 采集功能依赖一个**真实运行的 Python 进程**,不能只把 HTML 当静态站点托管,否则点「开始采集」会报 `Unexpected token '<' ... is not valid JSON`——因为 `/api/collect` 被静态服务器接走返回了 HTML。
 

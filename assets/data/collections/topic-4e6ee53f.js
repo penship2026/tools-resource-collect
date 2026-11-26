@@ -3,7 +3,7 @@ window.COLLECTION_DATA["topic-4e6ee53f"] = {
   "id": "topic-4e6ee53f",
   "type": "series",
   "title": "大模型对比",
-  "slogan": "共收录 2 期,点击卡片跳转 B站观看",
+  "slogan": "共收录 2 期,点击分集在当前页播放",
   "source": {
     "platform": "bilibili",
     "name": "解压秘境",

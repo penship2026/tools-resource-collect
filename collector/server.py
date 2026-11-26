@@ -175,6 +175,9 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             if not unit_id:
                 self._json({"ok": False, "error": "缺少单元 id"}, 400)
                 return
+            if not generate.valid_unit_id(unit_id):
+                self._json({"ok": False, "error": "单元 id 不合法"}, 400)
+                return
             data = generate.load_collection_data(unit_id)
             if data is None:
                 self._json({"ok": False, "error": "未找到采集单元: %s" % unit_id}, 404)
@@ -247,6 +250,9 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             if not unit_id:
                 self._json({"ok": False, "error": "缺少单元 id"}, 400)
                 return
+            if not generate.valid_unit_id(unit_id):
+                self._json({"ok": False, "error": "单元 id 不合法"}, 400)
+                return
             enabled = bool(payload.get("enabled"))
             try:
                 result = generate.set_enabled(unit_id, enabled)
@@ -260,6 +266,9 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         if path.endswith("/api/title"):
             unit_id = (payload.get("id") or "").strip()
             title = (payload.get("title") or "").strip()
+            if not generate.valid_unit_id(unit_id):
+                self._json({"ok": False, "error": "单元 id 不合法"}, 400)
+                return
             result = generate.update_title(unit_id, title)
             self._json(result, 200 if result.get("ok") else 400)
             return
@@ -362,9 +371,10 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         self._json(result, 200 if result.get("ok") else 500)
 
 
-# 允许端口复用:避免服务重启时因 TIME_WAIT/残留进程报 Address already in use
-class ReusableTCPServer(socketserver.TCPServer):
+# 允许端口复用 + 多线程:一个长采集不再阻塞页面/健康检查等其它请求
+class ReusableTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
     allow_reuse_address = True
+    daemon_threads = True
 
 
 def unit_page(t):

@@ -2,7 +2,7 @@
 window.COLLECTION_DATA["guwen-animation"] = {
   "id": "guwen-animation",
   "title": "跟着动画学古文",
-  "slogan": "共收录 10 期,点击卡片跳转 B站观看",
+  "slogan": "共收录 10 期,点击分集在当前页播放",
   "source": {
     "platform": "bilibili",
     "name": "宋歌资源库",

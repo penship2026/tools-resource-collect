@@ -2,7 +2,7 @@
 window.COLLECTION_DATA["topic-621ae722"] = {
   "id": "topic-621ae722",
   "title": "数学思维启蒙动画",
-  "slogan": "共收录 3 期,点击卡片跳转 B站观看",
+  "slogan": "共收录 3 期,点击分集在当前页播放",
   "source": {
     "platform": "bilibili",
     "name": "乐乐的知识百宝箱",

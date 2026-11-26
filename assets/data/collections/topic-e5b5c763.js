@@ -2,7 +2,7 @@
 window.COLLECTION_DATA["topic-e5b5c763"] = {
   "id": "topic-e5b5c763",
   "title": "英语启蒙必备",
-  "slogan": "共收录 1 期,点击卡片跳转 B站观看",
+  "slogan": "共收录 1 期,点击分集在当前页播放",
   "source": {
     "platform": "bilibili",
     "name": "爱学习的柒影",

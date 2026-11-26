@@ -2,7 +2,7 @@
 window.COLLECTION_DATA["bv1wg39zpetl"] = {
   "id": "bv1wg39zpetl",
   "title": "全158集【影子跟读英语新概念第一册动画",
-  "slogan": "单条视频精选 · 点击卡片跳转 B站观看",
+  "slogan": "单条视频精选 · 点击进入详情页",
   "source": {
     "platform": "bilibili",
     "name": "学霸动画加油站",

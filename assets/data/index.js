@@ -63,55 +63,37 @@ window.COLLECTION_INDEX = [
     "last_at": "2026-11-26 09:42",
     "last_mode": "keyword",
     "last_mode_label": "按主题采集",
-    "enabled": true,
-    "created": ""
+    "created": "2026-11-26",
+    "enabled": true
   },
   {
-    "id": "wx-nxpxhhghan9dvfzoat5avg",
-    "type": "single",
-    "title": "一座城市的纬度密码！《沿着纬度听中国》第二季城市篇从福建将乐启程",
-    "slogan": "单条内容精选 · 前往公众号阅读原文",
+    "id": "bv1wg39zpetl",
+    "title": "全158集【影子跟读英语新概念第一册动画",
+    "slogan": "单条视频精选 · 点击进入详情页",
     "source": {
-      "platform": "wechat",
-      "name": "央广网",
-      "url": "https://mp.weixin.qq.com/s/nxpXHhgHan9dVfZOAt5avg"
+      "platform": "bilibili",
+      "name": "学霸动画加油站",
+      "url": "https://space.bilibili.com/3546927981398077/video"
     },
-    "keyword": "https://mp.weixin.qq.com/s/nxpXHhgHan9dVfZOAt5avg",
-    "tags": [
-      "央广网"
-    ],
     "count": 1,
-    "cover": "https://mmbiz.qpic.cn/mmbiz_jpg/eT2Hxs8JQmMYuUGAPiaibwuBm9JslsPRcDz78NnibsEBKY89feEvibT0Qkf4BT2F0SXsnnGsA6VVa0NSn1IiajTvwkUicMo9ekQ3XFVHzonAZduzo/0?wx_fmt=jpeg",
-    "latest": "2026.11.24",
+    "type": "single",
+    "enabled": true,
     "created": "2026-11-26",
     "updated": "2026-11-26",
-    "enabled": true
-  },
-  {
-    "id": "topic-d9744f1c",
-    "type": "series",
-    "title": "黄仁勋辞退风波",
-    "slogan": "共收录 4 条内容 · 公众号",
-    "source": {
-      "platform": "wechat",
-      "name": "央广网",
-      "url": "https://mp.weixin.qq.com/s/dg888doDqpYrOsDvdyx6DQ"
-    },
-    "keyword": "batch",
+    "keyword": "",
+    "cover": "http://i2.hdslb.com/bfs/archive/b7fbf328a3897152dd482db5028b57726521e692.png",
+    "latest": "2025.07.05",
     "tags": [
-      "央广网",
-      "最新！黄仁勋复职",
-      "黄仁勋复职",
-      "英伟达开盘暴涨超33%",
-      "黄仁勋辞职",
-      "英伟达股票开盘大跌→"
-    ],
-    "count": 4,
-    "cover": "https://mmbiz.qpic.cn/sz_mmbiz_jpg/eT2Hxs8JQmMDJ5Krh3jU9mnd8osccsDd06wUGcxe5hiaicx3dHZuDNz63PRfk89Ozf5DVThyibRuyQ1dibibtu5My0wo9Dmle04uia8p5MnT9agwU/0?wx_fmt=jpeg",
-    "latest": "2026.11.24",
-    "created": "2026-11-26",
-    "updated": "2026-11-26",
-    "enabled": true
+      "新概念",
+      "英语",
+      "英语听力",
+      "新概念第一册动画",
+      "英语语法",
+      "英语学习",
+      "初中英语",
+      "英语词汇",
+      "影子跟读"
+    ]
   },
   {
     "id": "guwen-animation",
@@ -125,7 +107,7 @@ window.COLLECTION_INDEX = [
     "count": 10,
     "type": "series",
     "enabled": true,
-    "created": "",
+    "created": "2026-11-26",
     "updated": "2026-11-26",
     "keyword": "",
     "cover": "https://i0.hdslb.com/bfs/archive/7f02dcd6b7f7e4acfd0d1d82f4b6114c07ac9ce8.jpg",
@@ -142,64 +124,6 @@ window.COLLECTION_INDEX = [
     ]
   },
   {
-    "id": "topic-e5b5c763",
-    "title": "英语启蒙必备",
-    "slogan": "共收录 1 期,点击分集在当前页播放",
-    "source": {
-      "platform": "bilibili",
-      "name": "爱学习的柒影",
-      "url": "https://space.bilibili.com/3546645132216606/video"
-    },
-    "count": 1,
-    "type": "series",
-    "enabled": true,
-    "created": "",
-    "updated": "2026-11-26",
-    "keyword": "",
-    "cover": "https://i0.hdslb.com/bfs/archive/ebcd3c7807fb70574d651216cc4063b7e109c305.jpg",
-    "latest": "2024.03.14",
-    "tags": [
-      "儿童",
-      "英语",
-      "少儿英语",
-      "英语学习",
-      "早教",
-      "学习视频",
-      "学前",
-      "英语启蒙"
-    ]
-  },
-  {
-    "id": "topic-df282732",
-    "title": "SpringAI",
-    "slogan": "共收录 3 期,点击分集在当前页播放",
-    "source": {
-      "platform": "bilibili",
-      "name": "徐庶AI实战",
-      "url": "https://space.bilibili.com/3493131121068547/video"
-    },
-    "count": 3,
-    "type": "series",
-    "enabled": true,
-    "created": "",
-    "updated": "2026-11-26",
-    "keyword": "",
-    "cover": "https://i2.hdslb.com/bfs/archive/7f4ef0ca45c592134ca812cbbeb587835e60b5a9.jpg",
-    "latest": "2026.11.24",
-    "tags": [
-      "程序员",
-      "AI",
-      "编程",
-      "Java后端开发",
-      "大模型开发",
-      "Spring AI",
-      "后端转AI",
-      "Java",
-      "Agent",
-      "AI开发"
-    ]
-  },
-  {
     "id": "topic-205064a1",
     "title": "最好的AI数字人项目",
     "slogan": "共收录 1 期,点击分集在当前页播放",
@@ -211,7 +135,7 @@ window.COLLECTION_INDEX = [
     "count": 1,
     "type": "series",
     "enabled": true,
-    "created": "",
+    "created": "2026-11-26",
     "updated": "2026-11-26",
     "keyword": "",
     "cover": "https://i1.hdslb.com/bfs/archive/af3019f2d3d7066581996e4440caf9c9c20a7282.jpg",
@@ -241,7 +165,7 @@ window.COLLECTION_INDEX = [
     "count": 3,
     "type": "series",
     "enabled": true,
-    "created": "",
+    "created": "2026-11-26",
     "updated": "2026-11-26",
     "keyword": "",
     "cover": "https://i1.hdslb.com/bfs/archive/5fc2a47aa3ec4373d3206d1fb653d283ec61155c.jpg",
@@ -260,33 +184,109 @@ window.COLLECTION_INDEX = [
     ]
   },
   {
-    "id": "bv1wg39zpetl",
-    "title": "全158集【影子跟读英语新概念第一册动画",
-    "slogan": "单条视频精选 · 点击进入详情页",
+    "id": "topic-d9744f1c",
+    "type": "series",
+    "title": "黄仁勋辞退风波",
+    "slogan": "共收录 4 条内容 · 公众号",
+    "source": {
+      "platform": "wechat",
+      "name": "央广网",
+      "url": "https://mp.weixin.qq.com/s/dg888doDqpYrOsDvdyx6DQ"
+    },
+    "keyword": "batch",
+    "tags": [
+      "央广网",
+      "最新！黄仁勋复职",
+      "黄仁勋复职",
+      "英伟达开盘暴涨超33%",
+      "黄仁勋辞职",
+      "英伟达股票开盘大跌→"
+    ],
+    "count": 4,
+    "updated": "2026-11-26",
+    "latest": "2026.11.24",
+    "enabled": true,
+    "cover": "https://mmbiz.qpic.cn/sz_mmbiz_jpg/eT2Hxs8JQmMDJ5Krh3jU9mnd8osccsDd06wUGcxe5hiaicx3dHZuDNz63PRfk89Ozf5DVThyibRuyQ1dibibtu5My0wo9Dmle04uia8p5MnT9agwU/0?wx_fmt=jpeg",
+    "created": "2026-11-26"
+  },
+  {
+    "id": "topic-df282732",
+    "title": "SpringAI",
+    "slogan": "共收录 3 期,点击分集在当前页播放",
     "source": {
       "platform": "bilibili",
-      "name": "学霸动画加油站",
-      "url": "https://space.bilibili.com/3546927981398077/video"
+      "name": "徐庶AI实战",
+      "url": "https://space.bilibili.com/3493131121068547/video"
     },
-    "count": 1,
-    "type": "single",
+    "count": 3,
+    "type": "series",
     "enabled": true,
-    "created": "",
+    "created": "2026-11-26",
     "updated": "2026-11-26",
     "keyword": "",
-    "cover": "http://i2.hdslb.com/bfs/archive/b7fbf328a3897152dd482db5028b57726521e692.png",
-    "latest": "2025.07.05",
+    "cover": "https://i2.hdslb.com/bfs/archive/7f4ef0ca45c592134ca812cbbeb587835e60b5a9.jpg",
+    "latest": "2026.11.24",
     "tags": [
-      "新概念",
-      "英语",
-      "英语听力",
-      "新概念第一册动画",
-      "英语语法",
-      "英语学习",
-      "初中英语",
-      "英语词汇",
-      "影子跟读"
+      "程序员",
+      "AI",
+      "编程",
+      "Java后端开发",
+      "大模型开发",
+      "Spring AI",
+      "后端转AI",
+      "Java",
+      "Agent",
+      "AI开发"
     ]
+  },
+  {
+    "id": "topic-e5b5c763",
+    "title": "英语启蒙必备",
+    "slogan": "共收录 1 期,点击分集在当前页播放",
+    "source": {
+      "platform": "bilibili",
+      "name": "爱学习的柒影",
+      "url": "https://space.bilibili.com/3546645132216606/video"
+    },
+    "count": 1,
+    "type": "series",
+    "enabled": true,
+    "created": "2026-11-26",
+    "updated": "2026-11-26",
+    "keyword": "",
+    "cover": "https://i0.hdslb.com/bfs/archive/ebcd3c7807fb70574d651216cc4063b7e109c305.jpg",
+    "latest": "2024.03.14",
+    "tags": [
+      "儿童",
+      "英语",
+      "少儿英语",
+      "英语学习",
+      "早教",
+      "学习视频",
+      "学前",
+      "英语启蒙"
+    ]
+  },
+  {
+    "id": "wx-nxpxhhghan9dvfzoat5avg",
+    "type": "single",
+    "title": "一座城市的纬度密码！《沿着纬度听中国》第二季城市篇从福建将乐启程",
+    "slogan": "单条内容精选 · 前往公众号阅读原文",
+    "source": {
+      "platform": "wechat",
+      "name": "央广网",
+      "url": "https://mp.weixin.qq.com/s/nxpXHhgHan9dVfZOAt5avg"
+    },
+    "keyword": "https://mp.weixin.qq.com/s/nxpXHhgHan9dVfZOAt5avg",
+    "tags": [
+      "央广网"
+    ],
+    "count": 1,
+    "updated": "2026-11-26",
+    "latest": "2026.11.24",
+    "cover": "https://mmbiz.qpic.cn/mmbiz_jpg/eT2Hxs8JQmMYuUGAPiaibwuBm9JslsPRcDz78NnibsEBKY89feEvibT0Qkf4BT2F0SXsnnGsA6VVa0NSn1IiajTvwkUicMo9ekQ3XFVHzonAZduzo/0?wx_fmt=jpeg",
+    "created": "2026-11-26",
+    "enabled": true
   },
   {
     "id": "bv1j4w16reys",
@@ -298,13 +298,13 @@ window.COLLECTION_INDEX = [
       "url": "https://space.bilibili.com/3546380240947989/video"
     },
     "count": 1,
-    "cover": "http://i2.hdslb.com/bfs/archive/ca6323ceae54d29f7f5068dd8a98053d34fdc5c3.jpg",
-    "latest": "2026.11.11",
     "type": "single",
     "enabled": true,
-    "created": "",
+    "created": "2026-11-26",
     "updated": "2026-11-25",
     "keyword": "",
+    "cover": "http://i2.hdslb.com/bfs/archive/ca6323ceae54d29f7f5068dd8a98053d34fdc5c3.jpg",
+    "latest": "2026.11.11",
     "tags": [
       "B站AI无限竞技场",
       "创业",
@@ -330,11 +330,11 @@ window.COLLECTION_INDEX = [
     },
     "keyword": "每天挖掘一个神奇网站",
     "count": 24,
+    "enabled": true,
+    "created": "2026-11-26",
+    "updated": "2026-11-25",
     "cover": "https://i2.hdslb.com/bfs/archive/2a2da89665dc1cc8f21f1837861f833731fb51df.png",
     "latest": "2026.11.19",
-    "updated": "2026-11-25",
-    "enabled": true,
-    "created": "",
     "tags": [
       "拼音拼读",
       "拼音识字",

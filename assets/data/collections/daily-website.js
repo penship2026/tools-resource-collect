@@ -3,7 +3,7 @@ window.COLLECTION_DATA["daily-website"] = {
   "id": "daily-website",
   "type": "series",
   "title": "每天挖掘一个神奇网站",
-  "slogan": "共收录 24 期,点击卡片跳转 B站观看",
+  "slogan": "共收录 24 期,点击分集在当前页播放",
   "source": {
     "platform": "bilibili",
     "name": "草根的异世界",

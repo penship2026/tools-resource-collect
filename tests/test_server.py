@@ -36,8 +36,8 @@ class SettingsPageTest(unittest.TestCase):
         html = (ROOT / "collector" / "settings.html").read_text(encoding="utf-8")
         self.assertIn('id="toggle-all"', html)
         self.assertIn("settings-guide.html", html)
-        self.assertIn('class="section-card is-collapsed"', html)
-        self.assertIn('class="topic-row is-collapsed"', html)
+        self.assertIn("section-card is-collapsed", html)
+        self.assertIn("topic-row is-collapsed", html)
 
     def test_guide_covers_key_fields(self):
         guide = (ROOT / "collector" / "settings-guide.html").read_text(encoding="utf-8")

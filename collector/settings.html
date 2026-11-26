@@ -23,6 +23,7 @@
     .panel .hint { color: var(--text-mute); font-size: 12px; line-height: 1.7; margin-bottom: 14px; }
     .section-card { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px; margin-bottom: 12px; background: var(--bg); }
     .section-head { display: flex; justify-content: space-between; gap: 10px; align-items: center; margin-bottom: 10px; }
+    .section-head .card-toggle { flex: 1 1 auto; width: auto; }
     .section-card.is-collapsed .section-head { margin-bottom: 0; }
     .section-head strong { font-size: 14px; }
     .section-head .meta { color: var(--text-mute); font-size: 12px; }
@@ -33,6 +34,15 @@
     .card-toggle .meta { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .card-body { min-width: 0; }
     .section-card.is-collapsed .card-body, .topic-row.is-collapsed .card-body { display: none; }
+    .link-btn { flex: 0 0 auto; border: none; background: none; color: var(--brand); font-size: 12px; padding: 4px 2px; cursor: pointer; white-space: nowrap; }
+    .link-btn:disabled { color: var(--text-mute); cursor: default; }
+    .card-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--border); }
+    .card-actions .btn { padding: 7px 12px; font-size: 12px; }
+    .card-status { flex: 1 1 100%; min-height: 16px; font-size: 12px; line-height: 1.5; }
+    .card-status.ok { color: #1d9e75; }
+    .card-status.err { color: #c0392b; }
+    .row input:disabled, .row textarea:disabled, .row select:disabled { opacity: .72; background: var(--bg); cursor: default; }
+    .section-card.is-editing, .topic-row.is-editing { border-color: var(--brand); box-shadow: 0 0 0 1px var(--brand) inset; }
     .row { display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 10px; align-items: center; margin-bottom: 9px; }
     .row label { font-size: 12px; color: var(--text-sub); }
     .row input[type=text], .row input[type=number], .row textarea, .row select {
@@ -55,7 +65,7 @@
     .topic-row.is-collapsed .topic-head { margin-bottom: 0; }
     .topic-row .topic-head b { color: var(--text); font-size: 13px; }
     .topic-row .topic-head .card-toggle { flex: 1 1 auto; }
-    .topic-row .topic-head > span:last-child { flex: 0 0 auto; }
+    .topic-row .topic-head .topic-id { flex: 0 0 auto; }
     .topic-row .row { grid-template-columns: 88px minmax(0, 1fr); margin-bottom: 7px; }
     .kv { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12px; color: var(--text-sub); }
     .kv div { background: var(--bg); border-radius: 7px; padding: 8px; }
@@ -74,6 +84,7 @@
       .row label { margin-bottom: 2px; }
       .btns .btn { flex: 1 1 100%; }
       .card-toggle .meta { display: none; }
+      .topic-row .topic-head .topic-id { display: none; }
     }
     .modal { position: fixed; inset: 0; background: rgba(15,23,42,.45); display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 50; }
     .modal[hidden] { display: none !important; }
@@ -87,7 +98,7 @@
   <div class="top">
     <div>
       <h1>采集设置</h1>
-      <p>本机设置页；默认只监听 127.0.0.1，使用 --lan 启动后同一 Wi-Fi 下手机可访问。保存只改本机配置；线上自动采集由 GitHub Actions 管理。</p>
+      <p>本机设置页；默认只监听 127.0.0.1，使用 --lan 启动后同一 Wi-Fi 下手机可访问。卡片可单独编辑保存；底部「保存设置」仍可整页保存。</p>
     </div>
     <div class="top-actions">
       <a href="/collector/settings-guide.html">填写说明</a>
@@ -178,10 +189,21 @@
 
 <script>
 (function () {
-  var state = { sections: [], topics: [], csrf: "", schedule: {}, dirty: false };
+  var state = {
+    sections: [], topics: [], csrf: "", schedule: {},
+    editing: { section: {}, topic: {} },
+    dirtyKeys: {},
+    baselines: { section: [], topic: [] }
+  };
   var $ = function (id) { return document.getElementById(id); };
   var esc = function (s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"})[c]; }); };
   var status = function (el, text, ok) { el.textContent = text || ""; el.className = "status" + (text ? (ok ? " ok" : " err") : ""); };
+  var cardStatus = function (kind, id, text, ok) {
+    var el = document.querySelector('[data-card-status="' + kind + ':' + id + '"]');
+    if (!el) return;
+    el.textContent = text || "";
+    el.className = "card-status" + (text ? (ok ? " ok" : " err") : "");
+  };
   var modalResolve = null;
   function askConfirm(text) {
     $("modal-text").textContent = text;
@@ -195,7 +217,54 @@
   $("modal-ok").addEventListener("click", function () { closeModal(true); });
   $("modal-cancel").addEventListener("click", function () { closeModal(false); });
   $("modal").addEventListener("click", function (e) { if (e.target === $("modal")) closeModal(false); });
-  var markDirty = function () { state.dirty = true; $("save-state").textContent = "有未保存改动"; $("save-state").className = "unsaved"; };
+  var cardKey = function (kind, id) { return kind + ":" + id; };
+  var updateDirtyLabel = function (text) {
+    if (text) { $("save-state").textContent = text; $("save-state").className = "unsaved"; return; }
+    var any = Object.keys(state.dirtyKeys).length > 0;
+    $("save-state").textContent = any ? "有未保存改动" : "";
+    $("save-state").className = any ? "unsaved" : "";
+  };
+  var markDirty = function (kind, id) {
+    state.dirtyKeys[cardKey(kind, id)] = true;
+    updateDirtyLabel();
+  };
+  var clearDirty = function (kind, id) {
+    delete state.dirtyKeys[cardKey(kind, id)];
+    updateDirtyLabel();
+  };
+  var clearAllDirty = function () {
+    state.dirtyKeys = {};
+    updateDirtyLabel();
+  };
+  var clone = function (value) { return JSON.parse(JSON.stringify(value)); };
+  var listFor = function (kind) { return kind === "section" ? state.sections : state.topics; };
+  var baselineFor = function (kind) { return kind === "section" ? state.baselines.section : state.baselines.topic; };
+  var findItem = function (kind, id) {
+    return listFor(kind).filter(function (item) { return item.id === id; })[0] || null;
+  };
+  var isEditing = function (kind, id) { return !!state.editing[kind][id]; };
+  var setEditing = function (kind, id, value) {
+    if (!state.editing[kind]) state.editing[kind] = {};
+    if (value) state.editing[kind][id] = true;
+    else delete state.editing[kind][id];
+  };
+  var replaceItem = function (kind, id, item) {
+    var list = listFor(kind);
+    var idx = list.findIndex(function (x) { return x.id === id; });
+    if (idx >= 0) list[idx] = item; else list.push(item);
+  };
+  var replaceBaseline = function (kind, id, item) {
+    var list = baselineFor(kind);
+    var idx = list.findIndex(function (x) { return x.id === id; });
+    if (idx >= 0) list[idx] = clone(item); else list.push(clone(item));
+  };
+  var resetBaselines = function () {
+    state.baselines.section = clone(state.sections);
+    state.baselines.topic = clone(state.topics);
+  };
+  var renderAll = function () {
+    renderSections(); renderTopics(); bindEditors();
+  };
 
   var EXPAND_KEY = "jiye.settings.expanded.v1";
   var expanded = { section: {}, topic: {} };
@@ -272,20 +341,23 @@
     box.innerHTML = state.sections.map(function (s, idx) {
       var reserved = ["infant-care", "preschool", "k12"].indexOf(s.id) >= 0;
       var age = s.age_min_months == null ? "全龄" : (s.age_min_months + "–" + s.age_max_months + " 月");
-      return '<div class="section-card is-collapsed" data-sec="' + idx + '" data-collapse-kind="section" data-collapse-id="' + esc(s.id) + '">' +
+      var editing = isEditing("section", s.id);
+      var dis = editing ? "" : " disabled";
+      return '<div class="section-card is-collapsed' + (editing ? ' is-editing' : '') + '" data-sec="' + idx + '" data-collapse-kind="section" data-collapse-id="' + esc(s.id) + '">' +
         '<div class="section-head">' +
           '<button class="card-toggle" type="button" data-collapse-btn aria-expanded="false">' +
             '<span class="chev" aria-hidden="true">▾</span>' +
             '<strong>' + esc(s.title) + '</strong>' +
             '<span class="meta">' + esc(s.id) + ' · ' + esc(age) + (s.enabled ? '' : ' · 已停用') + '</span>' +
           '</button>' +
+          '<button class="link-btn" type="button" data-edit-section="' + esc(s.id) + '"' + (editing ? ' disabled' : '') + '>' + (editing ? '编辑中' : '编辑') + '</button>' +
         '</div>' +
         '<div class="card-body">' +
-          '<div class="row"><label>名称</label><input type="text" data-f="title" value="' + esc(s.title) + '"></div>' +
-          '<div class="row"><label>说明</label><textarea data-f="description">' + esc(s.description || "") + '</textarea></div>' +
-          '<div class="row"><label>排序</label><input type="number" data-f="order" value="' + esc(s.order) + '"></div>' +
-          '<div class="row"><label>显示</label><label class="check"><input type="checkbox" data-f="enabled"' + (s.enabled ? " checked" : "") + '> 在首页展示</label></div>' +
-          (reserved ? '' : '<button class="btn danger" data-del-section="' + idx + '">删除板块</button>') +
+          '<div class="row"><label>名称</label><input type="text" data-f="title" value="' + esc(s.title) + '"' + dis + '></div>' +
+          '<div class="row"><label>说明</label><textarea data-f="description"' + dis + '>' + esc(s.description || "") + '</textarea></div>' +
+          '<div class="row"><label>排序</label><input type="number" data-f="order" value="' + esc(s.order) + '"' + dis + '></div>' +
+          '<div class="row"><label>显示</label><label class="check"><input type="checkbox" data-f="enabled"' + (s.enabled ? " checked" : "") + dis + '> 在首页展示</label></div>' +
+          (editing ? '<div class="card-actions"><span class="card-status" data-card-status="section:' + esc(s.id) + '"></span><button class="btn" data-save-section="' + esc(s.id) + '">保存本卡</button><button class="btn ghost" data-cancel-section="' + esc(s.id) + '">取消</button>' + (reserved ? '' : '<button class="btn danger" data-del-section="' + idx + '">删除板块</button>') + '</div>' : '') +
         '</div>' +
         '</div>';
     }).join("");
@@ -296,20 +368,28 @@
     if (!state.topics.length) { box.innerHTML = '<div class="hint">还没有主题。新增板块后请至少加一个启用主题，才能参与自动采集。</div>'; return; }
     box.innerHTML = state.topics.map(function (t, idx) {
       var sec = state.sections.filter(function (s) { return s.id === t.section; })[0];
-      return '<div class="topic-row is-collapsed" data-top="' + idx + '" data-collapse-kind="topic" data-collapse-id="' + esc(t.id) + '">' +
+      var editing = isEditing("topic", t.id);
+      var dis = editing ? "" : " disabled";
+      var options = state.sections.map(function (s) {
+        return '<option value="' + esc(s.id) + '"' + (s.id === t.section ? " selected" : "") + '>' + esc(s.title) + '（' + esc(s.id) + '）</option>';
+      }).join("");
+      return '<div class="topic-row is-collapsed' + (editing ? ' is-editing' : '') + '" data-top="' + idx + '" data-collapse-kind="topic" data-collapse-id="' + esc(t.id) + '">' +
         '<div class="topic-head">' +
           '<button class="card-toggle" type="button" data-collapse-btn aria-expanded="false">' +
             '<span class="chev" aria-hidden="true">▾</span>' +
             '<span><b>' + esc(t.title) + '</b> · ' + esc(sec ? sec.title : t.section) + '</span>' +
           '</button>' +
-          '<span>' + esc(t.id) + '</span>' +
+          '<span class="topic-id">' + esc(t.id) + '</span>' +
+          '<button class="link-btn" type="button" data-edit-topic="' + esc(t.id) + '"' + (editing ? ' disabled' : '') + '>' + (editing ? '编辑中' : '编辑') + '</button>' +
         '</div>' +
         '<div class="card-body">' +
-          '<div class="row"><label>must</label><input type="text" data-f="must_keywords" value="' + esc((t.must_keywords || []).join("，")) + '" placeholder="1–4 个，全部命中"></div>' +
-          '<div class="row"><label>any</label><input type="text" data-f="any_keywords" value="' + esc((t.any_keywords || []).join("，")) + '" placeholder="0–5 个，至少一个"></div>' +
-          '<div class="row"><label>渠道</label><input type="text" data-f="channels" value="' + esc((t.channels || []).join("，")) + '" placeholder="bilibili，wechat，xhs"></div>' +
-          '<div class="row"><label>显示/采集</label><label class="check"><input type="checkbox" data-f="enabled"' + (t.enabled !== false ? " checked" : "") + '> 启用</label></div>' +
-          '<button class="btn danger" data-del-topic="' + idx + '">删除主题</button>' +
+          '<div class="row"><label>标题</label><input type="text" data-f="title" value="' + esc(t.title) + '"' + dis + '></div>' +
+          '<div class="row"><label>板块</label><select data-f="section"' + dis + '>' + options + '</select></div>' +
+          '<div class="row"><label>must</label><input type="text" data-f="must_keywords" value="' + esc((t.must_keywords || []).join("，")) + '" placeholder="1–4 个，全部命中"' + dis + '></div>' +
+          '<div class="row"><label>any</label><input type="text" data-f="any_keywords" value="' + esc((t.any_keywords || []).join("，")) + '" placeholder="0–5 个，至少一个"' + dis + '></div>' +
+          '<div class="row"><label>渠道</label><input type="text" data-f="channels" value="' + esc((t.channels || []).join("，")) + '" placeholder="bilibili，wechat，xhs"' + dis + '></div>' +
+          '<div class="row"><label>显示/采集</label><label class="check"><input type="checkbox" data-f="enabled"' + (t.enabled !== false ? " checked" : "") + dis + '> 启用</label></div>' +
+          (editing ? '<div class="card-actions"><span class="card-status" data-card-status="topic:' + esc(t.id) + '"></span><button class="btn" data-save-topic="' + esc(t.id) + '">保存本卡</button><button class="btn ghost" data-cancel-topic="' + esc(t.id) + '">取消</button><button class="btn danger" data-del-topic="' + idx + '">删除主题</button></div>' : '') +
         '</div>' +
         '</div>';
     }).join("");
@@ -324,45 +404,114 @@
 
   function bindEditors() {
     document.querySelectorAll("[data-sec]").forEach(function (card) {
-      var idx = Number(card.getAttribute("data-sec"));
-      card.querySelectorAll("[data-f]").forEach(function (input) {
-        input.addEventListener("input", function () {
-          var f = input.getAttribute("data-f"), s = state.sections[idx];
-          if (f === "order") s[f] = Number(input.value) || 0;
-          else if (f === "enabled") s[f] = input.checked;
-          else s[f] = input.value;
-          markDirty();
-        });
-        input.addEventListener("change", function () { if (input.type === "checkbox") { input.dispatchEvent(new Event("input")); } });
-      });
-      var del = card.querySelector("[data-del-section]");
-      if (del) del.addEventListener("click", async function () {
-        if (!(await askConfirm("删除这个自定义板块？有单元的板块不能删除。"))) return;
-        state.sections.splice(idx, 1); state.dirty = true; renderSections(); renderTopics(); bindEditors();
-      });
-    });
-    document.querySelectorAll("[data-top]").forEach(function (card) {
-      var idx = Number(card.getAttribute("data-top"));
+      var id = card.getAttribute("data-collapse-id");
       card.querySelectorAll("[data-f]").forEach(function (input) {
         var f = input.getAttribute("data-f");
         var handler = function () {
-          var t = state.topics[idx];
-          if (f === "enabled") t[f] = input.checked;
-          else if (f === "must_keywords" || f === "any_keywords" || f === "channels") {
-            t[f] = input.value.split(/[,，\s|]+/).filter(Boolean);
-          }
-          markDirty();
+          var s = findItem("section", id);
+          if (!s) return;
+          if (f === "order") s[f] = Number(input.value) || 0;
+          else if (f === "enabled") s[f] = input.checked;
+          else s[f] = input.value;
+          markDirty("section", id);
         };
         input.addEventListener("input", handler);
         input.addEventListener("change", function () { if (input.type === "checkbox") handler(); });
       });
+      var edit = card.querySelector("[data-edit-section]");
+      if (edit) edit.addEventListener("click", function () { startEdit("section", id); });
+      var save = card.querySelector("[data-save-section]");
+      if (save) save.addEventListener("click", function () { saveCard("section", id); });
+      var cancel = card.querySelector("[data-cancel-section]");
+      if (cancel) cancel.addEventListener("click", function () { cancelEdit("section", id); });
+      var del = card.querySelector("[data-del-section]");
+      if (del) del.addEventListener("click", async function () {
+        if (!(await askConfirm("删除这个自定义板块？有单元的板块不能删除。"))) return;
+        state.sections.splice(state.sections.findIndex(function (s) { return s.id === id; }), 1);
+        setEditing("section", id, false);
+        markDirty("global", "delete-section");
+        renderAll();
+      });
+    });
+    document.querySelectorAll("[data-top]").forEach(function (card) {
+      var id = card.getAttribute("data-collapse-id");
+      card.querySelectorAll("[data-f]").forEach(function (input) {
+        var f = input.getAttribute("data-f");
+        var handler = function () {
+          var t = findItem("topic", id);
+          if (!t) return;
+          if (f === "enabled") t[f] = input.checked;
+          else if (f === "must_keywords" || f === "any_keywords" || f === "channels") {
+            t[f] = input.value.split(/[,，\s|]+/).filter(Boolean);
+          } else {
+            t[f] = input.value;
+          }
+          markDirty("topic", id);
+        };
+        input.addEventListener("input", handler);
+        input.addEventListener("change", function () { if (input.type === "checkbox") handler(); });
+      });
+      var edit = card.querySelector("[data-edit-topic]");
+      if (edit) edit.addEventListener("click", function () { startEdit("topic", id); });
+      var save = card.querySelector("[data-save-topic]");
+      if (save) save.addEventListener("click", function () { saveCard("topic", id); });
+      var cancel = card.querySelector("[data-cancel-topic]");
+      if (cancel) cancel.addEventListener("click", function () { cancelEdit("topic", id); });
       var del = card.querySelector("[data-del-topic]");
       if (del) del.addEventListener("click", async function () {
         if (!(await askConfirm("删除这个主题？历史采集单元不会删除。"))) return;
-        state.topics.splice(idx, 1); state.dirty = true; renderTopics(); bindEditors();
+        state.topics.splice(state.topics.findIndex(function (t) { return t.id === id; }), 1);
+        setEditing("topic", id, false);
+        markDirty("global", "delete-topic");
+        renderAll();
       });
     });
     applyCollapseState();
+  }
+
+  function startEdit(kind, id) {
+    setExpanded(kind, id, true);
+    saveExpanded();
+    setEditing(kind, id, true);
+    renderAll();
+  }
+
+  function cancelEdit(kind, id) {
+    var baseline = baselineFor(kind).filter(function (item) { return item.id === id; })[0];
+    if (baseline) {
+      replaceItem(kind, id, clone(baseline));
+    } else {
+      var list = listFor(kind);
+      var idx = list.findIndex(function (item) { return item.id === id; });
+      if (idx >= 0) list.splice(idx, 1);
+    }
+    setEditing(kind, id, false);
+    clearDirty(kind, id);
+    renderAll();
+  }
+
+  async function saveCard(kind, id) {
+    var item = findItem(kind, id);
+    if (!item) { status($("settings-status"), "卡片不存在，无法保存", false); return; }
+    var path = kind === "section"
+      ? "/api/settings/sections/" + encodeURIComponent(id)
+      : "/api/settings/topics/" + encodeURIComponent(id);
+    try {
+      var data = await api(path, { method: "PUT", body: JSON.stringify(item) });
+      var saved = kind === "section" ? data.section : data.topic;
+      if (saved) {
+        replaceItem(kind, id, saved);
+        replaceBaseline(kind, id, saved);
+      }
+      setEditing(kind, id, false);
+      clearDirty(kind, id);
+      var warns = (data.warnings || []).join("；");
+      status($("settings-status"), "本卡已保存" + (warns ? "。提示：" + warns : ""), true);
+      renderAll();
+    } catch (e) {
+      cardStatus(kind, id, "保存失败：" + e.message, false);
+      status($("settings-status"), "保存本卡失败：" + e.message, false);
+    }
   }
 
   async function load() {
@@ -376,8 +525,10 @@
       $("beijing-value").textContent = state.schedule.beijing || "—";
       $("pages-value").textContent = state.schedule.pages || "—";
       renderGit(data.git || {});
-      renderSections(); renderTopics(); bindEditors();
-      state.dirty = false; $("save-state").textContent = "";
+      state.editing = { section: {}, topic: {} };
+      resetBaselines();
+      clearAllDirty();
+      renderAll();
       status($("settings-status"), "");
     } catch (e) { status($("settings-status"), "加载失败：" + e.message, false); }
   }
@@ -389,7 +540,11 @@
     if (!title) return;
     if (state.sections.some(function (s) { return s.id === id; })) { alert("板块 id 已存在"); return; }
     state.sections.push({ id: id, title: title, age_min_months: null, age_max_months: null, order: state.sections.length + 1, enabled: true, description: "" });
-    state.dirty = true; renderSections(); bindEditors();
+    setExpanded("section", id, true);
+    saveExpanded();
+    setEditing("section", id, true);
+    markDirty("section", id);
+    renderAll();
   });
 
   $("add-topic").addEventListener("click", function () {
@@ -403,7 +558,11 @@
     if (!id) return;
     if (state.topics.some(function (t) { return t.id === id; })) { alert("主题 id 已存在"); return; }
     state.topics.push({ id: id, section: section, title: title, must_keywords: must.split(/[,，\s|]+/).filter(Boolean), any_keywords: [], channels: ["bilibili"], enabled: true });
-    state.dirty = true; renderTopics(); bindEditors();
+    setExpanded("topic", id, true);
+    saveExpanded();
+    setEditing("topic", id, true);
+    markDirty("topic", id);
+    renderAll();
   });
 
   $("save").addEventListener("click", async function () {
@@ -412,10 +571,13 @@
       var data = await api("/api/settings", { method: "PUT", body: JSON.stringify({ sections: state.sections, topics: state.topics }) });
       state.sections = data.sections || state.sections;
       state.topics = data.topics || state.topics;
-      state.dirty = false; $("save-state").textContent = "已保存";
+      state.editing = { section: {}, topic: {} };
+      resetBaselines();
+      clearAllDirty();
+      $("save-state").textContent = "已保存";
       var warns = (data.warnings || []).join("；");
       status($("settings-status"), "已保存" + (warns ? "。提示：" + warns : ""), true);
-      renderSections(); renderTopics(); bindEditors();
+      renderAll();
     } catch (e) { status($("settings-status"), "保存失败：" + e.message, false); }
     finally { $("save").disabled = false; }
   });

@@ -43,6 +43,29 @@ class SettingsStoreTest(unittest.TestCase):
         self.assertEqual(len(got_topics), 7)
         self.assertEqual(got_topics[0]["must_keywords"], topics[0]["must_keywords"])
 
+    def test_merge_section_preserves_reserved_age(self):
+        sections = generate.load_sections_yaml()
+        merged, _ = settings_store.merge_section(sections, "infant-care", {
+            "title": "婴幼儿照护", "description": "0–3 岁照护",
+        })
+        item = next(s for s in merged if s["id"] == "infant-care")
+        self.assertEqual(item["title"], "婴幼儿照护")
+        self.assertEqual((item["age_min_months"], item["age_max_months"]), (0, 36))
+        self.assertEqual(len(merged), 7)
+
+    def test_merge_topic_updates_fields_without_losing_section(self):
+        sections = generate.load_sections_yaml()
+        topics = generate.load_topics_yaml(generate.TOPICS_FILE)
+        merged = settings_store.merge_topic(topics, "daily-website", {
+            "title": "每天一个网站",
+            "any_keywords": ["网站", "工具"],
+            "channels": ["bilibili"],
+        })
+        item = next(t for t in merged if t["id"] == "daily-website")
+        self.assertEqual(item["section"], "tools")
+        self.assertEqual(item["title"], "每天一个网站")
+        self.assertEqual(item["any_keywords"], ["网站", "工具"])
+
     def test_git_path_whitelist(self):
         self.assertTrue(git_sync._allowed("assets/data/index.js"))
         self.assertTrue(git_sync._allowed("assets/data/collections/daily-website.js"))

@@ -358,7 +358,9 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
     def do_PUT(self):
         path = urllib.parse.urlparse(self.path).path
-        if not path.endswith("/api/settings"):
+        section_prefix = "/api/settings/sections/"
+        topic_prefix = "/api/settings/topics/"
+        if not (path.endswith("/api/settings") or path.startswith(section_prefix) or path.startswith(topic_prefix)):
             self._json({"ok": False, "error": {"code": "NOT_FOUND", "message": "未知接口"}}, 404)
             return
         if not self._csrf_ok():
@@ -366,7 +368,18 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             return
         try:
             payload = self._read_json()
-            result = settings_store.save_settings(payload)
+            if path.startswith(section_prefix):
+                section_id = urllib.parse.unquote(path[len(section_prefix):]).strip("/")
+                if not section_id:
+                    raise ValueError("缺少板块 id")
+                result = settings_store.save_section(section_id, payload)
+            elif path.startswith(topic_prefix):
+                topic_id = urllib.parse.unquote(path[len(topic_prefix):]).strip("/")
+                if not topic_id:
+                    raise ValueError("缺少主题 id")
+                result = settings_store.save_topic(topic_id, payload)
+            else:
+                result = settings_store.save_settings(payload)
         except ValueError as exc:
             self._json({"ok": False, "error": {"code": "VALIDATION_ERROR", "message": str(exc)}}, 400)
             return

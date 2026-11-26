@@ -147,6 +147,10 @@
       <h1>采集入口</h1>
       <p class="sub">三种采集方式:按主题采集(可多选 B站 / 公众号 / 小红书)、按链接采单条、批量粘贴多条链接。程序按固定规则解析去重后写入采集单元,不使用 AI。</p>
       <div id="backend-badge" class="tip" style="margin-top:8px">后端状态检测中…</div>
+      <div class="token-row" id="token-row" style="margin-top:10px;display:none">
+        <input type="password" id="token" placeholder="访问口令(公网模式必填)" autocomplete="off">
+        <span class="tip" style="margin:0 0 0 8px">本机默认无需口令;以 --public 启动时需填 token</span>
+      </div>
     </section>
 
     <div class="layout">
@@ -360,6 +364,28 @@
     const API_INTAKE  = 'api/intake';
     const API_TITLE   = 'api/title';
 
+    // ---- 访问口令:仅 --public 启动时需要;只存本机 localStorage,不写进页面 ----
+    const TOKEN_KEY = 'collect_token';
+    function getToken() { return localStorage.getItem(TOKEN_KEY) || ''; }
+    function authHeaders(base) {
+      const h = Object.assign({}, base || {});
+      const t = getToken();
+      if (t) h['X-Collect-Token'] = t;
+      return h;
+    }
+    // 所有接口调用统一走这里,自动带口令
+    function apiFetch(url, opts) {
+      const o = Object.assign({}, opts || {});
+      o.headers = authHeaders(o.headers);
+      return fetch(url, o);
+    }
+    $('token').value = getToken();
+    $('token').addEventListener('change', () => {
+      localStorage.setItem(TOKEN_KEY, $('token').value.trim());
+      loadTopics();
+      checkBackend();
+    });
+
     // ---- 批量采集默认标题:按粘贴的链接数与渠道生成,如「公众号 / 小红书 · 3 条合集」 ----
     const LINK_RULES = [
       [/bilibili\.com|b23\.tv/i, 'B站'],
@@ -462,7 +488,7 @@
       statusBox.textContent = '正在读取采集记录…';
       let d;
       try {
-        d = await readJSON(await fetch(API_INTAKE + '?id=' + encodeURIComponent(unitId), { cache: 'no-store' }));
+        d = await readJSON(await apiFetch(API_INTAKE + '?id=' + encodeURIComponent(unitId), { cache: 'no-store' }));
         if (!d.ok) throw new Error(d.error || '读取失败');
       } catch (err) {
         statusBox.className = 'status err';
@@ -541,7 +567,7 @@
       const btn = $('btn-title-only');
       btn.disabled = true;
       try {
-        const resp = await fetch(API_TITLE, {
+        const resp = await apiFetch(API_TITLE, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ id: recollectId, title: title })
         });
@@ -571,7 +597,7 @@
       const btn = $('btn-offline');
       btn.disabled = true;
       try {
-        const resp = await fetch(API_TOGGLE, {
+        const resp = await apiFetch(API_TOGGLE, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ id: recollectId, enabled: next })
         });
@@ -595,6 +621,8 @@
 
     // 统一读取响应:若返回的不是 JSON(例如被静态托管接管、或服务端为旧版本),给出明确诊断
     async function readJSON(resp) {
+      // 公网模式口令不对时,直接把口令输入框露出来
+      if (resp.status === 401) { $('token-row').style.display = 'flex'; }
       const ct = (resp.headers.get('content-type') || '').toLowerCase();
       const text = await resp.text();
       if (ct.indexOf('json') < 0) {
@@ -610,23 +638,32 @@
       // 用最基础的 /api/topics 探测:任何版本的 server.py 都有该接口,
       // 不依赖后来新增的 /api/health,避免旧版服务返回 404 HTML 导致误判。
       try {
-        const d = await readJSON(await fetch(API_TOPICS, { cache: 'no-store' }));
+        const d = await readJSON(await apiFetch(API_TOPICS, { cache: 'no-store' }));
         if (d.ok) {
           badgeBox.textContent = '● 后端已连接';
           badgeBox.style.color = '#1d9e75';
-          return true;
+        } else {
+          badgeBox.textContent = '● 后端异常: ' + (d.error || '未知');
+          badgeBox.style.color = '#c0392b';
         }
-        badgeBox.textContent = '● 后端异常: ' + (d.error || '未知');
-        badgeBox.style.color = '#c0392b';
       } catch (err) {
         badgeBox.textContent = '● 后端不可达: ' + err.message;
         badgeBox.style.color = '#c0392b';
+        return false;
       }
-      return false;
+      // 公网模式才显示口令输入框
+      try {
+        const h = await readJSON(await fetch('api/health', { cache: 'no-store' }));
+        if (h && h.auth === 'token') {
+          $('token-row').style.display = 'flex';
+          badgeBox.textContent += ' · 需要口令';
+        }
+      } catch (e) { /* 旧版服务没有 health,忽略 */ }
+      return true;
     }
 
     function loadTopics() {
-      fetch(API_TOPICS, { cache: 'no-store' }).then(readJSON).then(d => {
+      apiFetch(API_TOPICS, { cache: 'no-store' }).then(readJSON).then(d => {
         const box = $('topics');
         if (!d.ok) { box.innerHTML = '<div class="tip">' + esc(d.error || '索引不可用') + '</div>'; return; }
         if (!d.topics.length) { box.innerHTML = '<div class="tip">暂无采集单元</div>'; return; }
@@ -662,7 +699,7 @@
             const next = btn.getAttribute('data-enabled') !== 'true';
             btn.disabled = true;
             try {
-              const resp = await fetch(API_TOGGLE, {
+              const resp = await apiFetch(API_TOGGLE, {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ id: id, enabled: next })
               });
@@ -724,7 +761,7 @@
       reportBox.classList.remove('show');
 
       try {
-        const resp = await fetch(API_COLLECT, {
+        const resp = await apiFetch(API_COLLECT, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),

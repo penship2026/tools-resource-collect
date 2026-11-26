@@ -27,6 +27,8 @@
 说明: 接口路径支持带任意前缀(如部署在子路径 /app/ 下时 /app/api/collect 同样有效)。
 """
 
+import argparse
+import hmac
 import http.server
 import json
 import os
@@ -46,11 +48,35 @@ COLLECTOR_DIR = SCRIPT_DIR
 
 # 运行角色:full=静态+接口全托管(默认);api=仅接口+采集页(展示端由独立 Web 服务器提供)
 API_ONLY = False
+# 公网模式:绑定 0.0.0.0 且所有写接口必须带访问口令;默认本机模式不校验
+PUBLIC_MODE = False
+TOKEN = ""
 
 
 class Handler(http.server.SimpleHTTPRequestHandler):
+    # 静态托管白名单:只放行展示页与 assets,其余(源码/文档/备份/.git)一律 404
+    STATIC_EXACT = {
+        "/", "/index.html", "/series.html", "/list.html", "/single.html",
+        "/collector/collect.html", "/collect.html",
+    }
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=ROOT, **kwargs)
+
+    def _static_allowed(self, path):
+        clean = path.split("?", 1)[0].split("#", 1)[0]
+        if clean in self.STATIC_EXACT:
+            return True
+        if clean.startswith("/assets/") and ".py" not in clean:
+            return True
+        return False
+
+    def _token_ok(self):
+        supplied = self.headers.get("X-Collect-Token") or ""
+        if not supplied:
+            qs = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+            supplied = (qs.get("token") or [""])[0]
+        return bool(TOKEN) and hmac.compare_digest(supplied, TOKEN)
 
     def translate_path(self, path):
         # 兼容旧访问路径:/collect.html 现在实际位于 collector/collect.html。
@@ -88,11 +114,9 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             data_ok = os.access(generate.DATA_DIR, os.W_OK)
             coll_ok = os.access(generate.COLLECTIONS_DIR, os.W_OK)
             idx = generate.index_status()
-            self._json({
+            info = {
                 "ok": True,
                 "writable": data_ok and coll_ok,
-                "data_dir": generate.DATA_DIR,
-                "collections_dir": generate.COLLECTIONS_DIR,
                 "data_writable": data_ok,
                 "collections_writable": coll_ok,
                 # 索引可读性单独上报:损坏时不要让前端误以为「站里没有内容」
@@ -100,7 +124,13 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 "index_count": idx["count"],
                 "index_error": idx["reason"],
                 "role": "api" if API_ONLY else "full",
-            })
+                "auth": "token" if PUBLIC_MODE else "none",
+            }
+            # 公网模式不回显本机路径,避免泄露部署结构
+            if not PUBLIC_MODE:
+                info["data_dir"] = generate.DATA_DIR
+                info["collections_dir"] = generate.COLLECTIONS_DIR
+            self._json(info)
             return
         if path.endswith("/api/topics"):
             status = generate.index_status()
@@ -181,10 +211,21 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 "hint": "采集页仍是 /collect.html",
             }, 404)
             return
+        if not self._static_allowed(path):
+            self._json({
+                "ok": False,
+                "error": "未对外开放的路径",
+                "hint": "静态托管只放行 5 个页面与 assets/;采集接口需本机启动或带 token",
+            }, 404)
+            return
         return super().do_GET()
 
     def do_POST(self):
         path = urllib.parse.urlparse(self.path).path
+        # 公网模式:所有写接口都必须带访问口令;本机默认不校验
+        if PUBLIC_MODE and not self._token_ok():
+            self._json({"ok": False, "error": "访问口令无效或缺失,请先填写 token"}, 401)
+            return
         try:
             length = int(self.headers.get("Content-Length", 0))
             body = self.rfile.read(length).decode("utf-8") if length else "{}"
@@ -314,23 +355,46 @@ class ReusableTCPServer(socketserver.TCPServer):
 
 
 def main():
-    global API_ONLY
-    # 端口优先用命令行第一个数字参数,其次环境变量 PORT(部署平台常通过它注入),最后默认 8765
-    args = [a for a in sys.argv[1:]]
-    port_args = [a for a in args if a.isdigit()]
-    port = int(port_args[0]) if port_args else int(os.environ.get("PORT", 8765))
-    # 运行角色:命令行 --api-only 或环境变量 SERVER_ROLE=api
-    API_ONLY = "--api-only" in args or (os.environ.get("SERVER_ROLE") or "").strip().lower() in ("api", "api-only", "collect")
+    global API_ONLY, PUBLIC_MODE, TOKEN
+    ap = argparse.ArgumentParser(description="集页采集服务(默认只监听本机,不对外)")
+    ap.add_argument("port_pos", nargs="?", default=None, help="端口(兼容旧的数字位置参数)")
+    ap.add_argument("--port", type=int, default=None, help="端口,默认 8765(或环境变量 PORT)")
+    ap.add_argument("--host", default=None, help="监听地址,默认 127.0.0.1")
+    ap.add_argument("--public", action="store_true", help="公网模式:绑定 0.0.0.0,写接口必须带访问口令")
+    ap.add_argument("--token", default=None, help="访问口令,也可用环境变量 COLLECT_TOKEN")
+    ap.add_argument("--api-only", action="store_true", help="采集端专用模式:只提供接口与采集页")
+    args = ap.parse_args()
 
-    # 监听 0.0.0.0,否则部署后外部请求无法到达 Python 服务,会被静态托管接管返回 HTML
-    with ReusableTCPServer(("0.0.0.0", port), Handler) as httpd:
+    if args.port:
+        port = args.port
+    elif args.port_pos and args.port_pos.isdigit():
+        port = int(args.port_pos)
+    else:
+        port = int(os.environ.get("PORT", 8765))
+
+    API_ONLY = args.api_only or (os.environ.get("SERVER_ROLE") or "").strip().lower() in ("api", "api-only", "collect")
+    PUBLIC_MODE = bool(args.public)
+    TOKEN = (args.token or os.environ.get("COLLECT_TOKEN") or "").strip()
+    if PUBLIC_MODE and not TOKEN:
+        print("错误:--public 公网模式必须提供访问口令(用 --token 或设置 COLLECT_TOKEN)", file=sys.stderr)
+        sys.exit(2)
+
+    host = args.host or ("0.0.0.0" if PUBLIC_MODE else "127.0.0.1")
+    if host not in ("127.0.0.1", "localhost") and not PUBLIC_MODE and not TOKEN:
+        print("提示:当前监听了非本机地址但未设口令,写接口对本网段开放;需要对外请改用 --public --token",
+              file=sys.stderr)
+
+    with ReusableTCPServer((host, port), Handler) as httpd:
         role = "采集端专用(api-only)" if API_ONLY else "全功能(静态+接口)"
-        print("采集服务已启动 [%s]:" % role)
-        print("  http://0.0.0.0:%d/collect.html" % port)
+        mode = "公网+口令" if PUBLIC_MODE else ("口令" if TOKEN else "本机无口令")
+        print("采集服务已启动 [%s / %s]:" % (role, mode))
+        print("  http://%s:%d/collect.html" % (host, port))
         if not API_ONLY:
-            print("  http://0.0.0.0:%d/index.html" % port)
+            print("  http://%s:%d/index.html" % (host, port))
         print("数据目录: %s" % generate.DATA_DIR)
         print("采集单元目录: %s" % generate.COLLECTIONS_DIR)
+        if PUBLIC_MODE:
+            print("写接口需在请求头带 X-Collect-Token(采集页顶部填入口令即可)")
         print("按 Ctrl+C 停止")
         try:
             httpd.serve_forever()

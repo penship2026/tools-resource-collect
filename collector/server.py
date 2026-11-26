@@ -341,8 +341,6 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     up=(payload.get("up") or "").strip() or None,
                     unit_id=(payload.get("unit_id") or payload.get("slug") or "").strip() or None,
                     slogan=(payload.get("slogan") or "").strip() or None,
-                    min_match=int(payload.get("min_match") or 2),
-                    match_all=bool(payload.get("match_all")),
                     dry_run=bool(payload.get("dry_run")),
                     topic_channels=payload.get("channels"),
                     log=log,

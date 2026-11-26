@@ -201,6 +201,19 @@
 - **修掉的实际问题**:收藏星标与卡片右下角日期/作者重叠 → `.video-info .meta` 右侧预留 34px。
 - **验证**:Chrome 无头截图(首页/列表页/首页深色)目视检查通过;29 个 unittest + 10 个 node 用例 + docs-check 全通过。
 
+### ✅ 18. D15 采集单元收口抽 `_finalize_unit()`(2026-11-26)
+
+- 新增 `_finalize_unit()`:统一组装 `id/type/title/slogan/source/keyword/tags/count/videos`(可选 `platforms`)→ 记录填写信息与统计 → 原子写文件并重建索引,返回 `(data_path, index)`。
+- 四个采集分支(合集、图文单条、批量、B站单条)全部改调用它,删除各自重复的 collection dict + `attach_intake` + `save_collection` 三连;批量分支顺带补写 `platforms`(多渠道合集可被渠道筛选命中)。
+- 新增用例 `test_finalize_unit_writes_contract` 校验字段与落盘结果。
+
+### ✅ 19. D16 剩余:删死参数与 legacy 代码(2026-11-26)
+
+- **死参数**:`min_match`/`match_all` 从 CLI → `collect_topic` → `pick_series` → `title_match` 全链路删除;`title_match(title, keyword)` 只保留「关键词完整出现在标题」这一条真实规则。`server.py` 不再透传这两个字段(采集页本来就没有输入项)。
+- **legacy 代码**:删除 `LEGACY_DIR`、`migrate_legacy()`、CLI `--migrate` 与用法说明;`load_collection_data()` 不再回退读取根目录旧数据文件(只读 `collections/`)。
+- **文档**:README「从旧版迁移」改为「已结束」,DEPLOY 旧版说明改为「已清理,需要时从 git 历史恢复」。
+- **验证**:31 个 Python 用例 + 10 个 node 用例通过;`--verify` 11 单元 0 问题;`--help` 已无 `--migrate/--min-match/--match-all`;服务端 `/api/topics`、`/api/intake`、`/api/collect`(dry-run)响应正常。
+
 ---
 
 ## 新增待办

@@ -125,7 +125,6 @@ python3 collector/generate.py "某主题" --dry-run                     # 预览
 python3 collector/generate.py --list                                 # 列出所有采集单元
 python3 collector/generate.py --toggle daily-website --off           # 关闭显示
 python3 collector/generate.py --toggle daily-website --on            # 开启显示
-python3 collector/generate.py --migrate                              # 从旧版 topic 数据迁移(幂等)
 ```
 
 ### 部署到服务器
@@ -189,9 +188,9 @@ python3 collector/backup_data.py backup --out /mnt/nas/backup            # 备�
 - 还原只解包 `.js`,拒绝 `..` 路径穿越;默认还原前自动留存当前快照,可回退。
 - 环境变量 `VIDEO_DATA_DIR` / `VIDEO_BACKUP_DIR` 可覆盖路径,适配共享目录与定时备份。
 
-## 从旧版迁移
+## 从旧版迁移(已结束)
 
-旧版是「每个主题一个 `topics/<slug>.html` + `assets/data/<slug>.js`」。执行 `python3 collector/generate.py --migrate` 会把旧数据转成采集单元格式(创建 `collections/<id>.js` 并重建索引),BV 号 id 归为 `single`、其余为 `series`。迁移幂等。旧版 `topics/*.html` 与 `assets/data/*.js`(根目录那批)已在 2026-11-26 清理中删除(需要时从 git 历史恢复),页面统一由五个固定模板提供。
+旧版「每个主题一个 `topics/<slug>.html` + `assets/data/<slug>.js`」已于 2026-11-26 完成迁移并清理,`--migrate` 与相关旧目录常量一并移除;需要旧文件时从 git 历史恢复,页面统一由五个固定模板提供。
 
 ## 主题与换肤(页面/数据分离)
 

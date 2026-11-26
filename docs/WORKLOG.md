@@ -351,3 +351,9 @@ Chrome 无头截图三页面全部正常:首页卡片标签独立行两行截断
 - **样式优化(M5 第二段)**:两套主题补字号/间距/圆角/悬停阴影/顶栏底色/hero 光晕 token;`style.css` 改毛玻璃顶栏、渐变品牌标、hero `clamp` 排版、卡片 hover(阴影+封面轻微放大)、聚焦外环、`prefers-reduced-motion` 与移动端断点、页脚紧凑化;四页内联样式同步 chips/徽标/角标/主按钮;修复收藏星标压住卡片右下日期的问题(`.video-info .meta` 预留 34px)。
 - **验证**:29 个 Python 用例、10 个 node 用例、`--verify`(11 单元 0 问题)、`docs_check.py` 全通过;Chrome 无头截图检查首页/列表页/深色模式渲染正常;本地 6 个路径 200。
 
+### 19:40–20:30 D15 收口 + D16 剩余清理
+- **D15**:新增 `_finalize_unit()` 作为采集单元写盘唯一出口(组装字段 + 记录填写信息 + 原子写 + 重建索引);合集/图文单条/批量/B站单条四个分支改为调用,删掉各自重复的 dict 与 `attach_intake`/`save_collection` 调用。
+- **D16 死参数**:`min_match`/`match_all` 全链路删除(CLI、`collect_topic`、`pick_series`、`title_match`、`server.py`);`title_match` 收敛为单一规则。
+- **D16 legacy**:删 `LEGACY_DIR`、`migrate_legacy()`、`--migrate`;`load_collection_data()` 去掉旧根目录回退;README/DEPLOY 旧版迁移章节同步改为「已清理」。
+- **验证**:31 个 Python 用例(新增 2 个)、10 个 node 用例、`--verify`、docs-check 全通过;`--help` 无遗留参数;服务端三个接口冒烟正常(collect 返回业务错误而非崩溃)。
+

@@ -28,7 +28,6 @@ series.html / single.html),由人工单独维护布局样式,通过 ?id= 读取�
   python3 generate.py --toggle daily-website --off        # 关闭某单元显示
   python3 generate.py --toggle daily-website --on         # 开启某单元显示
   python3 generate.py --list                              # 列出所有采集单元
-  python3 generate.py --migrate                           # 从旧版 topic 数据迁移
 
 可选参数:
   --url            按链接采集单条内容(type=single,自动识别 B站/公众号/小红书)
@@ -93,9 +92,6 @@ class IndexCorrupt(Exception):
     """索引文件存在但内容无法解析(用于区分「不存在」与「损坏」)"""
 
 
-# 旧版目录:迁移时读取,采集本身不再写入
-LEGACY_DIR = _resolve_dir("VIDEO_TOPICS_DIR", "topics")
-
 UA = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
       "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36")
 
@@ -145,7 +141,7 @@ def search_bilibili(keyword, pages, verbose=True):
     return items
 
 
-def title_match(title, keyword, min_match=None, match_all=None):
+def title_match(title, keyword):
     """
     精准匹配:关键词必须完整出现在标题中。
     允许标题比关键词多字(前后有别的词),但绝不把关键词拆成片段来匹配。
@@ -158,7 +154,7 @@ def title_match(title, keyword, min_match=None, match_all=None):
     return keyword in title
 
 
-def pick_series(items, keyword, up_name, min_match, match_all):
+def pick_series(items, keyword, up_name):
     """
     纯统计规则聚类同系列:
       1. 按标题匹配筛候选
@@ -167,7 +163,7 @@ def pick_series(items, keyword, up_name, min_match, match_all):
     """
     candidates = [
         x for x in items
-        if title_match(clean_html(x.get("title", "")), keyword, min_match, match_all)
+        if title_match(clean_html(x.get("title", "")), keyword)
     ]
     if not candidates:
         return [], []
@@ -562,10 +558,8 @@ def write_collection_file(collection):
 
 
 def load_collection_data(unit_id):
-    """读取某个采集单元已有的数据,用于增量合并。新位置优先,兼容旧数据文件"""
+    """读取某个采集单元已有的数据,用于增量合并(只读 collections/ 下新位置)"""
     path = os.path.join(COLLECTIONS_DIR, "%s.js" % unit_id)
-    if not os.path.exists(path):
-        path = os.path.join(DATA_DIR, "%s.js" % unit_id)  # 迁移前的旧位置
     if not os.path.exists(path):
         return None
     text = open(path, encoding="utf-8").read()
@@ -623,6 +617,31 @@ def save_collection(collection, index):
     index.append(meta)
     write_index(index, datetime.date.today().isoformat())
     return data_path, index
+
+
+def _finalize_unit(uid, unit_type, title, slogan, source, videos, tags, keyword,
+                   existing_data, intake, report, index, platforms=None):
+    """D15:采集单元收口的唯一实现。
+
+    组装字段(id/type/title/slogan/source/keyword/tags/count/videos,可选 platforms)
+    → 记录本次填写信息与统计 → 原子写数据文件并重建索引。
+    返回 (data_path, index);调用方只负责算字段,不再各拼一份 dict。
+    """
+    collection = {
+        "id": uid,
+        "type": unit_type,
+        "title": title,
+        "slogan": slogan,
+        "source": source,
+        "keyword": keyword,
+        "tags": (tags or [])[:10],
+        "count": len(videos),
+        "videos": videos,
+    }
+    if platforms:
+        collection["platforms"] = list(platforms)
+    collection = attach_intake(collection, existing_data, intake, report)
+    return save_collection(collection, index)
 
 
 def set_enabled(unit_id, enabled, log=print):
@@ -875,7 +894,7 @@ def normalize_topic_channels(value, log=print):
 
 
 def collect_topic(keyword, pages=30, title=None, up=None, slug=None,
-                  slogan=None, min_match=2, match_all=False, dry_run=False,
+                  slogan=None, dry_run=False,
                   unit_id=None, log=print, intake=None, topic_channels=None):
     """
     按主题采集一个 series 单元,可同时选 B站 / 公众号 / 小红书多个渠道。
@@ -903,13 +922,13 @@ def collect_topic(keyword, pages=30, title=None, up=None, slug=None,
     author, mid = "", ""
     result["fetched"] = 0
 
-    # B站:官方搜索 + 同系列聚类(只有这里需要 min_match / 指定UP主)
+    # B站:官方搜索 + 同系列聚类(只有这里需要聚类;--up 可限定 UP 主)
     if "bilibili" in selected:
         log("正在搜索 B站 (最多 %d 页)..." % pages)
         items = search_bilibili(keyword, pages, verbose=False)
         result["fetched"] += len(items)
         log("共抓取 %d 条结果,正在聚类同系列..." % len(items))
-        found, ranked = pick_series(items, keyword, up, min_match, match_all)
+        found, ranked = pick_series(items, keyword, up)
         if found:
             chosen = found
             author = up or found[0].get("author", "")
@@ -1064,24 +1083,11 @@ def collect_topic(keyword, pages=30, title=None, up=None, slug=None,
         source_url = "https://space.bilibili.com/%s/video" % mid
     else:
         source_url = next((v.get("url") for v in videos if v.get("url")), "")
-    collection = {
-        "id": uid,
-        "type": "series",
-        "title": title,
-        "slogan": final_slogan,
-        "source": {
-            "platform": plat_key,
-            "name": author or plat_name,
-            "url": source_url,
-        },
-        "platforms": plat_list,
-        "keyword": keyword,
-        "tags": unit_tags[:10],
-        "count": len(videos),
-        "videos": videos,
-    }
-    collection = attach_intake(collection, existing_data, intake, report)
-    data_path, index = save_collection(collection, index)
+    data_path, index = _finalize_unit(
+        uid, "series", title, final_slogan,
+        {"platform": plat_key, "name": author or plat_name, "url": source_url},
+        videos, unit_tags, keyword, existing_data, intake, report, index,
+        platforms=plat_list)
 
     result["ok"] = True
     result["data_file"] = display_path(data_path)
@@ -1329,23 +1335,11 @@ def _collect_article_single(url, plat, title=None, slug=None, slogan=None,
     page_path = "single.html?id=%s" % uid
     final_slogan = slogan or "单条内容精选 · 前往%s阅读原文" % plat_name
     unit_tags = item.get("tags") or guess_tags(final_title, [item.get("author") or ""])
-    collection = {
-        "id": uid,
-        "type": "single",
-        "title": final_title,
-        "slogan": final_slogan,
-        "source": {
-            "platform": platform_key(plat_name),
-            "name": item.get("author") or plat_name,
-            "url": item["url"],
-        },
-        "keyword": url,
-        "tags": unit_tags[:10],
-        "count": len(videos),
-        "videos": videos,
-    }
-    collection = attach_intake(collection, existing_data, intake, report)
-    data_path, index = save_collection(collection, index)
+    data_path, index = _finalize_unit(
+        uid, "single", final_title, final_slogan,
+        {"platform": platform_key(plat_name), "name": item.get("author") or plat_name,
+         "url": item["url"]},
+        videos, unit_tags, url, existing_data, intake, report, index)
     result.update(ok=True, data_file=display_path(data_path),
                   page_file=page_path, topic_count=len(index))
     log("采集完成: %s" % result["data_file"])
@@ -1467,23 +1461,12 @@ def collect_batch(text, title=None, slug=None, slogan=None, dry_run=False,
                 tag_pool.append(t)
     unit_tags = tag_pool[:10] or guess_tags(final_title, [source_name])
 
-    collection = {
-        "id": uid,
-        "type": unit_type,
-        "title": final_title,
-        "slogan": final_slogan,
-        "source": {
-            "platform": platform_key(plat_label),
-            "name": source_name,
-            "url": items[0].get("url", ""),
-        },
-        "keyword": "batch",
-        "tags": unit_tags,
-        "count": len(videos),
-        "videos": videos,
-    }
-    collection = attach_intake(collection, existing_data, intake, report)
-    data_path, index = save_collection(collection, index)
+    data_path, index = _finalize_unit(
+        uid, unit_type, final_title, final_slogan,
+        {"platform": platform_key(plat_label), "name": source_name,
+         "url": items[0].get("url", "")},
+        videos, unit_tags, "batch", existing_data, intake, report, index,
+        platforms=plat_keys)
     result.update(ok=True, data_file=display_path(data_path),
                   page_file=page_path, topic_count=len(index))
     log("采集完成: %s" % result["data_file"])
@@ -1586,23 +1569,12 @@ def _collect_bilibili_single(url, title=None, slug=None, slogan=None, dry_run=Fa
     if not unit_tags:
         kw = re.sub(r"\s+", "", final_title or "")
         unit_tags = [kw] if kw else []
-    collection = {
-        "id": uid,
-        "type": "single",
-        "title": final_title,
-        "slogan": final_slogan,
-        "source": {
-            "platform": "bilibili",
-            "name": video["author"],
-            "url": ("https://space.bilibili.com/%s/video" % raw.get("mid")) if raw.get("mid") else video["url"],
-        },
-        "keyword": url,
-        "tags": unit_tags[:10],
-        "count": len(videos),
-        "videos": videos,
-    }
-    collection = attach_intake(collection, existing_data, intake, report)
-    data_path, index = save_collection(collection, index)
+    data_path, index = _finalize_unit(
+        uid, "single", final_title, final_slogan,
+        {"platform": "bilibili", "name": video["author"],
+         "url": ("https://space.bilibili.com/%s/video" % raw.get("mid"))
+                if raw.get("mid") else video["url"]},
+        videos, unit_tags, url, existing_data, intake, report, index)
 
     result["ok"] = True
     result["data_file"] = display_path(data_path)
@@ -1613,103 +1585,6 @@ def _collect_bilibili_single(url, title=None, slug=None, slogan=None, dry_run=Fa
     log("采集索引: %s (共 %d 个单元,本次%s)" % (display_path(INDEX_JS), len(index), "更新" if is_update else "新建"))
     log("跳转地址: %s" % result["sample_url"])
     return result
-
-
-def migrate_legacy(log=print):
-    """
-    把旧格式(assets/data/<id>.js 的 TOPIC_DATA + index.js 的 TOPIC_INDEX)
-    迁移到新格式(collections/<id>.js + COLLECTION_INDEX)。
-    旧文件不删除,只新增新格式文件并重建索引,可安全重复执行。
-    """
-    # 旧格式目录已在 2026-11-26 清理(D16);没有旧文件时直接返回,避免无谓重写现有单元
-    if not os.path.isdir(LEGACY_DIR) or not any(f.endswith(".html") for f in os.listdir(LEGACY_DIR)):
-        log("旧格式目录不存在(%s),无需迁移" % display_path(LEGACY_DIR))
-        return {"ok": True, "migrated": 0, "units": len(load_index())}
-    index = load_index()
-    migrated = 0
-    for meta in index:
-        uid = meta.get("id")
-        if not uid:
-            continue
-        new_path = os.path.join(COLLECTIONS_DIR, "%s.js" % uid)
-        if os.path.exists(new_path):
-            # 新格式已存在:只补齐元信息字段
-            data = load_collection_data(uid) or {}
-            changed = False
-            # 纠正类型:BV 号 id 归为 single
-            expected_type = "single" if str(uid).lower().startswith("bv") else "series"
-            if data.get("type") != expected_type:
-                data["type"] = expected_type
-                changed = True
-            if "page" in data:  # D24:路由属表现层,数据里不再保留
-                data.pop("page")
-                changed = True
-            for key in ("enabled", "created", "updated", "keyword", "count", "cover", "latest"):
-                if key not in data and key in meta:
-                    data[key] = meta[key]
-                    changed = True
-            # 采集时间为空(存量迁移)则回填当天,保证子页面「最近采集」有值
-            if not data.get("updated"):
-                data["updated"] = datetime.date.today().isoformat()
-                changed = True
-            # 标签缺失则用标题关键词兜底,保证首页筛选可用
-            if not data.get("tags"):
-                data["tags"] = [data["title"]] if data.get("title") else []
-                changed = changed or bool(data["tags"])
-            data.setdefault("enabled", True)
-            if _backfill_item_fields(data):
-                changed = True
-            if changed:
-                text = ("// 采集单元数据: %s (迁移自旧格式)\n" % data.get("title", "")) + \
-                       ("window.COLLECTION_DATA[%s] = %s;\n" % (json.dumps(uid), js(data)))
-                write_text_atomic(new_path, text, snapshot=False)
-            continue
-        data = load_collection_data(uid)
-        if not data:
-            log("跳过 %s: 未找到数据" % uid)
-            continue
-        # BV 号 id 历史上来自「按链接采集」,归为 single;其余为 series
-        data["type"] = ("single" if uid.lower().startswith("bv")
-                        else (meta.get("type") or "series"))
-        data["enabled"] = meta.get("enabled", True)
-        data["created"] = meta.get("created", "")
-        data["updated"] = meta.get("updated") or datetime.date.today().isoformat()
-        data["keyword"] = meta.get("keyword", "")
-        # 标签缺失则用标题关键词兜底,保证首页筛选可用
-        if not data.get("tags"):
-            data["tags"] = [data["title"]] if data.get("title") else []
-        videos = data.get("videos") or []
-        data.pop("page", None)  # 旧 single 的 page 指向 topics/<id>.html,这里直接丢掉
-        data["count"] = len(videos)
-        if videos and not data.get("cover"):
-            data["cover"] = videos[0].get("cover", "")
-            data["latest"] = videos[0].get("date", "")
-        _backfill_item_fields(data)
-        write_collection_file(data)
-        migrated += 1
-        log("迁移 %s -> collections/%s.js (type=%s)" % (uid, uid, data["type"]))
-
-    # 重建索引,补齐新字段
-    new_index = []
-    for meta in load_index():
-        uid = meta.get("id")
-        t = ("single" if str(uid).lower().startswith("bv")
-             else (meta.get("type") or "series"))
-        meta["type"] = t
-        meta.setdefault("enabled", True)
-        meta.setdefault("created", "")
-        meta.setdefault("keyword", "")
-        # 采集时间为空(存量迁移)则回填当天,与数据文件保持一致
-        if not meta.get("updated"):
-            meta["updated"] = datetime.date.today().isoformat()
-        # 标签缺失则用标题关键词兜底,与数据文件保持一致
-        if not meta.get("tags"):
-            meta["tags"] = [meta["title"]] if meta.get("title") else []
-        meta.pop("page", None)
-        new_index.append(meta)
-    write_index(new_index, datetime.date.today().isoformat())
-    log("迁移完成: 新增 %d 个单元数据文件,索引共 %d 个单元" % (migrated, len(new_index)))
-    return {"ok": True, "migrated": migrated, "total": len(new_index)}
 
 
 def normalize_dataset(log=print, dry_run=False):
@@ -1782,10 +1657,8 @@ def build_parser():
     parser.add_argument("--id", dest="unit_id", default=None, help="采集单元 id;命中已有单元则只更新它")
     parser.add_argument("--slug", default=None, help="同 --id,兼容旧参数")
     parser.add_argument("--slogan", default=None, help="副标题")
-    parser.add_argument("--min-match", type=int, default=2, help="标题相似度最小词块数,默认2")
     parser.add_argument("--channels", default=None,
                         help="按主题采集的渠道,逗号分隔:bilibili,wechat,xhs(默认 bilibili)")
-    parser.add_argument("--match-all", action="store_true", help="要求包含关键词全部核心词")
     parser.add_argument("--url", action="store_true", help="按链接采集单条内容(自动识别 B站/公众号/小红书)")
     parser.add_argument("--batch", action="store_true", help="批量链接采集:位置参数传多条链接/分享文案")
     parser.add_argument("--manual-title", default=None, help="手工补录标题(抓取被风控时使用)")
@@ -1802,7 +1675,6 @@ def build_parser():
     parser.add_argument("--toggle", metavar="ID", default=None, help="开启/关闭某单元显示,配合 --on/--off")
     parser.add_argument("--on", dest="toggle_on", action="store_true", help="配合 --toggle:开启显示")
     parser.add_argument("--off", dest="toggle_off", action="store_true", help="配合 --toggle:关闭显示")
-    parser.add_argument("--migrate", action="store_true", help="从旧格式迁移到采集单元格式")
     parser.add_argument("--topics", action="append", default=None, metavar="FILE",
                         help="按主题清单批量采集(如 topics.yml),可多次指定以合并清单")
     return parser
@@ -1943,11 +1815,6 @@ def run_topics(paths, pages=30, dry_run=False, log=print):
 def main():
     args = build_parser().parse_args()
 
-    if args.migrate:
-        r = migrate_legacy()
-        if not r["ok"]:
-            sys.exit(1)
-        return
     if args.normalize:
         r = normalize_dataset(dry_run=args.dry_run)
         sys.exit(0 if r["ok"] else 1)
@@ -1979,7 +1846,7 @@ def main():
         return
 
     if not args.keyword:
-        print("错误:请提供主题关键词/链接,或使用 --list/--toggle/--migrate", file=sys.stderr)
+        print("错误:请提供主题关键词/链接,或使用 --list/--toggle/--verify", file=sys.stderr)
         sys.exit(1)
 
     manual = {
@@ -2013,8 +1880,7 @@ def main():
     else:
         result = collect_topic(
             keyword=args.keyword, pages=args.pages, title=args.title, up=args.up,
-            slug=args.slug, slogan=args.slogan, min_match=args.min_match,
-            match_all=args.match_all, dry_run=args.dry_run, unit_id=args.unit_id,
+            slug=args.slug, slogan=args.slogan, dry_run=args.dry_run, unit_id=args.unit_id,
             topic_channels=args.channels, intake=intake,
         )
     if not result["ok"]:

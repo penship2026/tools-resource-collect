@@ -174,6 +174,30 @@ class GenerateDataTest(unittest.TestCase):
         self.assertEqual(generate.normalize_dataset(log=lambda *a: None)["changed"], 0)
 
 
+    def test_finalize_unit_writes_contract(self):
+        """D15:采集单元收口统一组装字段,不再各拼一份 dict"""
+        index = []
+        data_path, index = generate._finalize_unit(
+            "u9", "series", "统一收口", "副标题",
+            {"platform": "bilibili", "name": "作者", "url": ""},
+            [video(0), video(1)], ["标签甲", "标签乙"], "关键词",
+            None, None, {"added": 2, "updated": 0, "kept": 0, "total": 2}, index,
+            platforms=["bilibili"])
+        data = generate.load_collection_data("u9")
+        self.assertEqual(data["type"], "series")
+        self.assertEqual(data["count"], 2)
+        self.assertEqual(data["tags"], ["标签甲", "标签乙"])
+        self.assertEqual(data["platforms"], ["bilibili"])
+        self.assertNotIn("page", data)
+        self.assertEqual(len(index), 1)
+        self.assertTrue(os.path.exists(data_path))
+
+    def test_title_match_is_exact_keyword(self):
+        """D16:匹配只做「关键词完整出现在标题」,死参数已移除"""
+        self.assertTrue(generate.title_match("跟着动画学古文:第 1 集", "跟着动画学古文"))
+        self.assertFalse(generate.title_match("古文动画合集", "跟着动画学古文"))
+
+
 class CliSmokeTest(unittest.TestCase):
     """在真实仓库数据上跑 CLI(只读)"""
 

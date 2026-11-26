@@ -368,7 +368,7 @@ python3 collector/backup_data.py backup --out /mnt/nas/backup            # 备�
 - 还原只解包 `.js` / `.html`，拒绝 `..` 路径穿越；默认还原前自动留存当前数据快照，可回退。
 - 环境变量 `VIDEO_DATA_DIR` / `VIDEO_BACKUP_DIR` 可覆盖路径，适配分离部署的共享目录。
 - 定时备份：配合 cron 或 NAS 计划任务，先 `cd` 到项目目录再执行 `backup`，并把 `VIDEO_BACKUP_DIR` 指向 NAS 共享文件夹。
-- 旧版数据用 `python3 collector/generate.py --migrate` 转为采集单元格式（幂等；旧版 `topics/*.html` 与根目录 `assets/data/*.js` 已于 2026-11-26 删除，需要时从 git 历史恢复）。迁移/还原后先执行 `--verify` 并访问 `/api/topics` 确认单元数正确、首页封面正常。
+- 旧版 `topics/*.html` 与根目录 `assets/data/*.js` 已于 2026-11-26 删除并完成迁移,`--migrate` 与 `LEGACY_DIR` 等遗留代码同批移除（需要旧文件时从 git 历史恢复）。还原历史数据后先执行 `--verify` 并访问 `/api/topics` 确认单元数正确、首页封面正常。
 
 **升级不丢数据**：Docker 场景因已挂载 `assets/data`，`down` 再 `up` 数据仍在；直接覆盖代码文件重启亦可。
 

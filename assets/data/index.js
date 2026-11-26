@@ -7,34 +7,6 @@ window.SITE = {
 };
 window.COLLECTION_INDEX = [
   {
-    "id": "guwen-animation",
-    "title": "跟着动画学古文",
-    "slogan": "共收录 10 期,点击卡片跳转 B站观看",
-    "source": {
-      "platform": "bilibili",
-      "name": "宋歌资源库",
-      "url": "https://space.bilibili.com/420996230/video"
-    },
-    "count": 10,
-    "cover": "https://i0.hdslb.com/bfs/archive/7f02dcd6b7f7e4acfd0d1d82f4b6114c07ac9ce8.jpg",
-    "latest": "2026.07.30",
-    "type": "series",
-    "enabled": true,
-    "created": "",
-    "updated": "2026-11-25",
-    "keyword": "",
-    "tags": [
-      "文言文",
-      "趣味文言文",
-      "动画文言文",
-      "初中文言文",
-      "一词多义",
-      "高中文言文",
-      "实词",
-      "虚词"
-    ]
-  },
-  {
     "id": "topic-e5b5c763",
     "title": "英语启蒙必备",
     "slogan": "共收录 1 期,点击卡片跳转 B站观看",
@@ -310,5 +282,33 @@ window.COLLECTION_INDEX = [
     "last_mode_label": "按主题采集",
     "enabled": true,
     "created": ""
+  },
+  {
+    "id": "guwen-animation",
+    "title": "跟着动画学古文",
+    "slogan": "共收录 10 期,点击卡片跳转 B站观看",
+    "source": {
+      "platform": "bilibili",
+      "name": "宋歌资源库",
+      "url": "https://space.bilibili.com/420996230/video"
+    },
+    "count": 10,
+    "type": "series",
+    "enabled": true,
+    "created": "",
+    "updated": "2026-11-26",
+    "keyword": "",
+    "cover": "https://i0.hdslb.com/bfs/archive/7f02dcd6b7f7e4acfd0d1d82f4b6114c07ac9ce8.jpg",
+    "latest": "2026.07.30",
+    "tags": [
+      "文言文",
+      "趣味文言文",
+      "动画文言文",
+      "初中文言文",
+      "一词多义",
+      "高中文言文",
+      "实词",
+      "虚词"
+    ]
   }
 ];

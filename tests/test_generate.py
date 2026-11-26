@@ -211,6 +211,25 @@ class CliSmokeTest(unittest.TestCase):
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertIn("daily-website", r.stdout)
 
+    def test_bili_parts_and_season(self):
+        """B站详情扩展:多P才返回分P目录;合集展平分节"""
+        single = {"pages": [{"page": 1, "part": "唯一P", "duration": 10}]}
+        self.assertEqual(generate.bili_parts(single), [])
+        multi = {"pages": [{"page": 1, "part": "P1", "duration": 320, "cid": 1},
+                           {"page": 2, "part": "P2", "duration": 21, "cid": 2}]}
+        parts = generate.bili_parts(multi)
+        self.assertEqual([p["p"] for p in parts], [1, 2])
+        self.assertEqual(parts[1]["title"], "P2")
+        self.assertIsNone(generate.bili_season({"ugc_season": None}))
+        season = {"ugc_season": {"title": "合集A", "sections": [
+            {"title": "第一节", "episodes": [{"bvid": "BV1aa", "title": "第一集",
+                                            "arc": {"duration": 61}}]}]}}
+        got = generate.bili_season(season)
+        self.assertEqual(got["title"], "合集A")
+        self.assertEqual(got["episodes"][0]["bvid"], "BV1aa")
+        self.assertEqual(got["episodes"][0]["duration"], 61)
+        self.assertEqual(got["episodes"][0]["section"], "第一节")
+
     def test_verify_real_data(self):
         r = self.run_cli("--verify")
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)

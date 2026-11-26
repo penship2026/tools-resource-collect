@@ -207,7 +207,7 @@ def normalize(video, keyword=""):
     bv = video.get("bvid", "")
     # 简介:优先 description,其次 desc
     desc = clean_html(video.get("description") or video.get("desc") or "")
-    return {
+    out = {
         "platform": "bilibili",
         "kind": "video",
         # 去重键:跨平台统一用 key,B站用 BV 号
@@ -222,6 +222,13 @@ def normalize(video, keyword=""):
         "author": video.get("author", ""),
         "desc": desc[:160],
     }
+    parts = video.get("parts") or []
+    if parts:
+        out["parts"] = parts
+    season = video.get("season")
+    if season and season.get("episodes"):
+        out["season"] = season
+    return out
 
 
 def slugify(keyword, slug_arg, existing_ids):
@@ -642,6 +649,55 @@ def _finalize_unit(uid, unit_type, title, slogan, source, videos, tags, keyword,
         collection["platforms"] = list(platforms)
     collection = attach_intake(collection, existing_data, intake, report)
     return save_collection(collection, index)
+
+
+def enrich_bilibili_metadata(unit_id=None, log=print):
+    """为已有 B站 单元补齐 parts/season(视频详情页的分P目录/所属合集)。
+
+    只读 view 接口,不改标题/日期等既有字段;节流 0.35s,单个失败跳过不中断。
+    """
+    index = load_index()
+    units = [u for u in index
+             if (not unit_id or u.get("id") == unit_id)
+             and u.get("source", {}).get("platform") == "bilibili"]
+    if not units:
+        log("没有匹配的 B站 单元")
+        return {"ok": False, "units": 0, "videos": 0}
+    touched_units = 0
+    touched_videos = 0
+    for u in units:
+        data = load_collection_data(u["id"])
+        if not data:
+            continue
+        changed = False
+        for v in data.get("videos") or []:
+            bvid = v.get("bv")
+            if not bvid:
+                continue
+            if v.get("parts") and v.get("season"):
+                continue
+            try:
+                raw = fetch_video_by_bvid(bvid, log=lambda *a: None)
+            except Exception as exc:
+                log("  %s 失败(跳过): %s" % (bvid, exc))
+                time.sleep(0.35)
+                continue
+            parts, season = raw.get("parts") or [], raw.get("season")
+            if parts and not v.get("parts"):
+                v["parts"] = parts
+                changed = True
+            if season and not v.get("season"):
+                v["season"] = season
+                changed = True
+            touched_videos += 1
+            time.sleep(0.35)
+        if changed:
+            save_collection(data, index)
+            index = load_index()
+            touched_units += 1
+            log("  %s: 已补齐分P/合集信息" % u["id"])
+    log("完成:检查 %d 个单元,更新 %d 个单元 / %d 条视频" % (len(units), touched_units, touched_videos))
+    return {"ok": True, "units": touched_units, "videos": touched_videos}
 
 
 def set_enabled(unit_id, enabled, log=print):
@@ -1160,6 +1216,42 @@ def extract_share_title(text):
     return title
 
 
+def bili_parts(x):
+    """多分P视频的分P目录;单P返回空列表"""
+    pages = x.get("pages") or []
+    if len(pages) < 2:
+        return []
+    out = []
+    for p in pages:
+        out.append({
+            "p": p.get("page"),
+            "title": clean_html(p.get("part") or ""),
+            "duration": p.get("duration") or 0,
+            "cid": p.get("cid"),
+        })
+    return out
+
+
+def bili_season(x):
+    """B站合集(ugc_season):展平所有分节,给出集号/标题/时长;没有合集返回 None"""
+    sg = x.get("ugc_season")
+    if not sg:
+        return None
+    eps = []
+    for sec in sg.get("sections") or []:
+        for e in sec.get("episodes") or []:
+            arc = e.get("arc") or {}
+            eps.append({
+                "bvid": e.get("bvid") or "",
+                "title": clean_html(e.get("title") or ""),
+                "duration": arc.get("duration") or (e.get("page") or {}).get("duration") or 0,
+                "section": sec.get("title") or "",
+            })
+    if not eps:
+        return None
+    return {"title": sg.get("title") or "", "id": sg.get("id"), "episodes": eps}
+
+
 def fetch_video_by_bvid(bvid, log=print):
     """调用 B站 视频详情 API 获取单条视频,返回搜索API同构的 dict,供 normalize 复用"""
     url = "https://api.bilibili.com/x/web-interface/view?" + urllib.parse.urlencode({"bvid": bvid})
@@ -1180,6 +1272,9 @@ def fetch_video_by_bvid(bvid, log=print):
         "mid": owner.get("mid", ""),
         "play": (x.get("stat") or {}).get("view", 0),
         "duration": x.get("duration", 0),
+        # 详情页扩展:多分P目录 / 所属合集(没有则为空)
+        "parts": bili_parts(x),
+        "season": bili_season(x),
     }
 
 
@@ -1672,6 +1767,8 @@ def build_parser():
                         help="数据侧解耦:去掉 page 字段,platform 统一为稳定 key(幂等)")
     parser.add_argument("--verify", action="store_true",
                         help="数据一致性自检(索引/数据文件/count/key/日期/开关),有问题返回非 0")
+    parser.add_argument("--enrich-bili", action="store_true",
+                        help="为已有 B站 单元补充分P目录/所属合集(配合 --id 只处理一个单元)")
     parser.add_argument("--toggle", metavar="ID", default=None, help="开启/关闭某单元显示,配合 --on/--off")
     parser.add_argument("--on", dest="toggle_on", action="store_true", help="配合 --toggle:开启显示")
     parser.add_argument("--off", dest="toggle_off", action="store_true", help="配合 --toggle:关闭显示")
@@ -1838,6 +1935,10 @@ def main():
         if not r["ok"]:
             sys.exit(1)
         return
+
+    if args.enrich_bili:
+        r = enrich_bilibili_metadata(unit_id=args.unit_id)
+        sys.exit(0 if r["ok"] else 1)
 
     if args.topics:
         r = run_topics(args.topics, pages=args.pages, dry_run=args.dry_run)

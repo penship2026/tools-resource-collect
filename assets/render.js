@@ -274,6 +274,62 @@
   }
 
   // 多集导航:上一集 / 下一集 + 全集列表
+  // 秒 → mm:ss / h:mm:ss
+  function fmtDur(sec) {
+    var n = Math.max(0, Math.round(Number(sec) || 0));
+    var h = Math.floor(n / 3600);
+    var m = Math.floor((n % 3600) / 60);
+    var s = n % 60;
+    var mm = (h ? ('0' + m).slice(-2) : String(m));
+    var ss = ('0' + s).slice(-2);
+    return (h ? h + ':' + mm : mm) + ':' + ss;
+  }
+
+  // 视频详情页的「所属合集」与「分P 目录」:数据由采集端从 B站 view 接口取回
+  function parts(video, opts) {
+    opts = opts || {};
+    var unitId = opts.unitId || '';
+    var list = opts.videos || [];
+    var parts = (video && video.parts) || [];
+    var season = video && video.season;
+    var out = '';
+
+    if (season && Array.isArray(season.episodes) && season.episodes.length) {
+      var eps = season.episodes;
+      var items = eps.map(function (e, idx) {
+        var key = 'bilibili:' + e.bvid;
+        var inSite = list.some(function (x) { return (x.bv || '') === e.bvid; });
+        var href = inSite
+          ? 'single.html?id=' + encodeURIComponent(unitId) + '&k=' + encodeURIComponent(key)
+          : (e.url || ('https://www.bilibili.com/video/' + e.bvid + '/'));
+        var target = inSite ? '' : ' target="_blank" rel="noopener noreferrer"';
+        return '<li class="ep-item"><a href="' + esc(href) + '"' + target + '>' +
+          '<span class="ep-no">' + ('0' + (idx + 1)).slice(-2) + '</span>' +
+          '<span class="ep-t">' + esc(e.title || e.bvid) + '</span>' +
+          '<span class="ep-d">' + esc(fmtDur(e.duration)) + '</span>' +
+          '</a></li>';
+      }).join('');
+      out += '<section class="ep-list part-list"><div class="ep-head"><h3>所属合集 · ' + esc(season.title || 'B站合集') +
+        '</h3><span>共 ' + eps.length + ' 集 · 点站内已收录的可直接看详情</span></div>' +
+        '<ol class="ep-items">' + items + '</ol></section>';
+    }
+
+    if (parts.length > 1) {
+      var pitems = parts.map(function (p, idx) {
+        var href = (video.url || '') + '?p=' + (p.p || idx + 1);
+        return '<li class="ep-item' + (p.current ? ' cur' : '') + '"><a href="' + esc(href) + '" target="_blank" rel="noopener noreferrer">' +
+          '<span class="ep-no">P' + ('0' + (p.p || idx + 1)).slice(-2) + '</span>' +
+          '<span class="ep-t">' + esc(p.title || ('第 ' + (idx + 1) + ' P')) + '</span>' +
+          '<span class="ep-d">' + esc(fmtDur(p.duration)) + '</span>' +
+          '</a></li>';
+      }).join('');
+      out += '<section class="ep-list part-list"><div class="ep-head"><h3>分P 目录</h3>' +
+        '<span>共 ' + parts.length + ' P · 点击在 B站 打开该分P</span></div>' +
+        '<ol class="ep-items">' + pitems + '</ol></section>';
+    }
+    return out;
+  }
+
   function episodes(cur, list, unitTitle, unitId) {
     if (!list || list.length < 2) return '';
     var i = list.indexOf(cur);
@@ -336,6 +392,8 @@
     videoCard: videoCard,
     detail: detail,
     episodes: episodes,
+    parts: parts,
+    fmtDur: fmtDur,
     shortTitle: shortTitle
   };
 })(window);

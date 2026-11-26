@@ -107,6 +107,26 @@ ok('topicCard 支持整卡收藏按钮', () => {
   assert(html.includes('class="fav-btn"'));
 });
 
+ok('parts 渲染分P目录与所属合集', () => {
+  const v = {
+    url: 'https://www.bilibili.com/video/BV1xx/',
+    parts: [{ p: 1, title: '第一P', duration: 320 }, { p: 2, title: '第二P', duration: 263 }],
+    season: { title: '测试合集', episodes: [
+      { bvid: 'BV1aa', title: '合集第1集', duration: 61 },
+      { bvid: 'BV1xx', title: '合集第2集', duration: 3600 }
+    ] }
+  };
+  const html = R.parts(v, { unitId: 'u1', videos: [{ bv: 'BV1xx' }] });
+  assert(html.includes('所属合集 · 测试合集'));
+  assert(html.includes('分P 目录'));
+  assert(html.includes('P01'));
+  assert(html.includes('?p=2'));
+  // 站内已收录的集走详情页,未收录的走 B站外链
+  assert(html.includes('single.html?id=u1&amp;k=bilibili%3ABV1xx'));
+  assert(html.includes('https://www.bilibili.com/video/BV1aa/'));
+  assert(html.includes('1:00:00'));
+});
+
 ok('episodes 单条时不渲染导航', () => {
   assert.strictEqual(R.episodes(video, [video], '合集名', 'u'), '');
 });

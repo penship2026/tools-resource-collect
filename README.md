@@ -95,6 +95,7 @@ python3 collector/server.py 8765
 
 - **按链接采集单条**:粘贴 B站 分享文案 / 视频链接 / b23.tv 短链 / BV 号,或公众号文章、小红书笔记链接(type=`single` 或单条合集)。
 - **批量链接采集**:一次粘贴多条链接(可混合渠道),逐条解析后合成一个合集。
+- **B站分P/合集目录**:采集 B站 时顺带读取 view 接口的 `pages`(多分P)与 `ugc_season`(合集),写进单元数据;视频详情页在「全集列表」下方展示「所属合集」与「分P 目录」。老数据用 `--enrich-bili`(可配 `--id` 限定单元)补齐,页面上不再需要实时请求 B站(避免 CORS 与风控)。
 - **按主题采集**:填关键词并勾选渠道(**可多选**:B站 / 公众号 / 小红书,默认 B站),结果合并为一个合集(type=`series`)。B站走官方搜索并聚类同系列;公众号借搜索引擎找文章后逐条抓正文、作者、日期;小红书只收录搜索标题与原文链接(正文需登录)。各渠道借搜索引擎找工作,存在间歇性风控与相关性噪声,失败会在日志里说明,可稍后重试或改用按链接 / 批量采集。
 
 表单默认只显示当前模式的**必填项**;UP 主、搜索页数、手工补录、预览模式收在「可选设置」折叠区里(采集失败时会自动展开,方便手工补录)。
@@ -119,6 +120,7 @@ python3 collector/server.py 8765
 ### 命令行
 
 ```bash
+python3 collector/generate.py --enrich-bili --id guwen-animation    # 为已有 B站单元补分P/合集目录
 python3 collector/generate.py "每天挖掘一个神奇网站"                 # 按主题采集(series)
 python3 collector/generate.py "某主题" --up "UP主名" --id my-topic   # 指定单元ID采集
 python3 collector/generate.py "某主题" --channels wechat,xhs        # 按主题多渠道(逗号分隔)

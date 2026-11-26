@@ -419,3 +419,8 @@ Chrome 无头截图三页面全部正常:首页卡片标签独立行两行截断
 - 「我的」对 kind=series 渲染为合集卡(链接 series.html?id=,meta 加「合集」胶囊);星标避开右上角「合集/单条」标记。
 - 点击验证写库与切星正常;node 用例 11 个、Python 34 个、docs-check 通过。仅本地提交,未推送。
 
+### 05:10–06:20 B站分P/合集目录
+- 核实 view 接口字段:pages 提供分P,ugc_season 提供合集与分节集列表;浏览器直连受 CORS/风控限制,故走采集端落数据。
+- 采集端加 bili_parts/bili_season 与 --enrich-bili;guwen-animation 10 条视频补全(最多 15 P)。
+- 详情页全集列表下方新增分P目录/所属合集,内链已收录集、外链未收录集;无数据不渲染。node 12 例、Python 35 例、verify/docs-check 通过。仅本地提交,未推送。
+

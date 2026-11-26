@@ -381,3 +381,10 @@
 - 新增 `collector/git_sync.py`：只提交数据白名单，固定 `origin/main`，fast-forward 前置校验，不 force/reset/clean。
 - 新增 `pages.yml` artifact 发布，线上不暴露 `collector/`；`docs/GITHUB-PAGES.md` 同步。
 - 验收：Python 54 例、node 12 例、verify 12 单元 0 问题、docs-check 通过；设置页 HTTP 冒烟通过。
+
+### ✅ 42. 真实 dry-run 与作者锁修复（D63.1）（2026-11-27）
+
+- `pages=1` 首次 dry-run：3 成功 / 4 失败，发现 `daily-website` 会切换到另一个 UP 主。
+- 增加已有单元原作者锁：优先原 `source.name`；原作者无命中时本次不更新，不切作者。
+- `pages=3` 复跑：3 成功 / 4 失败；作者漂移已阻止，数据未写盘。
+- 仍待处理：`大模型对比`、`跟着动画学古文`、`最好的AI数字人项目` 关键词过严；`数学思维启蒙动画` 原作者本次无命中。

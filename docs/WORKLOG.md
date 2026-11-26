@@ -484,3 +484,10 @@ Chrome 无头截图三页面全部正常:首页卡片标签独立行两行截断
 - 新增 `git_sync.py`：白名单只提交 `assets/data`，固定 `origin/main`，fetch 后 fast-forward，不 force/reset/clean。
 - 新增 `pages.yml` artifact；Pages 不再直出 `collector/`，线上设置页/采集页 404。
 - 验收：Python 54 例、node 12 例、verify 12 单元 0 问题、docs-check 通过；本机 HTTP 冒烟通过；Playwright 390/1280 无横向溢出、无 JS 报错。
+
+### 17:10–17:40 真实 dry-run 联调（D63.1）
+- `pages=1`：3 成功 / 4 失败；发现 `daily-website` 命中另一个 UP 主，存在作者漂移风险。
+- 修复：已有单元重采时从 `source.name` 取原作者并锁定；原作者无命中时本次不更新，不切换到其他作者。
+- `pages=3` 复跑：3 成功 / 4 失败，作者漂移已阻止；`daily-website`、`英语启蒙必备`、`SpringAI` 均锁定原作者。
+- 仍失败：`大模型对比`、`跟着动画学古文`、`最好的AI数字人项目`（60 条候选中无 must 全命中）；`数学思维启蒙动画` 原作者无命中，按作者锁阻止更新。
+- 全程 `--dry-run`，未写数据；Python 55 例通过。

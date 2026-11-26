@@ -240,11 +240,13 @@ def item_match_text(item):
     return "\n".join(parts)
 
 
-def pick_series_multi(items, must_keywords, any_keywords=None, up_name=None, log=None):
+def pick_series_multi(items, must_keywords, any_keywords=None, up_name=None, log=None,
+                      preferred_author=""):
     """混合关键词聚类：先按 must/any 过滤候选，再取命中最多的 UP 主作为系列。
 
-    返回 (chosen, ranked, report)。report 里保留候选数、must 通过数、any 通过数，
-    供 --dry-run 与设置页预览直接展示。
+    已有单元重采时传 preferred_author：该 UP 有命中就优先锁定，避免同关键词
+    命中另一个同名系列导致作者漂移；锁定作者无命中时才回退到最高频作者。
+    返回 (chosen, ranked, report)。report 里保留候选数、must 通过数、any 通过数。
     """
     must = keyword_list(must_keywords)
     any_list = keyword_list(any_keywords)
@@ -257,6 +259,8 @@ def pick_series_multi(items, must_keywords, any_keywords=None, up_name=None, log
         "any": len(stage),
         "must_keywords": must,
         "any_keywords": any_list,
+        "preferred_author": preferred_author,
+        "preferred_locked": False,
     }
     if not stage:
         return [], [], report
@@ -272,6 +276,21 @@ def pick_series_multi(items, must_keywords, any_keywords=None, up_name=None, log
     ranked = sorted(counter.items(), key=lambda kv: -kv[1])
     if not ranked:
         return [], [], report
+
+    if preferred_author:
+        locked = [x for x in stage if x.get("author") == preferred_author]
+        if locked:
+            report["preferred_locked"] = True
+            if log:
+                log("候选 %d 条，must 通过 %d 条，any 通过 %d 条；锁定原作者「%s」命中 %d 条" % (
+                    total, len(must_pass), len(stage), preferred_author, len(locked)))
+            return locked, ranked, report
+        # 已有单元重采：原作者无命中时宁可本次不更新，也不切换到其他作者
+        report["preferred_miss"] = True
+        if log:
+            log("原作者「%s」本次无命中；已按作者锁阻止切换到其他作者" % preferred_author)
+        return [], ranked, report
+
     main_author = ranked[0][0]
     chosen = [x for x in stage if x.get("author") == main_author]
     if log:
@@ -1281,6 +1300,18 @@ def collect_topic(keyword, pages=30, title=None, up=None, slug=None,
     if len(must) > 1 or any_list:
         log("匹配规则: must=%s | any=%s" % ("/".join(must), "/".join(any_list) or "无"))
 
+    # 已有单元重采时锁定原作者，避免同关键词命中另一个同名系列造成作者漂移
+    preferred_author = ""
+    existing_hint = load_collection_data((unit_id or slug or "").strip())
+    if existing_hint:
+        preferred_author = (existing_hint.get("source") or {}).get("name", "")
+        if not preferred_author:
+            preferred_author = next((v.get("author") for v in existing_hint.get("videos") or []
+                                     if v.get("author")), "")
+        if preferred_author:
+            log("已有单元作者: %s（重采优先锁定）" % preferred_author)
+    result["preferred_author"] = preferred_author
+
     incoming, chosen, reports = [], [], []
     author, mid = "", ""
     match_report = {}
@@ -1292,7 +1323,8 @@ def collect_topic(keyword, pages=30, title=None, up=None, slug=None,
         items = search_bilibili(keyword, pages, verbose=False)
         result["fetched"] += len(items)
         log("共抓取 %d 条结果,正在按 must/any 匹配并聚类..." % len(items))
-        found, ranked, match_report = pick_series_multi(items, must, any_list, up, log=log)
+        found, ranked, match_report = pick_series_multi(
+            items, must, any_list, up, log=log, preferred_author=preferred_author)
         if found:
             chosen = found
             author = up or found[0].get("author", "")
@@ -1304,7 +1336,10 @@ def collect_topic(keyword, pages=30, title=None, up=None, slug=None,
             incoming.extend(normalize(v, keyword) for v in found)
             reports.append({"channel": "bilibili", "name": "B站", "found": len(found), "error": ""})
         else:
-            reason = "B站未找到匹配视频（must 关键词需全部出现在标题/简介中，any 至少命中一个）"
+            if preferred_author and match_report.get("preferred_miss"):
+                reason = "原作者「%s」本次无命中；已按作者锁阻止切换到其他作者" % preferred_author
+            else:
+                reason = "B站未找到匹配视频（must 关键词需全部出现在标题/简介中，any 至少命中一个）"
             log(reason)
             reports.append({"channel": "bilibili", "name": "B站", "found": 0, "error": reason})
     else:

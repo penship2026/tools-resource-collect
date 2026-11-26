@@ -347,6 +347,21 @@ topics:
         self.assertTrue(generate.keyword_match("ＳｐｒｉｎｇＡＩ 教程", ["springai"]))
         self.assertFalse(generate.keyword_match("Spring 教程", ["springai"]))
 
+    def test_preferred_author_blocks_series_drift(self):
+        items = [
+            {"title": "每天挖掘一个神奇网站：A", "author": "新作者"},
+            {"title": "每天挖掘一个神奇网站：B", "author": "原作者"},
+        ]
+        found, ranked, report = generate.pick_series_multi(
+            items, ["每天挖掘一个神奇网站"], [], preferred_author="原作者")
+        self.assertEqual([x["author"] for x in found], ["原作者"])
+        self.assertTrue(report["preferred_locked"])
+        # 原作者没有命中时宁可本次不更新，也不切换到其他作者
+        found, _, report = generate.pick_series_multi(
+            items, ["每天挖掘一个神奇网站"], [], preferred_author="不存在的作者")
+        self.assertEqual(found, [])
+        self.assertTrue(report["preferred_miss"])
+
     def test_run_topics_partial_keeps_ok(self):
         path = self._write("topics-run.yml", """
 version: 1

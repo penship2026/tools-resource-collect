@@ -367,6 +367,12 @@ class ReusableTCPServer(socketserver.TCPServer):
     allow_reuse_address = True
 
 
+def unit_page(t):
+    """单元详情页路由:类型决定页面,不在数据/索引里存表现层 page 字段"""
+    unit_type = (t or {}).get("type") or "series"
+    return ("single.html?id=%s" if unit_type == "single" else "series.html?id=%s") % (t or {}).get("id", "")
+
+
 def main():
     global API_ONLY, PUBLIC_MODE, TOKEN
     ap = argparse.ArgumentParser(description="集页采集服务(默认只监听本机,不对外)")

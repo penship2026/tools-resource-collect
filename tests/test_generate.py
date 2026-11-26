@@ -49,6 +49,11 @@ class GenerateDataTest(unittest.TestCase):
     def write_index(self, items):
         generate.write_index(items, "2026-11-26")
 
+    def test_server_unit_page_routes(self):
+        import server
+        self.assertEqual(server.unit_page({"id": "a", "type": "single"}), "single.html?id=a")
+        self.assertEqual(server.unit_page({"id": "b"}), "series.html?id=b")
+
     def test_index_sorted_by_last_at_desc(self):
         items = [
             {"id": "old", "type": "single", "count": 1, "last_at": "2026-11-25 08:00", "updated": "2026-11-25"},

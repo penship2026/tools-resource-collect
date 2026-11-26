@@ -84,6 +84,18 @@
     .toggle-btn { font-size: 11px; padding: 4px 9px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); color: var(--text-sub); cursor: pointer; white-space: nowrap; }
     .toggle-btn.off { color: #c0392b; }
     .topic-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
+    .unit-pager {
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border);
+      font-size: 12px; color: var(--text-mute);
+    }
+    .unit-pager .pager-btns { display: flex; gap: 6px; align-items: center; }
+    .unit-pager button {
+      font-size: 12px; padding: 4px 10px; border-radius: 6px; cursor: pointer;
+      border: 1px solid var(--border); background: var(--surface); color: var(--text-sub);
+    }
+    .unit-pager button:hover:not(:disabled) { border-color: var(--brand); color: var(--brand); }
+    .unit-pager button:disabled { opacity: .45; cursor: default; }
     .status { font-size: 13px; margin-top: 12px; min-height: 20px; }
     .status.err { color: #c0392b; }
     .status.ok { color: #1d9e75; }
@@ -678,67 +690,100 @@
       return true;
     }
 
+    // 已有采集单元:默认每页 10 条,避免单元多了把页面撑得过长
+    const UNIT_PAGE_SIZE = 10;
+    let unitCache = [];
+    let unitPage = 1;
+
     function loadTopics() {
       apiFetch(API_TOPICS, { cache: 'no-store' }).then(readJSON).then(d => {
-        const box = $('topics');
-        if (!d.ok) { box.innerHTML = '<div class="tip">' + esc(d.error || '索引不可用') + '</div>'; return; }
-        if (!d.topics.length) { box.innerHTML = '<div class="tip">暂无采集单元</div>'; return; }
-        box.innerHTML = d.topics.map(t => {
-          const type = t.type || 'series';
-          const typeTag = type === 'single'
-            ? '<span class="topic-type single">单条</span>'
-            : '<span class="topic-type">合集</span>';
-          const enabled = t.enabled !== false;
-          const last = t.last_at
-            ? `<small title="${esc(t.last_mode_label || '')}">上次采集 ${esc(fmtStamp(t.last_at))}</small>`
-            : '';
-          return `
-          <div class="topic-item ${enabled ? '' : 'off'}">
-            <div>
-              ${typeTag}<a href="${esc(safePage(t.page))}" target="_blank">${esc(t.title)}</a>
-              <small>${esc(t.count)} 条 · ${esc(t.platform || 'B站')}${t.author ? ' · ' + esc(t.author) : ''} · id: ${esc(t.id)}</small>
-              ${last}
-            </div>
-            <div class="topic-actions">
-              <button class="toggle-btn ${enabled ? '' : 'off'}" data-id="${esc(t.id)}" data-enabled="${enabled}">
-                ${enabled ? '显示中' : '已关闭'}
-              </button>
-              <button class="toggle-btn" data-fill-id="${esc(t.id)}">重新采集</button>
-            </div>
-          </div>`;
-        }).join('');
+        if (!d.ok) { $('topics').innerHTML = '<div class="tip">' + esc(d.error || '索引不可用') + '</div>'; return; }
+        unitCache = d.topics || [];
+        renderUnitPage();
+      }).catch(err => { $('topics').innerHTML = '<div class="tip">加载失败: ' + esc(err.message) + '</div>'; });
+    }
 
-        // 开关显示
-        box.querySelectorAll('.toggle-btn[data-id]').forEach(btn => {
-          btn.addEventListener('click', async () => {
-            const id = btn.getAttribute('data-id');
-            const next = btn.getAttribute('data-enabled') !== 'true';
-            btn.disabled = true;
-            try {
-              const resp = await apiFetch(API_TOGGLE, {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: id, enabled: next })
-              });
-              const r = await readJSON(resp);
-              if (r.ok) {
-                statusBox.className = 'status ok';
-                statusBox.textContent = '「' + (r.title || id) + '」显示已' + (next ? '开启' : '关闭');
-                loadTopics();
-              } else {
-                statusBox.className = 'status err';
-                statusBox.textContent = r.error || '切换失败';
-              }
-            } catch (err) {
-              statusBox.className = 'status err';
-              statusBox.textContent = '切换失败: ' + err.message;
-            } finally { btn.disabled = false; }
+    function renderUnitPage() {
+      const box = $('topics');
+      if (!unitCache.length) { box.innerHTML = '<div class="tip">暂无采集单元</div>'; return; }
+      const pages = Math.ceil(unitCache.length / UNIT_PAGE_SIZE);
+      unitPage = Math.min(Math.max(unitPage, 1), pages);
+      const start = (unitPage - 1) * UNIT_PAGE_SIZE;
+      const rows = unitCache.slice(start, start + UNIT_PAGE_SIZE);
+
+      box.innerHTML = rows.map(t => {
+        const type = t.type || 'series';
+        const typeTag = type === 'single'
+          ? '<span class="topic-type single">单条</span>'
+          : '<span class="topic-type">合集</span>';
+        const enabled = t.enabled !== false;
+        const last = t.last_at
+          ? `<small title="${esc(t.last_mode_label || '')}">上次采集 ${esc(fmtStamp(t.last_at))}</small>`
+          : '';
+        return `
+        <div class="topic-item ${enabled ? '' : 'off'}">
+          <div>
+            ${typeTag}<a href="${esc(safePage(t.page))}" target="_blank">${esc(t.title)}</a>
+            <small>${esc(t.count)} 条 · ${esc(t.platform || 'B站')}${t.author ? ' · ' + esc(t.author) : ''} · id: ${esc(t.id)}</small>
+            ${last}
+          </div>
+          <div class="topic-actions">
+            <button class="toggle-btn ${enabled ? '' : 'off'}" data-id="${esc(t.id)}" data-enabled="${enabled}">
+              ${enabled ? '显示中' : '已关闭'}
+            </button>
+            <button class="toggle-btn" data-fill-id="${esc(t.id)}">重新采集</button>
+          </div>
+        </div>`;
+      }).join('');
+
+      if (pages > 1) {
+        box.innerHTML += `
+        <div class="unit-pager">
+          <span>第 ${unitPage} / ${pages} 页 · 共 ${unitCache.length} 个单元</span>
+          <div class="pager-btns">
+            <button type="button" data-page="prev" ${unitPage <= 1 ? 'disabled' : ''}>上一页</button>
+            <button type="button" data-page="next" ${unitPage >= pages ? 'disabled' : ''}>下一页</button>
+          </div>
+        </div>`;
+        box.querySelectorAll('[data-page]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            unitPage += btn.getAttribute('data-page') === 'prev' ? -1 : 1;
+            renderUnitPage();
+            $('topics').scrollIntoView({ block: 'start', behavior: 'smooth' });
           });
         });
-        // 「重新采集」:带出上次采集信息并切到重新采集状态,不自动采集,等用户确认
-        box.querySelectorAll('[data-fill-id]').forEach(btn => {
-          btn.addEventListener('click', () => fillFromUnit(btn.getAttribute('data-fill-id')));
+      }
+
+      // 开关显示
+      box.querySelectorAll('.toggle-btn[data-id]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const id = btn.getAttribute('data-id');
+          const next = btn.getAttribute('data-enabled') !== 'true';
+          btn.disabled = true;
+          try {
+            const resp = await apiFetch(API_TOGGLE, {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ id: id, enabled: next })
+            });
+            const r = await readJSON(resp);
+            if (r.ok) {
+              statusBox.className = 'status ok';
+              statusBox.textContent = '「' + (r.title || id) + '」显示已' + (next ? '开启' : '关闭');
+              loadTopics();
+            } else {
+              statusBox.className = 'status err';
+              statusBox.textContent = r.error || '切换失败';
+            }
+          } catch (err) {
+            statusBox.className = 'status err';
+            statusBox.textContent = '切换失败: ' + err.message;
+          } finally { btn.disabled = false; }
         });
-      }).catch(err => { $('topics').innerHTML = '<div class="tip">加载失败: ' + esc(err.message) + '</div>'; });
+      });
+      // 「重新采集」:带出上次采集信息并切到重新采集状态,不自动采集,等用户确认
+      box.querySelectorAll('[data-fill-id]').forEach(btn => {
+        btn.addEventListener('click', () => fillFromUnit(btn.getAttribute('data-fill-id')));
+      });
     }
 
     form.addEventListener('submit', async e => {

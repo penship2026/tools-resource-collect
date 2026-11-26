@@ -14,6 +14,7 @@
     .top { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; margin-bottom: 22px; }
     .top h1 { font-size: 24px; margin-bottom: 6px; }
     .top p { color: var(--text-mute); font-size: 13px; line-height: 1.7; margin: 0; }
+    .top-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
     .top a { color: var(--brand); font-size: 13px; white-space: nowrap; }
     .grid { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 20px; align-items: start; }
     @media (max-width: 860px) { .grid { grid-template-columns: 1fr; } .wrap { padding: 20px 12px 56px; } }
@@ -22,8 +23,16 @@
     .panel .hint { color: var(--text-mute); font-size: 12px; line-height: 1.7; margin-bottom: 14px; }
     .section-card { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px; margin-bottom: 12px; background: var(--bg); }
     .section-head { display: flex; justify-content: space-between; gap: 10px; align-items: center; margin-bottom: 10px; }
+    .section-card.is-collapsed .section-head { margin-bottom: 0; }
     .section-head strong { font-size: 14px; }
     .section-head .meta { color: var(--text-mute); font-size: 12px; }
+    .card-toggle { display: flex; align-items: center; gap: 8px; width: 100%; min-width: 0; padding: 0; border: none; background: none; color: inherit; text-align: left; cursor: pointer; font: inherit; }
+    .card-toggle .chev { flex: 0 0 auto; width: 16px; color: var(--text-mute); font-size: 12px; transition: transform .15s ease; }
+    .card-toggle[aria-expanded="false"] .chev { transform: rotate(-90deg); }
+    .card-toggle strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .card-toggle .meta { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .card-body { min-width: 0; }
+    .section-card.is-collapsed .card-body, .topic-row.is-collapsed .card-body { display: none; }
     .row { display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 10px; align-items: center; margin-bottom: 9px; }
     .row label { font-size: 12px; color: var(--text-sub); }
     .row input[type=text], .row input[type=number], .row textarea, .row select {
@@ -43,7 +52,10 @@
     .topics { margin-top: 10px; border-top: 1px dashed var(--border); padding-top: 10px; }
     .topic-row { border: 1px solid var(--border); border-radius: 8px; padding: 10px; margin-bottom: 8px; background: var(--surface); }
     .topic-row .topic-head { display: flex; justify-content: space-between; gap: 8px; align-items: center; margin-bottom: 8px; font-size: 12px; color: var(--text-mute); }
+    .topic-row.is-collapsed .topic-head { margin-bottom: 0; }
     .topic-row .topic-head b { color: var(--text); font-size: 13px; }
+    .topic-row .topic-head .card-toggle { flex: 1 1 auto; }
+    .topic-row .topic-head > span:last-child { flex: 0 0 auto; }
     .topic-row .row { grid-template-columns: 88px minmax(0, 1fr); margin-bottom: 7px; }
     .kv { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12px; color: var(--text-sub); }
     .kv div { background: var(--bg); border-radius: 7px; padding: 8px; }
@@ -55,7 +67,14 @@
     .pill { display: inline-block; font-size: 11px; padding: 3px 7px; border-radius: 999px; background: #eef3fb; color: #2d7ff9; margin-left: 6px; }
     .bar { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 12px; }
     .unsaved { color: #c0392b; font-size: 12px; }
-    @media (max-width: 520px) { .row { grid-template-columns: 1fr; } .row label { margin-bottom: 2px; } .btns .btn { flex: 1 1 100%; } }
+    @media (max-width: 520px) {
+      .top { flex-wrap: wrap; }
+      .top-actions { width: 100%; justify-content: flex-start; }
+      .row { grid-template-columns: 1fr; }
+      .row label { margin-bottom: 2px; }
+      .btns .btn { flex: 1 1 100%; }
+      .card-toggle .meta { display: none; }
+    }
     .modal { position: fixed; inset: 0; background: rgba(15,23,42,.45); display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 50; }
     .modal[hidden] { display: none !important; }
     .modal-box { width: min(420px, 100%); background: var(--surface); border-radius: 12px; padding: 20px; box-shadow: 0 24px 80px rgba(0,0,0,.25); }
@@ -70,7 +89,10 @@
       <h1>采集设置</h1>
       <p>本机设置页；默认只监听 127.0.0.1，使用 --lan 启动后同一 Wi-Fi 下手机可访问。保存只改本机配置；线上自动采集由 GitHub Actions 管理。</p>
     </div>
-    <a href="/collect.html">← 返回采集页</a>
+    <div class="top-actions">
+      <button class="btn ghost" id="toggle-all" type="button">全部收起</button>
+      <a href="/collect.html">← 返回采集页</a>
+    </div>
   </div>
 
   <div class="grid">
@@ -174,6 +196,59 @@
   $("modal").addEventListener("click", function (e) { if (e.target === $("modal")) closeModal(false); });
   var markDirty = function () { state.dirty = true; $("save-state").textContent = "有未保存改动"; $("save-state").className = "unsaved"; };
 
+  var COLLAPSE_KEY = "jiye.settings.collapsed.v1";
+  var collapsed = { section: {}, topic: {} };
+  function loadCollapsed() {
+    try {
+      var raw = localStorage.getItem(COLLAPSE_KEY);
+      if (!raw) return;
+      var data = JSON.parse(raw) || {};
+      collapsed.section = data.section || {};
+      collapsed.topic = data.topic || {};
+    } catch (e) { collapsed = { section: {}, topic: {} }; }
+  }
+  function saveCollapsed() {
+    try { localStorage.setItem(COLLAPSE_KEY, JSON.stringify(collapsed)); } catch (e) {}
+  }
+  function isCollapsed(kind, id) { return !!(collapsed[kind] && collapsed[kind][id]); }
+  function setCollapsed(kind, id, value) {
+    if (!collapsed[kind]) collapsed[kind] = {};
+    if (value) collapsed[kind][id] = true;
+    else delete collapsed[kind][id];
+  }
+  function collapseCards() {
+    return document.querySelectorAll("[data-collapse-kind][data-collapse-id]");
+  }
+  function applyCollapseState() {
+    var cards = collapseCards();
+    cards.forEach(function (card) {
+      var kind = card.getAttribute("data-collapse-kind");
+      var id = card.getAttribute("data-collapse-id");
+      var closed = isCollapsed(kind, id);
+      card.classList.toggle("is-collapsed", closed);
+      var btn = card.querySelector("[data-collapse-btn]");
+      if (btn) btn.setAttribute("aria-expanded", closed ? "false" : "true");
+    });
+    var total = cards.length;
+    var allClosed = total > 0 && Array.prototype.every.call(cards, function (card) {
+      return card.classList.contains("is-collapsed");
+    });
+    $("toggle-all").textContent = allClosed ? "全部展开" : "全部收起";
+  }
+  function toggleAllCards() {
+    var cards = collapseCards();
+    var allClosed = cards.length > 0 && Array.prototype.every.call(cards, function (card) {
+      return card.classList.contains("is-collapsed");
+    });
+    var target = !allClosed;
+    cards.forEach(function (card) {
+      setCollapsed(card.getAttribute("data-collapse-kind"), card.getAttribute("data-collapse-id"), target);
+    });
+    applyCollapseState();
+    saveCollapsed();
+  }
+  loadCollapsed();
+
   async function api(path, opts) {
     var options = opts || {};
     options.headers = options.headers || {};
@@ -195,13 +270,21 @@
     box.innerHTML = state.sections.map(function (s, idx) {
       var reserved = ["infant-care", "preschool", "k12"].indexOf(s.id) >= 0;
       var age = s.age_min_months == null ? "全龄" : (s.age_min_months + "–" + s.age_max_months + " 月");
-      return '<div class="section-card" data-sec="' + idx + '">' +
-        '<div class="section-head"><strong>' + esc(s.title) + '</strong><span class="meta">' + esc(s.id) + ' · ' + esc(age) + (s.enabled ? '' : ' · 已停用') + '</span></div>' +
-        '<div class="row"><label>名称</label><input type="text" data-f="title" value="' + esc(s.title) + '"></div>' +
-        '<div class="row"><label>说明</label><textarea data-f="description">' + esc(s.description || "") + '</textarea></div>' +
-        '<div class="row"><label>排序</label><input type="number" data-f="order" value="' + esc(s.order) + '"></div>' +
-        '<div class="row"><label>显示</label><label class="check"><input type="checkbox" data-f="enabled"' + (s.enabled ? " checked" : "") + '> 在首页展示</label></div>' +
-        (reserved ? '' : '<button class="btn danger" data-del-section="' + idx + '">删除板块</button>') +
+      return '<div class="section-card" data-sec="' + idx + '" data-collapse-kind="section" data-collapse-id="' + esc(s.id) + '">' +
+        '<div class="section-head">' +
+          '<button class="card-toggle" type="button" data-collapse-btn aria-expanded="true">' +
+            '<span class="chev" aria-hidden="true">▾</span>' +
+            '<strong>' + esc(s.title) + '</strong>' +
+            '<span class="meta">' + esc(s.id) + ' · ' + esc(age) + (s.enabled ? '' : ' · 已停用') + '</span>' +
+          '</button>' +
+        '</div>' +
+        '<div class="card-body">' +
+          '<div class="row"><label>名称</label><input type="text" data-f="title" value="' + esc(s.title) + '"></div>' +
+          '<div class="row"><label>说明</label><textarea data-f="description">' + esc(s.description || "") + '</textarea></div>' +
+          '<div class="row"><label>排序</label><input type="number" data-f="order" value="' + esc(s.order) + '"></div>' +
+          '<div class="row"><label>显示</label><label class="check"><input type="checkbox" data-f="enabled"' + (s.enabled ? " checked" : "") + '> 在首页展示</label></div>' +
+          (reserved ? '' : '<button class="btn danger" data-del-section="' + idx + '">删除板块</button>') +
+        '</div>' +
         '</div>';
     }).join("");
   }
@@ -211,13 +294,21 @@
     if (!state.topics.length) { box.innerHTML = '<div class="hint">还没有主题。新增板块后请至少加一个启用主题，才能参与自动采集。</div>'; return; }
     box.innerHTML = state.topics.map(function (t, idx) {
       var sec = state.sections.filter(function (s) { return s.id === t.section; })[0];
-      return '<div class="topic-row" data-top="' + idx + '">' +
-        '<div class="topic-head"><span><b>' + esc(t.title) + '</b> · ' + esc(sec ? sec.title : t.section) + '</span><span>' + esc(t.id) + '</span></div>' +
-        '<div class="row"><label>must</label><input type="text" data-f="must_keywords" value="' + esc((t.must_keywords || []).join("，")) + '" placeholder="1–4 个，全部命中"></div>' +
-        '<div class="row"><label>any</label><input type="text" data-f="any_keywords" value="' + esc((t.any_keywords || []).join("，")) + '" placeholder="0–5 个，至少一个"></div>' +
-        '<div class="row"><label>渠道</label><input type="text" data-f="channels" value="' + esc((t.channels || []).join("，")) + '" placeholder="bilibili，wechat，xhs"></div>' +
-        '<div class="row"><label>显示/采集</label><label class="check"><input type="checkbox" data-f="enabled"' + (t.enabled !== false ? " checked" : "") + '> 启用</label></div>' +
-        '<button class="btn danger" data-del-topic="' + idx + '">删除主题</button>' +
+      return '<div class="topic-row" data-top="' + idx + '" data-collapse-kind="topic" data-collapse-id="' + esc(t.id) + '">' +
+        '<div class="topic-head">' +
+          '<button class="card-toggle" type="button" data-collapse-btn aria-expanded="true">' +
+            '<span class="chev" aria-hidden="true">▾</span>' +
+            '<span><b>' + esc(t.title) + '</b> · ' + esc(sec ? sec.title : t.section) + '</span>' +
+          '</button>' +
+          '<span>' + esc(t.id) + '</span>' +
+        '</div>' +
+        '<div class="card-body">' +
+          '<div class="row"><label>must</label><input type="text" data-f="must_keywords" value="' + esc((t.must_keywords || []).join("，")) + '" placeholder="1–4 个，全部命中"></div>' +
+          '<div class="row"><label>any</label><input type="text" data-f="any_keywords" value="' + esc((t.any_keywords || []).join("，")) + '" placeholder="0–5 个，至少一个"></div>' +
+          '<div class="row"><label>渠道</label><input type="text" data-f="channels" value="' + esc((t.channels || []).join("，")) + '" placeholder="bilibili，wechat，xhs"></div>' +
+          '<div class="row"><label>显示/采集</label><label class="check"><input type="checkbox" data-f="enabled"' + (t.enabled !== false ? " checked" : "") + '> 启用</label></div>' +
+          '<button class="btn danger" data-del-topic="' + idx + '">删除主题</button>' +
+        '</div>' +
         '</div>';
     }).join("");
   }
@@ -269,6 +360,7 @@
         state.topics.splice(idx, 1); state.dirty = true; renderTopics(); bindEditors();
       });
     });
+    applyCollapseState();
   }
 
   async function load() {
@@ -383,6 +475,19 @@
       load();
     } catch (e) { status($("git-status"), "推送失败：" + e.message, false); }
     finally { $("git-push").disabled = false; }
+  });
+
+  $("toggle-all").addEventListener("click", toggleAllCards);
+  document.addEventListener("click", function (e) {
+    var btn = e.target.closest && e.target.closest("[data-collapse-btn]");
+    if (!btn) return;
+    var card = btn.closest("[data-collapse-kind][data-collapse-id]");
+    if (!card) return;
+    var kind = card.getAttribute("data-collapse-kind");
+    var id = card.getAttribute("data-collapse-id");
+    setCollapsed(kind, id, !isCollapsed(kind, id));
+    applyCollapseState();
+    saveCollapsed();
   });
 
   load();

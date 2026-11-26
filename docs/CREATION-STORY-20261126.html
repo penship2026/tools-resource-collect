@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>37 小时，从一条视频到一个网站 · 集页创作过程记录</title>
+<meta name="description" content="集页（主题内容清单）从 0 到 1 的创作过程：37 小时、18 个评审问题、6 次排期迭代，以及那些真正卡住人的细节。">
+<style>
+  :root{
+    --bg:#f5f6fa;
+    --paper:#ffffff;
+    --ink:#12141c;
+    --ink-2:#3d4354;
+    --ink-3:#737a8d;
+    --line:#e5e8f0;
+    --brand:#3056ff;
+    --brand-2:#00b389;
+    --brand-soft:#eef1ff;
+    --warm:#ff7a59;
+    --radius:18px;
+    --shadow:0 18px 50px rgba(20,30,80,.08);
+    --mono:"SFMono-Regular","SF Mono",Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;background:
+      radial-gradient(900px 500px at 88% -8%, #dfe7ff 0%, transparent 62%),
+      radial-gradient(700px 420px at -8% 18%, #e6fbf4 0%, transparent 60%),
+      var(--bg);
+    color:var(--ink);font-family:var(--sans);line-height:1.75;
+    -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+  }
+  .progress{position:fixed;top:0;left:0;height:3px;width:0;background:linear-gradient(90deg,var(--brand),var(--brand-2));z-index:60;transition:width .15s linear}
+  .wrap{width:min(1120px,calc(100% - 48px));margin:0 auto}
+  .layout{display:grid;grid-template-columns:minmax(0,1fr) 190px;gap:56px;align-items:start;padding:38px 0 90px}
+  main{min-width:0}
+
+  /* ---------- hero ---------- */
+  .topbar{display:flex;align-items:center;justify-content:space-between;padding:22px 0 6px}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:-.02em}
+  .mark{width:34px;height:34px;border-radius:10px;background:linear-gradient(145deg,#4b79ff,#2039c9);box-shadow:0 8px 20px rgba(48,86,255,.28);position:relative;transform:rotate(45deg)}
+  .mark::after{content:"";position:absolute;inset:7px;border:2px solid #fff;border-radius:5px;transform:rotate(-45deg)}
+  .topbar .meta{font-size:12px;color:var(--ink-3);letter-spacing:.14em;text-transform:uppercase}
+
+  .hero{padding:58px 0 24px;position:relative}
+  .eyebrow{display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;letter-spacing:.18em;color:var(--brand);text-transform:uppercase;background:var(--brand-soft);padding:7px 12px;border-radius:999px}
+  .eyebrow i{width:6px;height:6px;border-radius:50%;background:var(--brand);display:block}
+  h1{font-size:clamp(40px,6.1vw,74px);line-height:1.12;letter-spacing:-.045em;margin:22px 0 18px;max-width:920px}
+  h1 em{font-style:normal;position:relative;white-space:nowrap}
+  h1 em::after{content:"";position:absolute;left:0;right:0;bottom:4px;height:14px;background:linear-gradient(90deg,rgba(48,86,255,.18),rgba(0,179,137,.18));z-index:-1;border-radius:4px}
+  .lede{max-width:730px;color:var(--ink-2);font-size:17px;margin:0}
+  .hero-foot{display:flex;flex-wrap:wrap;gap:12px 22px;align-items:center;margin-top:26px;color:var(--ink-3);font-size:13px}
+  .dot{width:5px;height:5px;border-radius:50%;background:#b9bfd0}
+
+  /* ---------- stats ---------- */
+  .stats{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin:34px 0 0}
+  .stat{background:rgba(255,255,255,.78);border:1px solid rgba(255,255,255,.9);box-shadow:var(--shadow);border-radius:16px;padding:18px 16px}
+  .stat b{display:block;font-size:clamp(23px,2.5vw,32px);line-height:1.1;letter-spacing:-.04em;font-weight:800}
+  .stat b span{font-size:.56em;font-weight:600;color:var(--ink-3);letter-spacing:0;margin-left:2px}
+  .stat small{display:block;color:var(--ink-3);font-size:12px;margin-top:8px;line-height:1.5}
+
+  /* ---------- shared section ---------- */
+  section{margin-top:64px;scroll-margin-top:28px}
+  .kicker{font-family:var(--mono);font-size:11px;letter-spacing:.16em;color:var(--brand);text-transform:uppercase;display:flex;align-items:center;gap:10px}
+  .kicker::after{content:"";height:1px;width:38px;background:var(--brand);opacity:.35}
+  h2{font-size:clamp(25px,3vw,34px);line-height:1.25;letter-spacing:-.035em;margin:10px 0 8px}
+  .sub{color:var(--ink-3);font-size:14px;margin:0 0 22px}
+  .card{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);box-shadow:0 10px 30px rgba(20,30,80,.05)}
+  .pad{padding:clamp(20px,3vw,30px)}
+  p{margin:0 0 16px}
+  .muted{color:var(--ink-3)}
+  .tag{display:inline-block;font-size:12px;padding:4px 10px;border:1px solid var(--line);border-radius:999px;color:var(--ink-3);margin:0 6px 6px 0;background:#fbfcff}
+
+  /* ---------- post copy ---------- */
+  .post{position:relative;overflow:hidden}
+  .post::before{content:"";position:absolute;right:-90px;top:-90px;width:240px;height:240px;border-radius:50%;background:radial-gradient(circle,rgba(48,86,255,.12),transparent 70%);pointer-events:none}
+  .post-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  .copy-btn{appearance:none;border:1px solid var(--line);background:#fff;color:var(--ink-2);border-radius:999px;padding:8px 14px;font-size:12px;cursor:pointer;font-family:var(--sans);transition:.2s}
+  .copy-btn:hover{border-color:var(--brand);color:var(--brand);box-shadow:0 0 0 3px rgba(48,86,255,.08)}
+  .copy-btn.ok{border-color:var(--brand-2);color:var(--brand-2)}
+  #postText{white-space:pre-wrap;font-size:15px;line-height:1.95;color:var(--ink-2);margin:18px 0 0;max-height:520px;overflow:auto;padding-right:6px}
+  #postText::-webkit-scrollbar{width:5px}
+  #postText::-webkit-scrollbar-thumb{background:#d8dcec;border-radius:4px}
+  .post-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
+  .post-actions .tag{background:var(--brand-soft);border-color:transparent;color:var(--brand)}
+
+  /* ---------- storyboard ---------- */
+  .shots{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+  .shot{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:16px;min-height:132px;display:flex;flex-direction:column;justify-content:space-between;transition:.22s}
+  .shot:hover{transform:translateY(-2px);box-shadow:0 14px 26px rgba(20,30,80,.08)}
+  .shot .n{font-family:var(--mono);font-size:11px;color:var(--brand);letter-spacing:.1em}
+  .shot h3{font-size:15px;line-height:1.45;margin:8px 0 4px;letter-spacing:-.01em}
+  .shot p{font-size:12px;color:var(--ink-3);margin:0;line-height:1.6}
+
+  /* ---------- timeline ---------- */
+  .timeline{position:relative;margin-top:10px;padding-left:26px}
+  .timeline::before{content:"";position:absolute;left:6px;top:8px;bottom:8px;width:2px;background:linear-gradient(180deg,var(--brand),rgba(0,179,137,.35),transparent)}
+  .step{position:relative;padding:0 0 28px 8px}
+  .step::before{content:"";position:absolute;left:-25px;top:4px;width:12px;height:12px;border-radius:50%;background:#fff;border:2px solid var(--brand);box-shadow:0 0 0 4px rgba(48,86,255,.08)}
+  .step time{font-family:var(--mono);font-size:11px;letter-spacing:.06em;color:var(--brand);background:var(--brand-soft);padding:3px 8px;border-radius:6px}
+  .step h3{font-size:19px;letter-spacing:-.02em;line-height:1.4;margin:9px 0 6px}
+  .step p{font-size:14.5px;color:var(--ink-2);margin:0}
+  .step .note{font-size:13px;color:var(--ink-3);margin-top:8px;border-left:2px solid #dfe4f2;padding-left:12px}
+
+  /* ---------- milestone table ---------- */
+  .table-wrap{overflow:auto;border-radius:14px;border:1px solid var(--line);background:#fff}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;min-width:520px}
+  th,td{padding:13px 16px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:#f8f9fd;font-weight:700;white-space:nowrap;color:var(--ink-2)}
+  td:first-child{font-family:var(--mono);font-size:12px;color:var(--brand);white-space:nowrap}
+  tr:last-child td{border-bottom:0}
+
+  /* ---------- two columns ---------- */
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .list-card{padding:24px}
+  .list-card h3{font-size:18px;margin:0 0 12px;letter-spacing:-.02em}
+  .list-card ul{margin:0;padding-left:0;list-style:none}
+  .list-card li{position:relative;padding-left:20px;margin:0 0 12px;font-size:14px;color:var(--ink-2);line-height:1.7}
+  .list-card li::before{content:"";position:absolute;left:0;top:9px;width:8px;height:8px;border-radius:3px;background:var(--brand);opacity:.25}
+  .list-card.good li::before{background:var(--brand-2);opacity:.4}
+  .list-card.pitfall li::before{background:var(--warm);opacity:.45}
+
+  /* ---------- quote ---------- */
+  .quote{margin-top:52px;padding:clamp(26px,4vw,44px);border-radius:22px;background:linear-gradient(135deg,#151a2d,#222a4c);color:#fff;position:relative;overflow:hidden}
+  .quote::after{content:"";position:absolute;right:-60px;bottom:-90px;width:260px;height:260px;border-radius:50%;background:radial-gradient(circle,rgba(0,229,255,.18),transparent 66%);pointer-events:none}
+  .quote p{font-size:clamp(20px,2.6vw,28px);line-height:1.55;letter-spacing:-.02em;margin:0;max-width:780px;position:relative;z-index:1}
+  .quote small{display:block;margin-top:18px;color:rgba(255,255,255,.55);font-size:12px;letter-spacing:.08em;font-family:var(--mono);text-transform:uppercase}
+
+  /* ---------- next ---------- */
+  .next{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+  .next-item{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px}
+  .next-item b{display:block;font-size:15px;margin-bottom:4px}
+  .next-item span{font-size:13px;color:var(--ink-3);line-height:1.65}
+
+  /* ---------- aside ---------- */
+  aside{position:sticky;top:28px}
+  .toc{background:rgba(255,255,255,.72);backdrop-filter:blur(14px);border:1px solid var(--line);border-radius:16px;padding:18px 16px;box-shadow:0 12px 30px rgba(20,30,80,.05)}
+  .toc b{display:block;font-size:11px;letter-spacing:.16em;color:var(--ink-3);font-family:var(--mono);margin-bottom:12px;text-transform:uppercase}
+  .toc a{display:block;font-size:13px;color:var(--ink-2);text-decoration:none;padding:6px 0;border-bottom:1px dashed transparent;transition:.18s}
+  .toc a:hover{color:var(--brand);border-bottom-color:#dfe4ff}
+  .aside-note{margin-top:14px;font-size:11.5px;color:var(--ink-3);line-height:1.7;padding:0 4px}
+
+  footer{border-top:1px solid var(--line);margin-top:70px;padding:26px 0 0;color:var(--ink-3);font-size:12px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+
+  @media (max-width:980px){
+    .layout{grid-template-columns:1fr;gap:0}
+    aside{display:none}
+    .stats{grid-template-columns:repeat(3,1fr)}
+    .shots{grid-template-columns:repeat(2,1fr)}
+  }
+  @media (max-width:640px){
+    .wrap{width:calc(100% - 32px)}
+    .topbar{padding-top:16px}
+    .topbar .meta{display:none}
+    .hero{padding-top:40px}
+    h1{letter-spacing:-.035em}
+    .stats{grid-template-columns:repeat(2,1fr)}
+    .shots,.cols,.next{grid-template-columns:1fr}
+    .hero-foot .dot{display:none}
+    .timeline{padding-left:22px}
+    section{margin-top:50px}
+    #postText{max-height:none;overflow:visible}
+    .quote{border-radius:18px}
+  }
+  @media (prefers-reduced-motion:reduce){
+    html{scroll-behavior:auto}
+    *{transition:none!important}
+  }
+</style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<div class="wrap">
+  <header class="topbar">
+    <div class="brand"><span class="mark" aria-hidden="true"></span> 集页</div>
+    <div class="meta">Creation Log · 2026.11.26</div>
+  </header>
+
+  <div class="layout">
+    <main>
+      <div class="hero">
+        <span class="eyebrow"><i></i> 从 0 到 1 的 37 小时</span>
+        <h1>37 小时，<br>从一条视频到<em>一个网站</em></h1>
+        <p class="lede">这不是一份功能清单，而是一个个人项目真实的生长过程：从一条只能在微信里看的视频，到一个能自动更新、能换 6 套皮肤、能在手机上看完的「主题内容清单」。</p>
+        <div class="hero-foot">
+          <span>2026-11-25 01:12 — 11-26 14:10</span><span class="dot"></span>
+          <span>集页 · resource-collect.ximyan.com</span><span class="dot"></span>
+          <span>独立开发 / 纯静态 / 零依赖</span>
+        </div>
+
+        <div class="stats">
+          <div class="stat"><b>37<span>h</span></b><small>从想法到线上可用</small></div>
+          <div class="stat"><b>61</b><small>条只增不改的决策</small></div>
+          <div class="stat"><b>18</b><small>个评审问题，逐级清零</small></div>
+          <div class="stat"><b>12</b><small>个采集单元，8 合集 + 4 单条</small></div>
+          <div class="stat"><b>6</b><small>套主题，只改 CSS 就能换</small></div>
+        </div>
+      </div>
+
+      <section id="post">
+        <div class="kicker">Ready to post</div>
+        <h2>可以直接发的小红书文案</h2>
+        <p class="sub">约 600 字，适合单篇发布；标题、正文、话题都在这张卡片里。</p>
+        <div class="card post pad">
+          <div class="post-head">
+            <strong style="font-size:14px">标题备选 · 任选其一</strong>
+            <button class="copy-btn" id="copyBtn" type="button">复制全文</button>
+          </div>
+          <div id="postText">37 小时，我把一条视频做成了一整个网站
+
+前天凌晨一点，我刷到一条讲「免费学拼音网站」的视频号。
+
+视频很有意思，但它的内容只在微信里能看。我顺手去 B站 搜了同款系列，发现同一支账号把内容分发到了多个平台——那一刻我突然意识到：我缺的不是内容，是把内容收成一份清单的地方。
+
+于是有了「集页」：一集一页，把值得收藏的视频和图文收成主题清单。
+
+最开始它只是我手工拼的几个 HTML。后来我干脆把「找内容—去重—写数据—出页面」交给一套纯规则程序：不登录、不下载视频、不绕过付费，只读各平台的公开搜索与详情接口。采集只写数据，页面是固定模板，所以站点始终是纯静态的，打开很快。
+
+中途我踩了两个印象最深的坑：
+
+一是视频号能分享、却不能在浏览器里直接播；抖音的搜索页会弹验证码。最后我把 B站 作为主数据源，公众号和小红书用「链接采集」补齐。不是所有平台都要硬接，先想清楚哪些内容值得接。
+
+二是最早的数据写入是直接覆盖文件。一次异常中断就可能让整站变空白。后来改成「先写临时文件、再原子替换、覆盖前留快照」，还加了一个自检命令，每次采集完先验一遍索引和文件是否对得上。
+
+第二天下午，我停下来做了一次全项目评审，列出 18 个问题，从「默认部署会把 .git 和备份目录公开」到「标题没转义可能执行脚本」。然后按优先级排期：先止血，再安全，再任务化，最后才是主题和美化。先让站活着、安全、可持续更新，再谈好看。
+
+现在的集页：
+- 12 个采集单元，8 个合辑 + 4 个单条
+- 4 个浏览页 + 1 个本机采集台
+- 6 套主题：默认、深色、科技、学院、古典、二次元
+- 单条 B站 链接如果命中 UP 主合集，一次就能展开全集合集
+- 详情页的分集目录就在播放器下方，左右滑动、展开全部、点一集直接在当前页切播
+- 390px 手机屏实测无横向溢出
+
+最让我满意的不是「做了多少功能」，而是它现在真的能自己更新：GitHub Actions 每天北京时间 07:00 采集一次，数据有变化才提交；我不用一直开着电脑。
+
+如果你问我这两天最大的感受——
+
+做产品最难的从来不是把功能堆上去，而是知道什么先做、什么不做，以及什么时候停下来检查。
+
+集页还在长。下一步我想把「主题清单」做得更像一本可以翻阅的册子，而不是一个列表。
+
+#独立开发 #个人项目 #网站开发 #内容聚合 #B站 #公众号 #小红书 #程序员日常 #产品设计 #从0到1</div>
+          <div class="post-actions">
+            <span class="tag">#独立开发</span><span class="tag">#个人项目</span><span class="tag">#从0到1</span><span class="tag">#产品设计</span><span class="tag">#程序员日常</span>
+          </div>
+        </div>
+      </section>
+
+      <section id="shots">
+        <div class="kicker">Storyboard</div>
+        <h2>9 张图，把过程讲清楚</h2>
+        <p class="sub">少放代码，多放前后对比；封面只留一句大字。</p>
+        <div class="shots">
+          <div class="shot"><span class="n">01 / COVER</span><h3>37 小时，从一条视频到一个网站</h3><p>首页截图 + 左侧大标题</p></div>
+          <div class="shot"><span class="n">02 / START</span><h3>一条视频，只能在微信里看</h3><p>视频号分享页，账号打码</p></div>
+          <div class="shot"><span class="n">03 / TURN</span><h3>同一内容，分布在多个平台</h3><p>B站 搜索同系列结果</p></div>
+          <div class="shot"><span class="n">04 / V1</span><h3>最开始，只是几个手拼的 HTML</h3><p>早期页面或旧截图</p></div>
+          <div class="shot"><span class="n">05 / DATA</span><h3>每次采集 = 一个独立单元</h3><p>collections 目录树</p></div>
+          <div class="shot"><span class="n">06 / REVIEW</span><h3>18 个问题，先止血再装修</h3><p>评审问题清单截图</p></div>
+          <div class="shot"><span class="n">07 / PLAN</span><h3>M0→M6：先活着，再好看</h3><p>里程碑排期表截图</p></div>
+          <div class="shot"><span class="n">08 / RESULT</span><h3>12 个单元，6 套主题</h3><p>首页 + 详情页 + 分集目录</p></div>
+          <div class="shot"><span class="n">09 / MOBILE</span><h3>这次，手机上也终于能看了</h3><p>390px 详情页截图</p></div>
+        </div>
+      </section>
+
+      <section id="story">
+        <div class="kicker">The making</div>
+        <h2>完整创作过程</h2>
+        <p class="sub">按真实时间线整理，保留了那些不性感的转折与返工。</p>
+        <div class="timeline">
+          <article class="step">
+            <time>11-25 01:12</time>
+            <h3>起点：一条只能跳转的视频</h3>
+            <p>需求很具体：把「每天挖掘一个神奇网站」这类主题视频收成一个聚合页。先做渠道可行性：视频号分享页没有可播放的 video；B站 可直接访问、可嵌播；抖音搜索弹出验证码。没有先写页面，只回答一个问题——内容从哪里来，能不能稳定地来。</p>
+            <div class="note">先验证渠道，再设计页面。这个顺序省下了后面很多返工。</div>
+          </article>
+
+          <article class="step">
+            <time>01:25 — 01:58</time>
+            <h3>第一版：从手工页面到纯规则程序</h3>
+            <p>第一版是手工拼的首页 + 单主题页 + 一份集中数据。做第二个主题时立刻发现会重复劳动，数据放在一个文件里还会互相覆盖。于是改成纯规则流程：关键词 → B站公开搜索 → 聚类同系列 → 写入独立数据文件，全程不用 AI。</p>
+          </article>
+
+          <article class="step">
+            <time>08:09 — 08:29</time>
+            <h3>数据模型重做：每次采集是一个「单元」</h3>
+            <p>整个项目最重要的一次架构调整。每个采集单元独立一个数据文件，索引只存元信息和显示开关；单元可以单独重采、单独下线，不互相覆盖。</p>
+            <div class="note">踩坑：浏览器里 const 声明的全局变量不挂 window，页面读不到索引，首页显示 0 个主题。改成 window.X = ... 才解决。</div>
+          </article>
+
+          <article class="step">
+            <time>11-26 00:11</time>
+            <h3>从「视频站」到「集页」</h3>
+            <p>接入公众号和小红书之后，原名已经盖不住内容形态。候选有 集页 / 拾集 / 集录 / 清单集，最后选「集页」：一集一页，视频的「集」和图文的「页」双关。</p>
+          </article>
+
+          <article class="step">
+            <time>07:20 — 08:35</time>
+            <h3>三渠道采集：不是所有平台都能「搜」</h3>
+            <p>B站 有公开搜索接口；公众号和小红书没有稳定公开搜索，只能用搜索引擎做 site: 检索，公众号再抓正文，小红书只收标题和链接。产品上因此给了三种入口：按链接、批量链接、按主题。风控失败时允许手工补录，不让人卡死在采集环节。</p>
+          </article>
+
+          <article class="step">
+            <time>10:30 — 13:10</time>
+            <h3>停下来评审：18 个问题与一张排期表</h3>
+            <p>功能能跑之后没有继续加功能，而是做了一次全项目评审：通读文档、采集代码和 5 个页面，实测敏感路径、接口鉴权、数据一致性、页面转义。最终列出 18 个 P0–P3 问题，并拆成 M0 止血 → M1 安全 → M2 任务化 → M3 个人层 → M4 质量 → M5 主题化的顺序。</p>
+          </article>
+
+          <article class="step">
+            <time>16:00 — 次日 06:20</time>
+            <h3>六套主题与「我的」页</h3>
+            <p>主题不复制 6 套 HTML：颜色、圆角、阴影、字体收敛成 token，卡片/列表/详情渲染收进唯一的 render.js。新增主题 = 一个 CSS + 注册一行。科技风改了三版才过：太像深色 → 赛博霓虹 → 最后改成拉勾式浅色科技风。</p>
+            <div class="note">审美可以迭代，但契约要硬：token 必须全量对齐，新增主题不能改 JS。</div>
+          </article>
+
+          <article class="step">
+            <time>06:30 — 14:10</time>
+            <h3>最后 24 小时：细节把体验拉开</h3>
+            <p>B站 单链命中合集时一次展开全集合集；详情页分集目录移到播放器下方，可横滑、展开、点集切播；筛选项按类型/平台/标签分组；采集页单元列表分页；390px 手机屏复验，播放器 358×201、无横向溢出。</p>
+          </article>
+
+          <article class="step">
+            <time>14:10 前</time>
+            <h3>收尾：把「遗留」一条条清掉</h3>
+            <p>采集服务改多线程、单条/批量改用链接派生稳定 id、索引改为从单元文件重建、接口 id 加白名单、超长输入保留最近 8000 字并标注。验收：44 个 Python 用例 + 12 个 node 用例 + 数据自检 0 问题 + 文档自检通过。</p>
+          </article>
+        </div>
+      </section>
+
+      <section id="plan">
+        <div class="kicker">The schedule</div>
+        <h2>排期不是按兴奋度，是按风险</h2>
+        <p class="sub">真正致命的，往往是最不性感的「默认部署」和「异常写入」。</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>里程碑</th><th>目标</th><th>一句话</th></tr></thead>
+            <tbody>
+              <tr><td>M0</td><td>止血</td><td>转义、原子写、损坏识别——先别让一次异常把站弄没</td></tr>
+              <tr><td>M1</td><td>安全</td><td>仅本机、公网口令、静态白名单——别把 .git 和备份挂公网</td></tr>
+              <tr><td>M2</td><td>任务化</td><td>Actions + topics.yml + 本机兜底——不常驻进程也能更新</td></tr>
+              <tr><td>M3</td><td>个人层</td><td>localStorage 收藏 + 导出导入——最薄一层，不做账号</td></tr>
+              <tr><td>M4</td><td>质量</td><td>自检、fixtures、CI、文档自检——让问题在提交前暴露</td></tr>
+              <tr><td>M5</td><td>主题化</td><td>token、render.js、6 套主题——最后再谈好看</td></tr>
+              <tr><td>M6</td><td>可选</td><td>私有同步 / dispatch——连续用一个月再启动</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="takeaways">
+        <div class="kicker">What I learned</div>
+        <h2>做对了什么，踩了哪些坑</h2>
+        <p class="sub">可以复用的是方法，不是功能。</p>
+        <div class="cols">
+          <div class="card list-card good">
+            <h3>这次做对的 5 件事</h3>
+            <ul>
+              <li>先定边界再写代码：只读公开接口、只写数据、不做账号和数据库。</li>
+              <li>把数据当产品资产：独立文件、原子写、快照、自检。</li>
+              <li>允许停下来评审：18 个问题里最致命的都不显眼。</li>
+              <li>排期按风险：先止血和安全，把美留到最后。</li>
+              <li>审美可迭代，契约要硬：主题能改三版，token 必须全量对齐。</li>
+            </ul>
+          </div>
+          <div class="card list-card pitfall">
+            <h3>踩过的 7 个坑</h3>
+            <ul>
+              <li>const 全局不挂 window，页面读不到数据。</li>
+              <li>视频号分享页不能浏览器播放，抖音搜索有验证码。</li>
+              <li>B站 搜索 API 缺 buvid3 会被风控。</li>
+              <li>直接覆盖写，一次中断就能让全站空白。</li>
+              <li>横向滚动容器会把 Grid 子项撑爆，min-width:0 救命。</li>
+              <li>git push 遇 HTTP2 framing，可临时切 HTTP/1.1。</li>
+              <li>小红书正文需登录，采集失败要留手工补录出口。</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <div class="quote">
+        <p>做产品最难的从来不是把功能堆上去，而是知道什么先做、什么不做，以及什么时候停下来检查。</p>
+        <small>— 这次项目最大的感受</small>
+      </div>
+
+      <section id="next">
+        <div class="kicker">What's next</div>
+        <h2>下一步，不着急加功能</h2>
+        <div class="next">
+          <div class="next-item"><b>更像一本册子</b><span>把主题清单的翻阅体验做深，而不是继续堆列表。</span></div>
+          <div class="next-item"><b>真机细节</b><span>继续补移动端真实设备上的滑动、字体与点击手感。</span></div>
+          <div class="next-item"><b>换色与换版式解耦</b><span>主题管颜色，布局管疏密，互不绑定。</span></div>
+          <div class="next-item"><b>守住底线</b><span>零构建、纯静态、可 file:// 打开、只读公开内容。</span></div>
+        </div>
+      </section>
+
+      <section id="notes">
+        <div class="kicker">Before publishing</div>
+        <h2>发布备注</h2>
+        <div class="card list-card" style="margin-top:14px">
+          <ul>
+            <li>短版正文约 600 字，可直接发单篇；长文可拆成 3–4 篇「创作过程」系列。</li>
+            <li>少堆技术名词，多讲「为什么做、卡在哪、怎么取舍」，比列功能更打动人。</li>
+            <li>站点域名放个人主页或评论区，正文避免生硬导流。</li>
+            <li>所有截图发布前检查账号名、头像、二维码等个人信息。</li>
+          </ul>
+        </div>
+      </section>
+
+      <footer>
+        <span>集页 · 主题内容清单 · 创作过程记录</span>
+        <span>依据 PLAN / REVIEW / TODO / WORKLOG 整理 · <a href="CREATION-STORY-20261126.md" style="color:var(--brand);text-decoration:none">Markdown 原稿</a></span>
+      </footer>
+    </main>
+
+    <aside>
+      <nav class="toc">
+        <b>目录</b>
+        <a href="#post">发布文案</a>
+        <a href="#shots">配图分镜</a>
+        <a href="#story">创作过程</a>
+        <a href="#plan">排期方法</a>
+        <a href="#takeaways">做对与踩坑</a>
+        <a href="#next">下一步</a>
+        <a href="#notes">发布备注</a>
+      </nav>
+      <p class="aside-note">这是一份可公开分享的创作记录；依据内部 PLAN / REVIEW / TODO / WORKLOG 整理。截图发布前记得检查账号名、头像与二维码。</p>
+    </aside>
+  </div>
+</div>
+
+<script>
+  // 阅读进度
+  const bar = document.getElementById('progress');
+  const onScroll = () => {
+    const h = document.documentElement;
+    const max = h.scrollHeight - h.clientHeight;
+    bar.style.width = (max > 0 ? (h.scrollTop / max) * 100 : 0) + '%';
+  };
+  document.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+
+  // 复制发布文案
+  const btn = document.getElementById('copyBtn');
+  const post = document.getElementById('postText');
+  const fallbackCopy = (text) => {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); } catch (e) {}
+    document.body.removeChild(ta);
+  };
+  btn.addEventListener('click', async () => {
+    const text = post.innerText.trim();
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch (e) {
+      fallbackCopy(text);
+    }
+    btn.textContent = '已复制 ✓';
+    btn.classList.add('ok');
+    setTimeout(() => { btn.textContent = '复制全文'; btn.classList.remove('ok'); }, 1800);
+  });
+</script>
+</body>
+</html>

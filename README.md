@@ -52,9 +52,13 @@
 │   ├── server.py                   # 采集服务(--api-only 可只跑采集端)
 │   ├── backup_data.py              # 数据备份/还原工具
 │   └── collect.html                # 采集交互页(表单入口)
-├── docs/                           # 部署与运维文档
+├── docs/                           # 部署、过程与对外文档
 │   ├── DEPLOY.md                   # 服务器 / 群晖 / 飞牛部署
-│   └── GITHUB-PAGES.md             # GitHub Pages 托管与数据更新
+│   ├── GITHUB-PAGES.md             # GitHub Pages 托管与数据更新
+│   ├── PLAN-20261126.md            # 需求、决策与里程碑
+│   ├── REVIEW-20261126.md          # 全项目评审
+│   ├── TODO.md / WORKLOG.md        # 执行记录与工作日志
+│   └── CREATION-STORY-20261126.*   # 对外创作过程记录（Markdown + HTML）
 ├── .github/workflows/              # 定时采集 workflow
 ├── backups/                        # 备份压缩包(自动生成)
 └── Dockerfile / docker-compose.yml # Docker 部署

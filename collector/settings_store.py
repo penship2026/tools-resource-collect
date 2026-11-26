@@ -142,6 +142,97 @@ def normalize_topics(raw, sections):
     return topics, warnings
 
 
+def _replace_by_id(items, item_id, item, label):
+    for idx, current in enumerate(items):
+        if current.get("id") == item_id:
+            items[idx] = item
+            return items
+    items.append(item)
+    return items
+
+
+def merge_section(sections, section_id, patch):
+    """把单张板块卡片的改动合并进完整板块表，保留只读字段。"""
+    if not isinstance(patch, dict):
+        raise ValueError("板块内容必须是对象")
+    incoming_id = str(patch.get("id") or "").strip()
+    if incoming_id and incoming_id != section_id:
+        raise ValueError("板块 id 创建后不可改")
+    current = next((s for s in sections if s.get("id") == section_id), None)
+    item = dict(current) if current else {
+        "id": section_id, "title": "", "description": "",
+        "age_min_months": None, "age_max_months": None,
+        "order": len(sections) + 1, "enabled": True,
+    }
+    for key in ("title", "description", "order", "enabled"):
+        if key in patch:
+            item[key] = patch[key]
+    item["id"] = section_id
+    merged, warnings = normalize_sections(_replace_by_id(list(sections), section_id, item, "板块"))
+    return merged, warnings
+
+
+def merge_topic(topics, topic_id, patch):
+    """把单张主题卡片的改动合并进完整主题表。"""
+    if not isinstance(patch, dict):
+        raise ValueError("主题内容必须是对象")
+    incoming_id = str(patch.get("id") or "").strip()
+    if incoming_id and incoming_id != topic_id:
+        raise ValueError("主题 id 创建后不可改")
+    current = next((t for t in topics if t.get("id") == topic_id), None)
+    item = dict(current) if current else {
+        "id": topic_id, "section": "", "title": "",
+        "must_keywords": [], "any_keywords": [], "channels": ["bilibili"],
+        "enabled": True,
+    }
+    for key in ("section", "title", "must_keywords", "any_keywords", "channels", "enabled"):
+        if key in patch:
+            item[key] = patch[key]
+    item["id"] = topic_id
+    merged = _replace_by_id(list(topics), topic_id, item, "主题")
+    return merged
+
+
+def save_section(section_id, patch):
+    """只保存一个板块：合并当前配置、校验、原子写 sections.yml。"""
+    sections, topics = _load_current()
+    merged_sections, warnings_s = merge_section(sections, section_id, patch)
+    # 主题只引用板块 id；板块改名不影响，但仍用完整校验兜住配置一致性
+    normalized_topics, warnings_t = normalize_topics(topics, merged_sections)
+    generate.write_text_atomic(generate.SECTIONS_FILE, dump_sections(merged_sections), snapshot=True)
+    result = generate.verify_data(log=lambda *a: None)
+    if not result["ok"]:
+        raise ValueError("保存后校验失败: " + "；".join(result["problems"]))
+    return {
+        "ok": True,
+        "section": next(s for s in merged_sections if s["id"] == section_id),
+        "sections": merged_sections,
+        "topics": normalized_topics,
+        "warnings": warnings_s + warnings_t,
+        "verify": result,
+    }
+
+
+def save_topic(topic_id, patch):
+    """只保存一个主题：合并当前配置、校验、原子写 topics.yml。"""
+    sections, topics = _load_current()
+    merged_topics = merge_topic(topics, topic_id, patch)
+    normalized_sections, warnings_s = normalize_sections(sections)
+    normalized_topics, warnings_t = normalize_topics(merged_topics, normalized_sections)
+    generate.write_text_atomic(generate.TOPICS_FILE, dump_topics(normalized_topics), snapshot=True)
+    result = generate.verify_data(log=lambda *a: None)
+    if not result["ok"]:
+        raise ValueError("保存后校验失败: " + "；".join(result["problems"]))
+    return {
+        "ok": True,
+        "topic": next(t for t in normalized_topics if t["id"] == topic_id),
+        "sections": normalized_sections,
+        "topics": normalized_topics,
+        "warnings": warnings_s + warnings_t,
+        "verify": result,
+    }
+
+
 def _q(value):
     return json.dumps(str(value), ensure_ascii=False)
 

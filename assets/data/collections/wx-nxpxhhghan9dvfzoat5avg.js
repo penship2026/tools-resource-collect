@@ -1,8 +1,8 @@
-// 采集单元数据: 一座城市的纬度密码！《沿着纬度听中国》第二季城市篇从福建将乐启程 (由 generate.py 生成)
+// 采集单元数据: 《沿着纬度听中国》第二季城市篇从福建将乐启程 (由 generate.py 生成)
 window.COLLECTION_DATA["wx-nxpxhhghan9dvfzoat5avg"] = {
   "id": "wx-nxpxhhghan9dvfzoat5avg",
   "type": "single",
-  "title": "一座城市的纬度密码！《沿着纬度听中国》第二季城市篇从福建将乐启程",
+  "title": "《沿着纬度听中国》第二季城市篇从福建将乐启程",
   "slogan": "单条内容精选 · 前往公众号阅读原文",
   "source": {
     "platform": "wechat",
@@ -34,7 +34,7 @@ window.COLLECTION_DATA["wx-nxpxhhghan9dvfzoat5avg"] = {
       ]
     }
   ],
-  "updated": "2026-11-26",
+  "updated": "2026-11-27",
   "latest": "2026.11.24",
   "section": "humanities"
 };

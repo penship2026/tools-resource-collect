@@ -14,6 +14,7 @@
     .top { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; margin-bottom: 22px; }
     .top h1 { font-size: 24px; margin-bottom: 6px; }
     .top p { color: var(--text-mute); font-size: 13px; line-height: 1.7; margin: 0; }
+    .top-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
     .top a { color: var(--brand); font-size: 13px; white-space: nowrap; }
     .grid { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 20px; align-items: start; }
     @media (max-width: 860px) { .grid { grid-template-columns: 1fr; } .wrap { padding: 20px 12px 56px; } }
@@ -22,8 +23,26 @@
     .panel .hint { color: var(--text-mute); font-size: 12px; line-height: 1.7; margin-bottom: 14px; }
     .section-card { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px; margin-bottom: 12px; background: var(--bg); }
     .section-head { display: flex; justify-content: space-between; gap: 10px; align-items: center; margin-bottom: 10px; }
+    .section-head .card-toggle { flex: 1 1 auto; width: auto; }
+    .section-card.is-collapsed .section-head { margin-bottom: 0; }
     .section-head strong { font-size: 14px; }
     .section-head .meta { color: var(--text-mute); font-size: 12px; }
+    .card-toggle { display: flex; align-items: center; gap: 8px; width: 100%; min-width: 0; padding: 0; border: none; background: none; color: inherit; text-align: left; cursor: pointer; font: inherit; }
+    .card-toggle .chev { flex: 0 0 auto; width: 16px; color: var(--text-mute); font-size: 12px; transition: transform .15s ease; }
+    .card-toggle[aria-expanded="false"] .chev { transform: rotate(-90deg); }
+    .card-toggle strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .card-toggle .meta { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .card-body { min-width: 0; }
+    .section-card.is-collapsed .card-body, .topic-row.is-collapsed .card-body { display: none; }
+    .link-btn { flex: 0 0 auto; border: none; background: none; color: var(--brand); font-size: 12px; padding: 4px 2px; cursor: pointer; white-space: nowrap; }
+    .link-btn:disabled { color: var(--text-mute); cursor: default; }
+    .card-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--border); }
+    .card-actions .btn { padding: 7px 12px; font-size: 12px; }
+    .card-status { flex: 1 1 100%; min-height: 16px; font-size: 12px; line-height: 1.5; }
+    .card-status.ok { color: #1d9e75; }
+    .card-status.err { color: #c0392b; }
+    .row input:disabled, .row textarea:disabled, .row select:disabled { opacity: .72; background: var(--bg); cursor: default; }
+    .section-card.is-editing, .topic-row.is-editing { border-color: var(--brand); box-shadow: 0 0 0 1px var(--brand) inset; }
     .row { display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 10px; align-items: center; margin-bottom: 9px; }
     .row label { font-size: 12px; color: var(--text-sub); }
     .row input[type=text], .row input[type=number], .row textarea, .row select {
@@ -35,6 +54,11 @@
     .mini input[type=text] { flex: 1 1 180px; }
     .check { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-sub); }
     .check input { accent-color: var(--brand); }
+    .channel-picker { display: flex; flex-wrap: wrap; gap: 8px; }
+    .channel-chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); font-size: 13px; color: var(--text-sub); cursor: pointer; }
+    .channel-chip:has(input:checked) { border-color: var(--brand); background: #eef3fb; color: var(--text); }
+    .channel-chip input { margin: 0; accent-color: var(--brand); }
+    .channel-chip:has(input:disabled) { cursor: default; opacity: .72; }
     .btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; background: var(--brand); color: #fff; border: none; border-radius: 8px; padding: 10px 16px; font-size: 13px; cursor: pointer; }
     .btn:disabled { opacity: .55; cursor: not-allowed; }
     .btn.ghost { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
@@ -43,7 +67,10 @@
     .topics { margin-top: 10px; border-top: 1px dashed var(--border); padding-top: 10px; }
     .topic-row { border: 1px solid var(--border); border-radius: 8px; padding: 10px; margin-bottom: 8px; background: var(--surface); }
     .topic-row .topic-head { display: flex; justify-content: space-between; gap: 8px; align-items: center; margin-bottom: 8px; font-size: 12px; color: var(--text-mute); }
+    .topic-row.is-collapsed .topic-head { margin-bottom: 0; }
     .topic-row .topic-head b { color: var(--text); font-size: 13px; }
+    .topic-row .topic-head .card-toggle { flex: 1 1 auto; }
+    .topic-row .topic-head .topic-id { flex: 0 0 auto; }
     .topic-row .row { grid-template-columns: 88px minmax(0, 1fr); margin-bottom: 7px; }
     .kv { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12px; color: var(--text-sub); }
     .kv div { background: var(--bg); border-radius: 7px; padding: 8px; }
@@ -53,14 +80,47 @@
     .log { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 10px; margin-top: 10px; max-height: 260px; overflow: auto; font-family: var(--font-mono); font-size: 11px; line-height: 1.7; white-space: pre-wrap; color: var(--text-sub); }
     .cron { width: 100%; box-sizing: border-box; min-height: 112px; font-family: var(--font-mono); font-size: 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 10px; color: var(--text); }
     .pill { display: inline-block; font-size: 11px; padding: 3px 7px; border-radius: 999px; background: #eef3fb; color: #2d7ff9; margin-left: 6px; }
-    .bar { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 12px; }
+    .panel-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; cursor: pointer; user-select: none; border-radius: 6px; position: sticky; top: 0; z-index: 10; background: var(--surface); padding: 2px 0 10px; margin-bottom: 2px; box-shadow: 0 1px 0 var(--border); }
+    .panel-head > div:first-child { min-width: 0; }
+    .panel-actions { flex: 0 0 auto; display: flex; align-items: center; gap: 8px; }
+    .panel-actions .btn { padding: 8px 12px; font-size: 12px; white-space: nowrap; }
+    .panel-head:focus-visible { outline: 2px solid var(--brand); outline-offset: 3px; }
+    .panel-head h2 { display: flex; align-items: center; gap: 8px; margin: 0 0 6px; }
+    .panel-head .area-chev { display: inline-block; color: var(--text-mute); font-size: 12px; transition: transform .15s ease; }
+    .panel.is-area-collapsed .panel-head { margin-bottom: 0; }
+    .panel.is-area-collapsed .panel-head .hint { display: none; }
+    .panel.is-area-collapsed .panel-head .area-chev { transform: rotate(-90deg); }
+    .panel.is-area-collapsed .panel-body { display: none; }
+    .area-tools { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+    .area-tools input[type=search] { flex: 1 1 180px; min-width: 0; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; color: var(--text); font-size: 13px; font-family: inherit; }
+    .area-tools input[type=search]:focus { outline: 2px solid var(--brand); outline-offset: 0; }
+    .area-tools .btn { flex: 0 0 auto; padding: 8px 12px; font-size: 12px; }
+    .empty { border: 1px dashed var(--border); border-radius: 8px; padding: 14px; color: var(--text-mute); font-size: 13px; text-align: center; }
+    .pagination { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 6px; font-size: 12px; color: var(--text-mute); }
+    .pagination .btn { padding: 7px 12px; font-size: 12px; }
+    .pagination[hidden] { display: none !important; }
     .unsaved { color: #c0392b; font-size: 12px; }
-    @media (max-width: 520px) { .row { grid-template-columns: 1fr; } .row label { margin-bottom: 2px; } .btns .btn { flex: 1 1 100%; } }
+    @media (max-width: 520px) {
+      .top { flex-wrap: wrap; }
+      .top-actions { width: 100%; justify-content: flex-start; }
+      .row { grid-template-columns: 1fr; }
+      .row label { margin-bottom: 2px; }
+      .btns .btn { flex: 1 1 100%; }
+      .card-toggle .meta { display: none; }
+      .topic-row .topic-head .topic-id { display: none; }
+    }
     .modal { position: fixed; inset: 0; background: rgba(15,23,42,.45); display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 50; }
     .modal[hidden] { display: none !important; }
-    .modal-box { width: min(420px, 100%); background: var(--surface); border-radius: 12px; padding: 20px; box-shadow: 0 24px 80px rgba(0,0,0,.25); }
+    .modal-box { width: min(420px, 100%); background: var(--surface); border-radius: 12px; padding: 20px; box-shadow: 0 24px 80px rgba(0,0,0,.25); max-height: calc(100vh - 40px); overflow-y: auto; }
     .modal-box p { font-size: 14px; line-height: 1.8; margin: 0 0 18px; }
     .modal-box .btns { justify-content: flex-end; }
+    .form-box { width: min(520px, 100%); }
+    .form-box h2 { margin: 0 0 6px; font-size: 17px; }
+    .form-box .form-hint { color: var(--text-mute); font-size: 12px; line-height: 1.6; margin-bottom: 14px; }
+    .form-box .row { grid-template-columns: 92px minmax(0, 1fr); }
+    .form-box .row:last-child { margin-bottom: 0; }
+    .form-box .status { margin: 10px 0 0; min-height: 18px; }
+    .form-box .btn { min-width: 96px; }
   </style>
 </head>
 <body>
@@ -68,34 +128,59 @@
   <div class="top">
     <div>
       <h1>采集设置</h1>
-      <p>本机设置页；默认只监听 127.0.0.1，使用 --lan 启动后同一 Wi-Fi 下手机可访问。保存只改本机配置；线上自动采集由 GitHub Actions 管理。</p>
+      <p>本机设置页；默认只监听 127.0.0.1，使用 --lan 启动后同一 Wi-Fi 下手机可访问。卡片可单独编辑保存；底部「保存全部改动」用于批量保存和删除落盘。</p>
     </div>
-    <a href="/collect.html">← 返回采集页</a>
+    <div class="top-actions">
+      <a href="/collector/settings-guide.html">填写说明</a>
+      <a href="/collect.html">← 返回采集页</a>
+    </div>
   </div>
 
   <div class="grid">
     <div>
-      <div class="panel">
-        <div class="bar">
+      <div class="panel" data-area="section">
+        <div class="panel-head" data-area-head="section" role="button" tabindex="0" aria-expanded="true">
           <div>
-            <h2>板块</h2>
+            <h2><span class="area-chev" aria-hidden="true">▾</span>板块 <span class="pill" id="section-count">—</span></h2>
             <div class="hint">0–18 岁三段不可删除、不可改边界；其他板块只能全龄。</div>
           </div>
-          <button class="btn ghost" id="add-section">+ 新增板块</button>
+          <div class="panel-actions">
+            <button class="btn ghost" id="add-section" type="button">+ 新增板块</button>
+          </div>
         </div>
-        <div id="sections"></div>
-        <div class="btns">
-          <button class="btn" id="save">保存设置</button>
-          <span id="save-state"></span>
+        <div class="panel-body" data-area-body="section">
+          <div class="area-tools">
+            <input type="search" id="search-sections" placeholder="搜索板块名称、id 或说明" autocomplete="off">
+            <button class="btn ghost" id="toggle-sections" type="button">全部展开</button>
+          </div>
+          <div id="sections"></div>
+          <div class="pagination" id="section-pagination" hidden></div>
+          <div class="btns">
+            <button class="btn" id="save">保存全部改动</button>
+            <span id="save-state"></span>
+          </div>
+          <div class="hint">单卡改完可点卡片内「保存本卡」；这里用于一次保存多张卡片，以及删除板块/主题后落盘。</div>
+          <div class="status" id="settings-status"></div>
         </div>
-        <div class="status" id="settings-status"></div>
       </div>
 
-      <div class="panel">
-        <h2>主题</h2>
-        <div class="hint">must 全部命中 + any 至少命中一个；主题 id 同时是采集单元 id，保存后不可改。</div>
-        <div id="topics"></div>
-        <button class="btn ghost" id="add-topic">+ 新增主题</button>
+      <div class="panel" data-area="topic">
+        <div class="panel-head" data-area-head="topic" role="button" tabindex="0" aria-expanded="true">
+          <div>
+            <h2><span class="area-chev" aria-hidden="true">▾</span>主题 <span class="pill" id="topic-count">—</span></h2>
+            <div class="hint">must 全部命中 + any 至少命中一个；主题 id 同时是采集单元 id，保存后不可改。</div>
+          </div>
+          <div class="panel-actions">
+            <button class="btn ghost" id="add-topic" type="button">+ 新增主题</button>
+          </div>
+        </div>
+        <div class="panel-body" data-area-body="topic">
+          <div class="area-tools">
+            <input type="search" id="search-topics" placeholder="搜索主题、板块或关键词" autocomplete="off">
+            <button class="btn ghost" id="toggle-topics" type="button">全部展开</button>
+          </div>
+          <div id="topics"></div>
+        </div>
       </div>
     </div>
 
@@ -153,12 +238,44 @@
   </div>
 </div>
 
+<div class="modal" id="form-modal" hidden>
+  <div class="modal-box form-box" role="dialog" aria-modal="true" aria-labelledby="form-title">
+    <h2 id="form-title">新增</h2>
+    <div class="form-hint">提交后会新增并自动保存本卡。</div>
+    <div id="form-fields"></div>
+    <div class="status" id="form-error"></div>
+    <div class="btns">
+      <button class="btn ghost" id="form-cancel" type="button">取消</button>
+      <button class="btn" id="form-submit" type="button">新增并保存</button>
+    </div>
+  </div>
+</div>
+
 <script>
 (function () {
-  var state = { sections: [], topics: [], csrf: "", schedule: {}, dirty: false };
+  var state = {
+    sections: [], topics: [], csrf: "", schedule: {},
+    editing: { section: {}, topic: {} },
+    dirtyKeys: {},
+    baselines: { section: [], topic: [] },
+    search: { section: "", topic: "" },
+    page: { section: 1 }
+  };
+  var PAGE_SIZE = 10;
+  var CHANNEL_OPTIONS = [
+    { id: "bilibili", label: "B站" },
+    { id: "wechat", label: "公众号" },
+    { id: "xhs", label: "小红书" }
+  ];
   var $ = function (id) { return document.getElementById(id); };
   var esc = function (s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"})[c]; }); };
   var status = function (el, text, ok) { el.textContent = text || ""; el.className = "status" + (text ? (ok ? " ok" : " err") : ""); };
+  var cardStatus = function (kind, id, text, ok) {
+    var el = document.querySelector('[data-card-status="' + kind + ':' + id + '"]');
+    if (!el) return;
+    el.textContent = text || "";
+    el.className = "card-status" + (text ? (ok ? " ok" : " err") : "");
+  };
   var modalResolve = null;
   function askConfirm(text) {
     $("modal-text").textContent = text;
@@ -172,7 +289,320 @@
   $("modal-ok").addEventListener("click", function () { closeModal(true); });
   $("modal-cancel").addEventListener("click", function () { closeModal(false); });
   $("modal").addEventListener("click", function (e) { if (e.target === $("modal")) closeModal(false); });
-  var markDirty = function () { state.dirty = true; $("save-state").textContent = "有未保存改动"; $("save-state").className = "unsaved"; };
+
+  var formMode = "";
+  var splitWords = function (value) { return String(value || "").split(/[,，\s|]+/).filter(Boolean); };
+  function formError(text) {
+    $("form-error").textContent = text || "";
+    $("form-error").className = "status" + (text ? " err" : "");
+  }
+  function closeAddForm() {
+    $("form-modal").hidden = true;
+    $("form-fields").innerHTML = "";
+    formMode = "";
+  }
+  function sectionFormHtml() {
+    var nextOrder = state.sections.reduce(function (max, s) {
+      return Math.max(max, Number(s.order) || 0);
+    }, 0) + 1;
+    return '<div class="row"><label>板块 id</label><input id="add-section-id" type="text" placeholder="例如 coding" autocomplete="off"></div>' +
+      '<div class="row"><label>名称</label><input id="add-section-title" type="text" placeholder="2–12 字"></div>' +
+      '<div class="row"><label>说明</label><textarea id="add-section-description" placeholder="可选，最多 60 字"></textarea></div>' +
+      '<div class="row"><label>排序</label><input id="add-section-order" type="number" value="' + esc(nextOrder) + '"></div>' +
+      '<div class="row"><label>显示</label><label class="check"><input id="add-section-enabled" type="checkbox" checked> 在首页展示</label></div>';
+  }
+  function topicFormHtml() {
+    var options = sortSections(state.sections).map(function (s) {
+      return '<option value="' + esc(s.id) + '">' + esc(s.title) + '（' + esc(s.id) + '）</option>';
+    }).join("");
+    var channels = CHANNEL_OPTIONS.map(function (c, idx) {
+      return '<label class="channel-chip"><input type="checkbox" data-add-channel value="' + esc(c.id) + '"' + (idx === 0 ? " checked" : "") + '><span>' + esc(c.label) + '</span></label>';
+    }).join("");
+    return '<div class="row"><label>归属板块</label><select id="add-topic-section">' + options + '</select></div>' +
+      '<div class="row"><label>主题名称</label><input id="add-topic-title" type="text" placeholder="例如 初中数学思维"></div>' +
+      '<div class="row"><label>must</label><input id="add-topic-must" type="text" placeholder="1–4 个，逗号分隔，全部命中"></div>' +
+      '<div class="row"><label>any</label><input id="add-topic-any" type="text" placeholder="可选，最多 5 个，至少命中一个"></div>' +
+      '<div class="row"><label>渠道</label><div class="channel-picker">' + channels + '</div></div>' +
+      '<div class="row"><label>主题 id</label><input id="add-topic-id" type="text" placeholder="字母数字下划线短横，创建后不可改"></div>' +
+      '<div class="row"><label>显示 / 采集</label><label class="check"><input id="add-topic-enabled" type="checkbox" checked> 启用</label></div>';
+  }
+  function openAddForm(mode) {
+    formMode = mode;
+    formError("");
+    $("form-title").textContent = mode === "section" ? "新增板块" : "新增主题";
+    $("form-fields").innerHTML = mode === "section" ? sectionFormHtml() : topicFormHtml();
+    $("form-submit").disabled = false;
+    $("form-modal").hidden = false;
+    var first = $("form-fields").querySelector("input, select, textarea");
+    if (first) setTimeout(function () { first.focus(); }, 0);
+  }
+  function readSectionForm() {
+    var id = $("add-section-id").value.trim();
+    var title = $("add-section-title").value.trim();
+    var description = $("add-section-description").value.trim();
+    var order = Number($("add-section-order").value);
+    if (!/^[a-z0-9-]+$/.test(id)) throw new Error("板块 id 只能用小写字母、数字和短横");
+    if (state.sections.some(function (s) { return s.id === id; })) throw new Error("板块 id 已存在");
+    if (title.length < 2 || title.length > 12) throw new Error("板块名称必须是 2–12 字");
+    if (description.length > 60) throw new Error("板块说明最多 60 字");
+    if (!Number.isInteger(order)) throw new Error("排序必须是整数");
+    return {
+      id: id, title: title, age_min_months: null, age_max_months: null,
+      order: order, enabled: $("add-section-enabled").checked, description: description
+    };
+  }
+  function readTopicForm() {
+    var section = $("add-topic-section").value;
+    var title = $("add-topic-title").value.trim();
+    var must = splitWords($("add-topic-must").value);
+    var anyList = splitWords($("add-topic-any").value);
+    var id = $("add-topic-id").value.trim();
+    var channels = Array.prototype.map.call($("form-fields").querySelectorAll("[data-add-channel]:checked"), function (box) { return box.value; });
+    if (!section || !state.sections.some(function (s) { return s.id === section; })) throw new Error("归属板块不存在");
+    if (!title) throw new Error("主题名称不能为空");
+    if (must.length < 1 || must.length > 4) throw new Error("must 关键词必须是 1–4 个");
+    if (anyList.length > 5) throw new Error("any 关键词最多 5 个");
+    if (!/^[A-Za-z0-9_-]{1,80}$/.test(id)) throw new Error("主题 id 只能使用字母、数字、下划线或短横");
+    if (state.topics.some(function (t) { return t.id === id; })) throw new Error("主题 id 已存在");
+    if (!channels.length) throw new Error("至少选择一个渠道");
+    return {
+      id: id, section: section, title: title, must_keywords: must,
+      any_keywords: anyList, channels: channels, enabled: $("add-topic-enabled").checked
+    };
+  }
+  function scrollToCard(kind, id) {
+    setTimeout(function () {
+      var el = document.querySelector('[data-collapse-id="' + id + '"]');
+      if (el) el.scrollIntoView({ block: "center" });
+    }, 0);
+  }
+  async function submitAddForm() {
+    if ($("form-submit").disabled || !formMode) return;
+    var item;
+    try {
+      item = formMode === "section" ? readSectionForm() : readTopicForm();
+    } catch (e) {
+      formError(e.message);
+      return;
+    }
+    var kind = formMode;
+    $("form-submit").disabled = true;
+    if (kind === "section") {
+      state.sections.push(item);
+      state.sections = sortSections(state.sections);
+      state.search.section = "";
+      $("search-sections").value = "";
+      var ordered = sortSections(state.sections);
+      var pos = ordered.findIndex(function (s) { return s.id === item.id; });
+      state.page.section = Math.floor(Math.max(0, pos) / PAGE_SIZE) + 1;
+    } else {
+      state.topics.push(item);
+      state.search.topic = "";
+      $("search-topics").value = "";
+    }
+    areaCollapsed[kind] = false;
+    saveAreaCollapsed();
+    applyAreaState();
+    setExpanded(kind, item.id, true);
+    saveExpanded();
+    setEditing(kind, item.id, true);
+    closeAddForm();
+    renderAll();
+    await saveCard(kind, item.id);
+    scrollToCard(kind, item.id);
+  }
+  $("form-cancel").addEventListener("click", closeAddForm);
+  $("form-submit").addEventListener("click", submitAddForm);
+  $("form-modal").addEventListener("click", function (e) {
+    if (e.target === $("form-modal")) closeAddForm();
+  });
+  $("form-fields").addEventListener("keydown", function (e) {
+    if (e.key === "Enter" && e.target.tagName !== "TEXTAREA") {
+      e.preventDefault();
+      submitAddForm();
+    }
+  });
+
+  var cardKey = function (kind, id) { return kind + ":" + id; };
+  var updateDirtyLabel = function (text) {
+    if (text) { $("save-state").textContent = text; $("save-state").className = "unsaved"; return; }
+    var any = Object.keys(state.dirtyKeys).length > 0;
+    $("save-state").textContent = any ? "有未保存改动" : "";
+    $("save-state").className = any ? "unsaved" : "";
+  };
+  var markDirty = function (kind, id) {
+    state.dirtyKeys[cardKey(kind, id)] = true;
+    updateDirtyLabel();
+  };
+  var clearDirty = function (kind, id) {
+    delete state.dirtyKeys[cardKey(kind, id)];
+    updateDirtyLabel();
+  };
+  var clearAllDirty = function () {
+    state.dirtyKeys = {};
+    updateDirtyLabel();
+  };
+  var clone = function (value) { return JSON.parse(JSON.stringify(value)); };
+  var sortSections = function (sections) {
+    return sections.slice().sort(function (a, b) {
+      var oa = Number(a.order), ob = Number(b.order);
+      if (oa !== ob) return oa - ob;
+      return String(a.id).localeCompare(String(b.id));
+    });
+  };
+  var normSearch = function (value) { return String(value == null ? "" : value).toLowerCase().trim(); };
+  var sectionMatches = function (s, query) {
+    if (!query) return true;
+    var age = s.age_min_months == null ? "全龄" : (s.age_min_months + "–" + s.age_max_months + " 月");
+    return normSearch([s.title, s.id, s.description || "", age].join(" ")).indexOf(query) >= 0;
+  };
+  var topicMatches = function (t, query) {
+    if (!query) return true;
+    var sec = state.sections.filter(function (s) { return s.id === t.section; })[0];
+    var channels = (t.channels || []).map(function (id) {
+      var opt = CHANNEL_OPTIONS.filter(function (c) { return c.id === id; })[0];
+      return opt ? opt.label : id;
+    });
+    var text = [t.title, t.id, t.section, sec ? sec.title : "", (t.must_keywords || []).join(" "),
+      (t.any_keywords || []).join(" "), channels.join(" "), t.enabled === false ? "停用" : "启用"].join(" ");
+    return normSearch(text).indexOf(query) >= 0;
+  };
+  var visibleItems = function (kind) {
+    if (kind === "section") {
+      var query = normSearch(state.search.section);
+      return sortSections(state.sections).filter(function (s) { return sectionMatches(s, query); });
+    }
+    var tquery = normSearch(state.search.topic);
+    return state.topics.filter(function (t) { return topicMatches(t, tquery); });
+  };
+  var renderSectionPagination = function (total, totalPages) {
+    var el = $("section-pagination");
+    var page = state.page.section;
+    if (totalPages <= 1) { el.hidden = true; el.innerHTML = ""; return; }
+    el.hidden = false;
+    el.innerHTML =
+      '<button class="btn ghost" type="button" data-page-dir="prev"' + (page <= 1 ? " disabled" : "") + '>上一页</button>' +
+      '<span>第 ' + page + ' / ' + totalPages + ' 页 · 共 ' + total + ' 条</span>' +
+      '<button class="btn ghost" type="button" data-page-dir="next"' + (page >= totalPages ? " disabled" : "") + '>下一页</button>';
+  };
+  var listFor = function (kind) { return kind === "section" ? state.sections : state.topics; };
+  var baselineFor = function (kind) { return kind === "section" ? state.baselines.section : state.baselines.topic; };
+  var findItem = function (kind, id) {
+    return listFor(kind).filter(function (item) { return item.id === id; })[0] || null;
+  };
+  var isEditing = function (kind, id) { return !!state.editing[kind][id]; };
+  var setEditing = function (kind, id, value) {
+    if (!state.editing[kind]) state.editing[kind] = {};
+    if (value) state.editing[kind][id] = true;
+    else delete state.editing[kind][id];
+  };
+  var replaceItem = function (kind, id, item) {
+    var list = listFor(kind);
+    var idx = list.findIndex(function (x) { return x.id === id; });
+    if (idx >= 0) list[idx] = item; else list.push(item);
+  };
+  var replaceBaseline = function (kind, id, item) {
+    var list = baselineFor(kind);
+    var idx = list.findIndex(function (x) { return x.id === id; });
+    if (idx >= 0) list[idx] = clone(item); else list.push(clone(item));
+  };
+  var resetBaselines = function () {
+    state.baselines.section = clone(state.sections);
+    state.baselines.topic = clone(state.topics);
+  };
+  var renderAll = function () {
+    renderSections(); renderTopics(); bindEditors();
+  };
+
+  var EXPAND_KEY = "jiye.settings.expanded.v1";
+  var AREA_KEY = "jiye.settings.area-collapsed.v1";
+  var expanded = { section: {}, topic: {} };
+  var areaCollapsed = { section: false, topic: false };
+  function loadAreaCollapsed() {
+    try {
+      var data = JSON.parse(localStorage.getItem(AREA_KEY) || "{}");
+      areaCollapsed.section = !!data.section;
+      areaCollapsed.topic = !!data.topic;
+    } catch (e) { areaCollapsed = { section: false, topic: false }; }
+  }
+  function saveAreaCollapsed() {
+    try { localStorage.setItem(AREA_KEY, JSON.stringify(areaCollapsed)); } catch (e) {}
+  }
+  function applyAreaState() {
+    document.querySelectorAll("[data-area]").forEach(function (panel) {
+      var kind = panel.getAttribute("data-area");
+      var collapsed = !!areaCollapsed[kind];
+      panel.classList.toggle("is-area-collapsed", collapsed);
+      var head = panel.querySelector("[data-area-head]");
+      if (head) head.setAttribute("aria-expanded", collapsed ? "false" : "true");
+    });
+  }
+  function toggleArea(kind) {
+    areaCollapsed[kind] = !areaCollapsed[kind];
+    saveAreaCollapsed();
+    applyAreaState();
+  }
+  function loadExpanded() {
+    try {
+      localStorage.removeItem("jiye.settings.collapsed.v1");
+      var raw = localStorage.getItem(EXPAND_KEY);
+      if (!raw) return;
+      var data = JSON.parse(raw) || {};
+      expanded.section = data.section || {};
+      expanded.topic = data.topic || {};
+    } catch (e) { expanded = { section: {}, topic: {} }; }
+  }
+  function saveExpanded() {
+    try { localStorage.setItem(EXPAND_KEY, JSON.stringify(expanded)); } catch (e) {}
+  }
+  function isExpanded(kind, id) { return !!(expanded[kind] && expanded[kind][id]); }
+  function setExpanded(kind, id, value) {
+    if (!expanded[kind]) expanded[kind] = {};
+    if (value) expanded[kind][id] = true;
+    else delete expanded[kind][id];
+  }
+  function collapseCards() {
+    return document.querySelectorAll("[data-collapse-kind][data-collapse-id]");
+  }
+  function allItemsOpen(kind) {
+    var items = visibleItems(kind);
+    return items.length > 0 && items.every(function (item) { return isExpanded(kind, item.id); });
+  }
+  function updateAreaToggle(kind) {
+    var btn = $(kind === "section" ? "toggle-sections" : "toggle-topics");
+    if (!btn) return;
+    var items = visibleItems(kind);
+    if (!items.length) {
+      btn.disabled = true;
+      btn.textContent = "无结果";
+      return;
+    }
+    btn.disabled = false;
+    btn.textContent = allItemsOpen(kind) ? "全部收起" : "全部展开";
+  }
+  function applyCollapseState() {
+    var cards = collapseCards();
+    cards.forEach(function (card) {
+      var kind = card.getAttribute("data-collapse-kind");
+      var id = card.getAttribute("data-collapse-id");
+      var open = isExpanded(kind, id);
+      card.classList.toggle("is-collapsed", !open);
+      var btn = card.querySelector("[data-collapse-btn]");
+      if (btn) btn.setAttribute("aria-expanded", open ? "true" : "false");
+    });
+    updateAreaToggle("section");
+    updateAreaToggle("topic");
+  }
+  function toggleAreaCards(kind) {
+    var target = !allItemsOpen(kind);
+    visibleItems(kind).forEach(function (item) {
+      setExpanded(kind, item.id, target);
+    });
+    applyCollapseState();
+    saveExpanded();
+  }
+  loadExpanded();
+  loadAreaCollapsed();
 
   async function api(path, opts) {
     var options = opts || {};
@@ -192,32 +622,84 @@
 
   function renderSections() {
     var box = $("sections");
-    box.innerHTML = state.sections.map(function (s, idx) {
+    var query = normSearch(state.search.section);
+    var all = sortSections(state.sections);
+    var shown = all.filter(function (s) { return sectionMatches(s, query); });
+    $("section-count").textContent = query ? (shown.length + "/" + all.length) : String(all.length);
+    if (!shown.length) {
+      box.innerHTML = '<div class="empty">没有匹配的板块，换个关键词试试。</div>';
+      renderSectionPagination(0, 1);
+      return;
+    }
+    var totalPages = Math.ceil(shown.length / PAGE_SIZE);
+    state.page.section = Math.min(Math.max(1, state.page.section), totalPages);
+    renderSectionPagination(shown.length, totalPages);
+    var pageItems = shown.slice((state.page.section - 1) * PAGE_SIZE, state.page.section * PAGE_SIZE);
+    box.innerHTML = pageItems.map(function (s, idx) {
       var reserved = ["infant-care", "preschool", "k12"].indexOf(s.id) >= 0;
       var age = s.age_min_months == null ? "全龄" : (s.age_min_months + "–" + s.age_max_months + " 月");
-      return '<div class="section-card" data-sec="' + idx + '">' +
-        '<div class="section-head"><strong>' + esc(s.title) + '</strong><span class="meta">' + esc(s.id) + ' · ' + esc(age) + (s.enabled ? '' : ' · 已停用') + '</span></div>' +
-        '<div class="row"><label>名称</label><input type="text" data-f="title" value="' + esc(s.title) + '"></div>' +
-        '<div class="row"><label>说明</label><textarea data-f="description">' + esc(s.description || "") + '</textarea></div>' +
-        '<div class="row"><label>排序</label><input type="number" data-f="order" value="' + esc(s.order) + '"></div>' +
-        '<div class="row"><label>显示</label><label class="check"><input type="checkbox" data-f="enabled"' + (s.enabled ? " checked" : "") + '> 在首页展示</label></div>' +
-        (reserved ? '' : '<button class="btn danger" data-del-section="' + idx + '">删除板块</button>') +
+      var editing = isEditing("section", s.id);
+      var dis = editing ? "" : " disabled";
+      return '<div class="section-card is-collapsed' + (editing ? ' is-editing' : '') + '" data-sec="' + idx + '" data-collapse-kind="section" data-collapse-id="' + esc(s.id) + '">' +
+        '<div class="section-head">' +
+          '<button class="card-toggle" type="button" data-collapse-btn aria-expanded="false">' +
+            '<span class="chev" aria-hidden="true">▾</span>' +
+            '<strong>' + esc(s.title) + '</strong>' +
+            '<span class="meta">' + esc(s.id) + ' · ' + esc(age) + (s.enabled ? '' : ' · 已停用') + '</span>' +
+          '</button>' +
+          '<button class="link-btn" type="button" data-edit-section="' + esc(s.id) + '"' + (editing ? ' disabled' : '') + '>' + (editing ? '编辑中' : '编辑') + '</button>' +
+        '</div>' +
+        '<div class="card-body">' +
+          '<div class="row"><label>名称</label><input type="text" data-f="title" value="' + esc(s.title) + '"' + dis + '></div>' +
+          '<div class="row"><label>说明</label><textarea data-f="description"' + dis + '>' + esc(s.description || "") + '</textarea></div>' +
+          '<div class="row"><label>排序</label><input type="number" data-f="order" value="' + esc(s.order) + '"' + dis + '></div>' +
+          '<div class="row"><label>显示</label><label class="check"><input type="checkbox" data-f="enabled"' + (s.enabled ? " checked" : "") + dis + '> 在首页展示</label></div>' +
+          (editing ? '<div class="card-actions"><span class="card-status" data-card-status="section:' + esc(s.id) + '"></span><button class="btn" data-save-section="' + esc(s.id) + '">保存本卡</button><button class="btn ghost" data-cancel-section="' + esc(s.id) + '">取消</button>' + (reserved ? '' : '<button class="btn danger" data-del-section="' + idx + '">删除板块</button>') + '</div>' : '') +
+        '</div>' +
         '</div>';
     }).join("");
   }
 
   function renderTopics() {
     var box = $("topics");
-    if (!state.topics.length) { box.innerHTML = '<div class="hint">还没有主题。新增板块后请至少加一个启用主题，才能参与自动采集。</div>'; return; }
-    box.innerHTML = state.topics.map(function (t, idx) {
+    var query = normSearch(state.search.topic);
+    var shown = state.topics.filter(function (t) { return topicMatches(t, query); });
+    $("topic-count").textContent = query ? (shown.length + "/" + state.topics.length) : String(state.topics.length);
+    if (!shown.length) {
+      box.innerHTML = state.topics.length
+        ? '<div class="empty">没有匹配的主题，换个关键词试试。</div>'
+        : '<div class="hint">还没有主题。新增板块后请至少加一个启用主题，才能参与自动采集。</div>';
+      return;
+    }
+    box.innerHTML = shown.map(function (t, idx) {
       var sec = state.sections.filter(function (s) { return s.id === t.section; })[0];
-      return '<div class="topic-row" data-top="' + idx + '">' +
-        '<div class="topic-head"><span><b>' + esc(t.title) + '</b> · ' + esc(sec ? sec.title : t.section) + '</span><span>' + esc(t.id) + '</span></div>' +
-        '<div class="row"><label>must</label><input type="text" data-f="must_keywords" value="' + esc((t.must_keywords || []).join("，")) + '" placeholder="1–4 个，全部命中"></div>' +
-        '<div class="row"><label>any</label><input type="text" data-f="any_keywords" value="' + esc((t.any_keywords || []).join("，")) + '" placeholder="0–5 个，至少一个"></div>' +
-        '<div class="row"><label>渠道</label><input type="text" data-f="channels" value="' + esc((t.channels || []).join("，")) + '" placeholder="bilibili，wechat，xhs"></div>' +
-        '<div class="row"><label>显示/采集</label><label class="check"><input type="checkbox" data-f="enabled"' + (t.enabled !== false ? " checked" : "") + '> 启用</label></div>' +
-        '<button class="btn danger" data-del-topic="' + idx + '">删除主题</button>' +
+      var editing = isEditing("topic", t.id);
+      var dis = editing ? "" : " disabled";
+      var options = state.sections.map(function (s) {
+        return '<option value="' + esc(s.id) + '"' + (s.id === t.section ? " selected" : "") + '>' + esc(s.title) + '（' + esc(s.id) + '）</option>';
+      }).join("");
+      var channelPicker = CHANNEL_OPTIONS.map(function (c) {
+        var checked = (t.channels || []).indexOf(c.id) >= 0;
+        return '<label class="channel-chip"><input type="checkbox" data-f="channels" value="' + esc(c.id) + '"' + (checked ? " checked" : "") + dis + '><span>' + esc(c.label) + '</span></label>';
+      }).join("");
+      return '<div class="topic-row is-collapsed' + (editing ? ' is-editing' : '') + '" data-top="' + idx + '" data-collapse-kind="topic" data-collapse-id="' + esc(t.id) + '">' +
+        '<div class="topic-head">' +
+          '<button class="card-toggle" type="button" data-collapse-btn aria-expanded="false">' +
+            '<span class="chev" aria-hidden="true">▾</span>' +
+            '<span><b>' + esc(t.title) + '</b> · ' + esc(sec ? sec.title : t.section) + '</span>' +
+          '</button>' +
+          '<span class="topic-id">' + esc(t.id) + '</span>' +
+          '<button class="link-btn" type="button" data-edit-topic="' + esc(t.id) + '"' + (editing ? ' disabled' : '') + '>' + (editing ? '编辑中' : '编辑') + '</button>' +
+        '</div>' +
+        '<div class="card-body">' +
+          '<div class="row"><label>标题</label><input type="text" data-f="title" value="' + esc(t.title) + '"' + dis + '></div>' +
+          '<div class="row"><label>板块</label><select data-f="section"' + dis + '>' + options + '</select></div>' +
+          '<div class="row"><label>must</label><input type="text" data-f="must_keywords" value="' + esc((t.must_keywords || []).join("，")) + '" placeholder="1–4 个，全部命中"' + dis + '></div>' +
+          '<div class="row"><label>any</label><input type="text" data-f="any_keywords" value="' + esc((t.any_keywords || []).join("，")) + '" placeholder="0–5 个，至少一个"' + dis + '></div>' +
+          '<div class="row"><label>渠道</label><div class="channel-picker">' + channelPicker + '</div></div>' +
+          '<div class="row"><label>显示/采集</label><label class="check"><input type="checkbox" data-f="enabled"' + (t.enabled !== false ? " checked" : "") + dis + '> 启用</label></div>' +
+          (editing ? '<div class="card-actions"><span class="card-status" data-card-status="topic:' + esc(t.id) + '"></span><button class="btn" data-save-topic="' + esc(t.id) + '">保存本卡</button><button class="btn ghost" data-cancel-topic="' + esc(t.id) + '">取消</button><button class="btn danger" data-del-topic="' + idx + '">删除主题</button></div>' : '') +
+        '</div>' +
         '</div>';
     }).join("");
   }
@@ -231,44 +713,130 @@
 
   function bindEditors() {
     document.querySelectorAll("[data-sec]").forEach(function (card) {
-      var idx = Number(card.getAttribute("data-sec"));
-      card.querySelectorAll("[data-f]").forEach(function (input) {
-        input.addEventListener("input", function () {
-          var f = input.getAttribute("data-f"), s = state.sections[idx];
-          if (f === "order") s[f] = Number(input.value) || 0;
-          else if (f === "enabled") s[f] = input.checked;
-          else s[f] = input.value;
-          markDirty();
-        });
-        input.addEventListener("change", function () { if (input.type === "checkbox") { input.dispatchEvent(new Event("input")); } });
-      });
-      var del = card.querySelector("[data-del-section]");
-      if (del) del.addEventListener("click", async function () {
-        if (!(await askConfirm("删除这个自定义板块？有单元的板块不能删除。"))) return;
-        state.sections.splice(idx, 1); state.dirty = true; renderSections(); renderTopics(); bindEditors();
-      });
-    });
-    document.querySelectorAll("[data-top]").forEach(function (card) {
-      var idx = Number(card.getAttribute("data-top"));
+      var id = card.getAttribute("data-collapse-id");
       card.querySelectorAll("[data-f]").forEach(function (input) {
         var f = input.getAttribute("data-f");
         var handler = function () {
-          var t = state.topics[idx];
-          if (f === "enabled") t[f] = input.checked;
-          else if (f === "must_keywords" || f === "any_keywords" || f === "channels") {
-            t[f] = input.value.split(/[,，\s|]+/).filter(Boolean);
+          var s = findItem("section", id);
+          if (!s) return;
+          if (f === "order") s[f] = Number(input.value) || 0;
+          else if (f === "enabled") s[f] = input.checked;
+          else s[f] = input.value;
+          markDirty("section", id);
+        };
+        input.addEventListener("input", handler);
+        input.addEventListener("change", function () {
+          if (input.type === "checkbox" || f === "order") handler();
+          if (f === "order") {
+            state.sections = sortSections(state.sections);
+            renderAll();
           }
-          markDirty();
+        });
+      });
+      var edit = card.querySelector("[data-edit-section]");
+      if (edit) edit.addEventListener("click", function () { startEdit("section", id); });
+      var save = card.querySelector("[data-save-section]");
+      if (save) save.addEventListener("click", function () { saveCard("section", id); });
+      var cancel = card.querySelector("[data-cancel-section]");
+      if (cancel) cancel.addEventListener("click", function () { cancelEdit("section", id); });
+      var del = card.querySelector("[data-del-section]");
+      if (del) del.addEventListener("click", async function () {
+        if (!(await askConfirm("删除这个自定义板块？有单元的板块不能删除。"))) return;
+        state.sections.splice(state.sections.findIndex(function (s) { return s.id === id; }), 1);
+        setEditing("section", id, false);
+        markDirty("global", "delete-section");
+        renderAll();
+      });
+    });
+    document.querySelectorAll("[data-top]").forEach(function (card) {
+      var id = card.getAttribute("data-collapse-id");
+      card.querySelectorAll("[data-f]").forEach(function (input) {
+        var f = input.getAttribute("data-f");
+        var handler = function () {
+          var t = findItem("topic", id);
+          if (!t) return;
+          if (f === "enabled") t[f] = input.checked;
+          else if (f === "channels" && input.type === "checkbox") {
+            t.channels = Array.prototype.map.call(card.querySelectorAll('[data-f="channels"]:checked'), function (box) { return box.value; });
+          }
+          else if (f === "must_keywords" || f === "any_keywords") {
+            t[f] = input.value.split(/[,，\s|]+/).filter(Boolean);
+          } else {
+            t[f] = input.value;
+          }
+          markDirty("topic", id);
         };
         input.addEventListener("input", handler);
         input.addEventListener("change", function () { if (input.type === "checkbox") handler(); });
       });
+      var edit = card.querySelector("[data-edit-topic]");
+      if (edit) edit.addEventListener("click", function () { startEdit("topic", id); });
+      var save = card.querySelector("[data-save-topic]");
+      if (save) save.addEventListener("click", function () { saveCard("topic", id); });
+      var cancel = card.querySelector("[data-cancel-topic]");
+      if (cancel) cancel.addEventListener("click", function () { cancelEdit("topic", id); });
       var del = card.querySelector("[data-del-topic]");
       if (del) del.addEventListener("click", async function () {
         if (!(await askConfirm("删除这个主题？历史采集单元不会删除。"))) return;
-        state.topics.splice(idx, 1); state.dirty = true; renderTopics(); bindEditors();
+        state.topics.splice(state.topics.findIndex(function (t) { return t.id === id; }), 1);
+        setEditing("topic", id, false);
+        markDirty("global", "delete-topic");
+        renderAll();
       });
     });
+    applyCollapseState();
+  }
+
+  function startEdit(kind, id) {
+    setExpanded(kind, id, true);
+    saveExpanded();
+    setEditing(kind, id, true);
+    renderAll();
+  }
+
+  function cancelEdit(kind, id) {
+    var baseline = baselineFor(kind).filter(function (item) { return item.id === id; })[0];
+    if (baseline) {
+      replaceItem(kind, id, clone(baseline));
+    } else {
+      var list = listFor(kind);
+      var idx = list.findIndex(function (item) { return item.id === id; });
+      if (idx >= 0) list.splice(idx, 1);
+    }
+    if (kind === "section") state.sections = sortSections(state.sections);
+    setEditing(kind, id, false);
+    clearDirty(kind, id);
+    renderAll();
+  }
+
+  async function saveCard(kind, id) {
+    var item = findItem(kind, id);
+    if (!item) { status($("settings-status"), "卡片不存在，无法保存", false); return; }
+    if (kind === "topic" && !(item.channels || []).length) {
+      cardStatus(kind, id, "至少选择一个渠道", false);
+      status($("settings-status"), "保存本卡失败：至少选择一个渠道", false);
+      return;
+    }
+    var path = kind === "section"
+      ? "/api/settings/sections/" + encodeURIComponent(id)
+      : "/api/settings/topics/" + encodeURIComponent(id);
+    try {
+      var data = await api(path, { method: "PUT", body: JSON.stringify(item) });
+      var saved = kind === "section" ? data.section : data.topic;
+      if (saved) {
+        replaceItem(kind, id, saved);
+        replaceBaseline(kind, id, saved);
+      }
+      if (kind === "section") state.sections = sortSections(state.sections);
+      setEditing(kind, id, false);
+      clearDirty(kind, id);
+      var warns = (data.warnings || []).join("；");
+      status($("settings-status"), "本卡已保存" + (warns ? "。提示：" + warns : ""), true);
+      renderAll();
+    } catch (e) {
+      cardStatus(kind, id, "保存失败：" + e.message, false);
+      status($("settings-status"), "保存本卡失败：" + e.message, false);
+    }
   }
 
   async function load() {
@@ -276,52 +844,50 @@
       var data = await api("/api/settings");
       state.sections = data.sections || [];
       state.topics = data.topics || [];
+      state.sections = sortSections(state.sections);
       state.csrf = data.csrf_token || "";
       state.schedule = data.schedule || {};
       $("cron-value").textContent = state.schedule.cron || "—";
       $("beijing-value").textContent = state.schedule.beijing || "—";
       $("pages-value").textContent = state.schedule.pages || "—";
       renderGit(data.git || {});
-      renderSections(); renderTopics(); bindEditors();
-      state.dirty = false; $("save-state").textContent = "";
+      state.editing = { section: {}, topic: {} };
+      resetBaselines();
+      clearAllDirty();
+      renderAll();
       status($("settings-status"), "");
     } catch (e) { status($("settings-status"), "加载失败：" + e.message, false); }
   }
 
-  $("add-section").addEventListener("click", function () {
-    var id = window.prompt("板块 id（小写字母/数字/短横，创建后不可改）");
-    if (!id) return;
-    var title = window.prompt("板块名称（2–12 字）");
-    if (!title) return;
-    if (state.sections.some(function (s) { return s.id === id; })) { alert("板块 id 已存在"); return; }
-    state.sections.push({ id: id, title: title, age_min_months: null, age_max_months: null, order: state.sections.length + 1, enabled: true, description: "" });
-    state.dirty = true; renderSections(); bindEditors();
+  $("add-section").addEventListener("click", function (e) {
+    e.stopPropagation();
+    openAddForm("section");
   });
 
-  $("add-topic").addEventListener("click", function () {
-    var section = window.prompt("归属板块 id（例如 infant-care）");
-    if (!section || !state.sections.some(function (s) { return s.id === section; })) { alert("板块不存在"); return; }
-    var title = window.prompt("主题名称");
-    if (!title) return;
-    var must = window.prompt("must 关键词，逗号分隔（1–4 个）");
-    if (!must) return;
-    var id = window.prompt("主题 id / 采集单元 id（字母数字短横，创建后不可改）");
-    if (!id) return;
-    if (state.topics.some(function (t) { return t.id === id; })) { alert("主题 id 已存在"); return; }
-    state.topics.push({ id: id, section: section, title: title, must_keywords: must.split(/[,，\s|]+/).filter(Boolean), any_keywords: [], channels: ["bilibili"], enabled: true });
-    state.dirty = true; renderTopics(); bindEditors();
+  $("add-topic").addEventListener("click", function (e) {
+    e.stopPropagation();
+    openAddForm("topic");
   });
 
   $("save").addEventListener("click", async function () {
+    var emptyChannel = state.topics.filter(function (t) { return !(t.channels || []).length; })[0];
+    if (emptyChannel) {
+      status($("settings-status"), "保存失败：主题「" + emptyChannel.title + "」至少选择一个渠道", false);
+      return;
+    }
     $("save").disabled = true;
     try {
       var data = await api("/api/settings", { method: "PUT", body: JSON.stringify({ sections: state.sections, topics: state.topics }) });
       state.sections = data.sections || state.sections;
       state.topics = data.topics || state.topics;
-      state.dirty = false; $("save-state").textContent = "已保存";
+      state.sections = sortSections(state.sections);
+      state.editing = { section: {}, topic: {} };
+      resetBaselines();
+      clearAllDirty();
+      $("save-state").textContent = "已保存";
       var warns = (data.warnings || []).join("；");
       status($("settings-status"), "已保存" + (warns ? "。提示：" + warns : ""), true);
-      renderSections(); renderTopics(); bindEditors();
+      renderAll();
     } catch (e) { status($("settings-status"), "保存失败：" + e.message, false); }
     finally { $("save").disabled = false; }
   });
@@ -383,6 +949,48 @@
       load();
     } catch (e) { status($("git-status"), "推送失败：" + e.message, false); }
     finally { $("git-push").disabled = false; }
+  });
+
+  $("toggle-sections").addEventListener("click", function () { toggleAreaCards("section"); });
+  $("toggle-topics").addEventListener("click", function () { toggleAreaCards("topic"); });
+  $("section-pagination").addEventListener("click", function (e) {
+    var btn = e.target.closest && e.target.closest("[data-page-dir]");
+    if (!btn || btn.disabled) return;
+    state.page.section += btn.getAttribute("data-page-dir") === "next" ? 1 : -1;
+    renderAll();
+  });
+  $("search-sections").addEventListener("input", function () {
+    state.search.section = this.value;
+    state.page.section = 1;
+    renderAll();
+  });
+  $("search-topics").addEventListener("input", function () {
+    state.search.topic = this.value;
+    renderAll();
+  });
+  document.querySelectorAll("[data-area-head]").forEach(function (head) {
+    var kind = head.getAttribute("data-area-head");
+    function handler() { toggleArea(kind); }
+    head.addEventListener("click", function (e) {
+      if (e.target.closest && e.target.closest("button")) return;
+      handler();
+    });
+    head.addEventListener("keydown", function (e) {
+      if (e.target !== head) return;
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handler(); }
+    });
+  });
+  applyAreaState();
+  document.addEventListener("click", function (e) {
+    var btn = e.target.closest && e.target.closest("[data-collapse-btn]");
+    if (!btn) return;
+    var card = btn.closest("[data-collapse-kind][data-collapse-id]");
+    if (!card) return;
+    var kind = card.getAttribute("data-collapse-kind");
+    var id = card.getAttribute("data-collapse-id");
+    setExpanded(kind, id, !isExpanded(kind, id));
+    applyCollapseState();
+    saveExpanded();
   });
 
   load();

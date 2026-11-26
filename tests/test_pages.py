@@ -90,6 +90,24 @@ class PagesContractTest(unittest.TestCase):
         for name in files:
             self.assertIn(name, js, "theme.js 未注册 %s" % name)
 
+    def test_layout_registry_and_loader(self):
+        """D65/D68:注册表 3 套、默认 standard;版式只接公开页,采集工具页不接"""
+        js = read("assets/templates.js")
+        for key in ("standard", "news", "magazine"):
+            self.assertIn(key + ":", js)
+        self.assertIn("default: 'standard'", js)
+        self.assertTrue(os.path.exists(os.path.join(ROOT, "assets/layouts/standard.css")))
+        loader = read("assets/layout.js")
+        for token in ("jiye.layout", "layout=", "data-layout", "data-layout-fallback", "jiye:layout"):
+            self.assertIn(token, loader)
+        for page in ("index.html", "series.html", "list.html", "single.html"):
+            html = read(page)
+            self.assertIn("assets/templates.js", html, page)
+            self.assertIn("assets/layout.js", html, page)
+            self.assertLess(html.index("assets/templates.js"), html.index("assets/layout.js"), page)
+        for tool in ("collector/collect.html", "collector/settings.html"):
+            self.assertNotIn("assets/layout.js", read(tool), tool)
+
     def test_theme_loaded_in_every_page(self):
         for page in THEMED:
             self.assertIn("theme.js", read(page), page)
@@ -110,6 +128,14 @@ class PagesContractTest(unittest.TestCase):
                 finally:
                     os.unlink(path)
                 self.assertEqual(r.returncode, 0, "%s 内联脚本语法错误: %s" % (page, r.stderr[-400:]))
+
+    def test_layout_unit_tests(self):
+        if not NODE:
+            self.skipTest("未安装 node")
+        r = subprocess.run([NODE, os.path.join(ROOT, "tests", "test_layout.js")],
+                           capture_output=True, text=True, timeout=60)
+        self.assertEqual(r.returncode, 0, r.stdout[-800:] + r.stderr[-800:])
+        self.assertIn("全部通过", r.stdout)
 
     def test_render_unit_tests(self):
         if not NODE:

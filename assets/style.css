@@ -425,9 +425,10 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 .fav-del:hover { color: #c0392b; }
 
 /* ===== 主题切换(页脚三态,assets/theme.js 注入) ===== */
-.theme-switch { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-top: 12px; font-size: 12px; color: var(--text-mute); }
-.theme-btn {
+.theme-switch, .layout-switch { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-top: 12px; font-size: 12px; color: var(--text-mute); }
+.theme-btn, .layout-btn {
   border: 1px solid var(--border); background: var(--surface); color: var(--text-sub);
   border-radius: 14px; padding: 3px 10px; font-size: 12px; cursor: pointer;
 }
-.theme-btn.active { border-color: var(--brand); color: var(--brand); }
+.theme-btn.active, .layout-btn.active { border-color: var(--brand); color: var(--brand); }
+.layout-btn:hover { border-color: var(--brand); color: var(--brand); }

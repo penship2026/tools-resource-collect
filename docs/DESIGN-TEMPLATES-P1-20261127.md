@@ -13,7 +13,7 @@
 
 一期要解决四件事：
 
-1. **版式可替换**：布局从 5 个页面抽到 `assets/layouts/*.css`，由 `data-layout` 选择；页面专属规则先外置到 `assets/pages/*.css`。
+1. **版式可替换**：布局从公开页面抽到 `assets/layouts/*.css`，由 `data-layout` 选择；页面专属规则先外置到 `assets/pages/*.css`。
 2. **板块成栏目**：`sections.yml` 的板块按 `order` 升为一级导航，支持 `?section=` 板块视图。
 3. **模板可扩展**：新增一套版式 = 1 个 CSS + 1 行注册，不改 HTML/JS；交付 3 套。
 4. **编辑可控**：人工置顶、画册大图、站点默认版式三项走 `site.yml → site.js`，不污染采集数据。
@@ -68,7 +68,7 @@ assets/
 site.yml                      站点外观 + 编辑推荐（根目录，设置页维护）
 ```
 
-**head 加载顺序（5 个页面统一）**：
+**head 加载顺序（4 个公开页面统一；采集两页不接，D77）**：
 
 ```html
 <link rel="stylesheet" href="assets/style.css">
@@ -446,7 +446,7 @@ magazine 只改"形"：封面比例、单栏、章节间距、编号排版，全
 | `collector/settings.html` | 新增「站点外观」面板：默认版式三选一 |
 | `collector/collect.html` | 单元卡片新增「置顶 / 取消置顶」与「画册大图」URL 输入、3:2 预览 |
 | `scripts/docs_check.py` | 新增版式文件/注册表/内联样式检查，调用 `layout_lint` |
-| `tests/test_pages.py` | 5 页均加载 `templates.js`+`layout.js`；内联无色值；注册表 3 条 |
+| `tests/test_pages.py` | 4 个公开页加载 `templates.js`+`layout.js`；采集页不接；注册表 3 条 |
 | `tests/test_render.js` | 导航/头条/分节/面包屑的 DOM 断言 |
 | `README.md` / `docs/DEPLOY.md` | 版式层目录与契约、切换方式 |
 
@@ -470,7 +470,7 @@ magazine 只改"形"：封面比例、单栏、章节间距、编号排版，全
 
 1. `templates.js` + `layout.js`；`<html data-layout>`；`?layout=` 预览不落盘。
 2. `layouts/standard.css`（基线）；页脚加"版式"切换（与主题切换并排，三项文案：简洁 / 门户 / 画册）。
-3. 5 页接入；`collect.html` 不接入（本机工具页）。
+3. 4 个公开页接入；`collector/collect.html` 与 `collector/settings.html` 不接（本机工具页，D77）。
 
 **退出条件**：切 standard 与"完全不加载版式 CSS"视觉一致；`?layout=news` 在 news.css 未完成时安全降级为 standard（文件 404 检测）。
 

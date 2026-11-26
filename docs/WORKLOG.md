@@ -585,3 +585,12 @@ Chrome 无头截图三页面全部正常:首页卡片标签独立行两行截断
 - 公众号/小红书渠道色改为 `--plat-wechat` / `--plat-xhs` + `color-mix` 软色，深色主题自动适配；观看按钮阴影改用 `--shadow` / `--shadow-hover`。
 - 新增 `scripts/layout_lint.py`：无内联块、引用顺序、17 个 token、页级样式无渠道硬编码。
 - 公众号模板截图复核：绿色渠道按钮、软底标签、阅读版式正常；首页/子页/列表/详情与 M1a 截图一致。
+
+### 13:30–15:00 M2 版式层与页脚切换(D65/D68/D77)
+- 新增 `assets/templates.js`：standard/news/magazine 三套注册，能力声明 nav/lead/bands/sidebar/toc；默认 standard。
+- 新增 `assets/layout.js`：`?layout=` 预览 > `jiye.layout` > `SITE_CONFIG.default_layout` > 注册表默认；预览不落盘，手动切换写存储并清掉 URL 预览参数。
+- 版式 CSS 追加在 head 末尾；文件 404/缺失时自动回退 standard，并写 `data-layout-fallback` 供排查。
+- 新增 `assets/layouts/standard.css`（空基线，保证加载目标稳定）；页脚主题切换下方新增「版式」三项：简洁 / 门户 / 画册。
+- 版式层只接 4 个公开页（D77），采集页与设置页不接。
+- 新增 `tests/test_layout.js` 11 个逻辑用例（vm + 假 DOM）；Python 71 例通过；`?layout=news` 截图与默认页面一致，切换器高亮简洁。
+- 顺带修正一期详设的「5 页接入」表述为 4 个公开页。

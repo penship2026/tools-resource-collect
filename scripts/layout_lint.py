@@ -63,6 +63,32 @@ def check_tokens():
             problems.append("style.css 缺少 token: %s" % token)
 
 
+def check_layout_layer():
+    for rel in ("assets/templates.js", "assets/layout.js", "assets/layouts/standard.css"):
+        if not os.path.exists(os.path.join(ROOT, rel)):
+            problems.append("缺少版式层文件: %s" % rel)
+    for page in PAGES:
+        html = read(page)
+        if page != "index.html" and "assets/layout.js" not in html:
+            problems.append("%s 未接入 layout.js" % page)
+        if "assets/templates.js" not in html:
+            problems.append("%s 未接入 templates.js" % page)
+        if "assets/templates.js" in html and "assets/layout.js" in html:
+            if html.index("assets/templates.js") > html.index("assets/layout.js"):
+                problems.append("%s: templates.js 必须早于 layout.js" % page)
+    for tool in ("collector/collect.html", "collector/settings.html"):
+        if "assets/layout.js" in read(tool):
+            problems.append("%s 是采集工具页,不应接入版式层" % tool)
+    layout_dir = os.path.join(ROOT, "assets/layouts")
+    for name in sorted(os.listdir(layout_dir)):
+        if not name.endswith(".css"):
+            continue
+        css = open(os.path.join(layout_dir, name), encoding="utf-8").read()
+        for bad in ("!important", "@import", "url("):
+            if bad in css:
+                problems.append("layouts/%s 含禁用写法: %s" % (name, bad))
+
+
 def check_page_css():
     for rel in [v for v in PAGES.values() if v]:
         css = read(rel)
@@ -76,13 +102,14 @@ def check_page_css():
 def main():
     check_pages()
     check_tokens()
+    check_layout_layer()
     check_page_css()
     if problems:
         for p in problems:
             print("✗", p)
         print("版式自检失败: %d 项" % len(problems))
         return 1
-    print("版式自检通过:4 页无内联样式、17 个布局 token 齐全、页级样式无渠道色")
+    print("版式自检通过:4 页无内联样式、版式层接入有序、17 个 token 齐全、页级样式无渠道色")
     return 0
 
 

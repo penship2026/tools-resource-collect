@@ -165,7 +165,7 @@ Design Spec（JSON Schema 校验）
 | 里程碑 | 内容 | 工期 | 验收 |
 |---|---|---|---|
 | **M1 归一** | 合并 10 处重复声明、布局 token 化、页面内联只留容器 | 1–1.5d | 5 页截图与改造前一致（像素级允许字体渲染差异）；`style.css` 无新增色值 |
-| **M2 版式层** | `templates.js`、`layout.js`、`layouts/standard.css`（等价迁移）、`?layout=` 预览 | 2d | 切到 standard 与不加载版式 CSS 视觉一致；`?layout` 不写存储；5 页均可加载 |
+| **M2 版式层** | `templates.js`、`layout.js`、`layouts/standard.css`（等价迁移）、`?layout=` 预览 | 2d | 切到 standard 与不加载版式 CSS 视觉一致；`?layout` 不写存储；4 个公开页均可加载 |
 | **M3 门户版式** | `news.css`、板块导航、头条区、分栏、`?section=` 板块视图、移动端 | 2.5–3d | 6 个启用板块全部可导航；`?section=k12` 只显示该板块；390px 无横向溢出 |
 | **M4 多模板与编辑推荐** | `magazine.css`、页脚版式切换、`site.yml`/`site.js`、置顶、画册大图、设置页默认版式、6 组截图 | 2.5–3d | 置顶只改首屏不改索引；大图三级回退；默认版式对新会话生效；新增第 4 套版式只加 1 CSS + 1 行注册 |
 | **M5 自检** | `layout_lint.py`、`docs_check`/`test_pages` 扩展、验收矩阵 | 1–1.5d | 白名单外属性被拦；主题×版式矩阵全绿；CI 三件套通过 |
@@ -217,7 +217,7 @@ Design Spec（JSON Schema 校验）
 
 ---
 
-## 八、决策记录（D64–D76，追加）
+## 八、决策记录（D64–D77，追加）
 
 | 编号 | 决策 | 落点 |
 |---|---|---|
@@ -234,6 +234,7 @@ Design Spec（JSON Schema 校验）
 | D74 | 确认口径：板块视图链接固定为 `index.html?section=<稳定 id>`，不新增 `section.html`；版式切换器文案固定为「简洁 / 门户 / 画册」，新增版式只在注册表加一行、切换器自动出现 | 本文 4.2、P1 6.3 |
 | D75 | 编辑推荐与外观配置独立成 `site.yml`（根目录），由 `generate.py` 生成 `assets/site.js`：`default_layout` 决定站点默认版式（优先级低于 `?layout` 与本机 `jiye.layout`）；`editorial.<id>.pin/pin_at` 只影响首屏与分节排序，不改索引；`hero_image` 仅画册生效，缺省回退封面；配置不写入采集单元文件，重新采集不会覆盖 | `site.yml`、`assets/site.js`、`collector/settings.html`、`collector/collect.html` |
 | D76 | 页面专属样式外置为 `assets/pages/{series,list,single}.css`，按页引用；页面内不再保留 `<style>`。加载顺序 `style.css → pages/<page>.css → layouts/*.css`，版式层追加在 head 末尾即可覆盖页面样式，不再依赖「内联块位置」 | `assets/pages/`、4 页 `<head>`、`scripts/layout_lint.py` |
+| D77 | 版式层只接 4 个公开页（index/series/list/single）；`collector/collect.html` 与 `collector/settings.html` 是本机工具页，不加载 `templates.js` / `layout.js`，避免版式影响采集与设置操作 | 4 页 `<head>`、`tests/test_pages.py` |
 
 ---
 

@@ -10,17 +10,10 @@
   <script src="assets/theme.js"></script>
   <noscript><link rel="stylesheet" href="assets/themes/default.css"></noscript>
   <style>
-    /* ===== 全量列表页专属样式(合集页只展示最近 20 条,更多记录在这里) ===== */
-    .crumb { font-size: 13px; color: var(--text-mute); margin: 18px 0; }
-    .crumb a { color: var(--brand); text-decoration: none; }
-    .crumb span { margin: 0 8px; }
-
+    /* ===== 全量列表页专属样式(卡片/筛选 chip 等组件统一在 assets/style.css) ===== */
     .hero { padding: 4px 0 18px; }
     .hero h1 { font-size: 24px; font-weight: 600; margin: 0 0 8px; }
     .hero h1 em { font-style: normal; font-size: 13px; font-weight: 400; color: var(--text-mute); margin-left: 10px; }
-    .facts { display: flex; gap: 32px; flex-wrap: wrap; margin-top: 16px; }
-    .fact b { display: block; font-size: 19px; font-weight: 600; }
-    .fact span { font-size: 12px; color: var(--text-mute); }
 
     /* 筛选面板 */
     .filters {
@@ -39,32 +32,21 @@
       padding: 9px 10px; color: var(--text); font-size: 13px; outline: none; max-width: 190px;
     }
     .chip-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; width: 100%; }
-    .chip {
-      border: 1px solid var(--border); background: var(--surface); color: var(--text-sub);
-      border-radius: var(--radius-pill); padding: 6px 14px; font-size: var(--fs-xs);
-      cursor: pointer; white-space: nowrap; transition: color .15s, border-color .15s;
-    }
-    .chip:hover { color: var(--brand); border-color: var(--brand); }
-    .chip.active { background: var(--brand); color: #fff; border-color: var(--brand); }
     .chip-row .label { font-size: 12px; color: var(--text-mute); margin-right: 2px; }
 
     .list-head { display: flex; align-items: baseline; justify-content: space-between; margin: 0 0 14px; }
     .list-head h2 { font-size: 17px; font-weight: 600; }
     .list-head .stat { font-size: 12px; color: var(--text-mute); }
 
-    /* 卡片:复用公共 .video-grid / .video-card,只补平台角标 */
+    /* 平台角标:列表页独有(卡片骨架复用公共 .video-card) */
     .video-thumb .plat-tag {
       position: absolute; left: 10px; top: 10px;
       color: #fff; font-size: 11px; padding: 3px 10px; border-radius: var(--radius-pill);
       letter-spacing: .2px;
     }
-    .video-thumb .kind-tag {
-      position: absolute; right: 10px; top: 10px;
-      background: rgba(0,0,0,.62); color: #fff; font-size: 11px; padding: 3px 8px; border-radius: 20px;
-    }
 
     /* 分页 */
-    .pager { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: center; margin: 6px 0 56px; }
+    .pager { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: center; margin: 6px 0 var(--layout-section-gap); }
     .pg {
       min-width: 36px; padding: 7px 12px; font-size: 13px; cursor: pointer;
       background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text-sub);
@@ -74,7 +56,6 @@
     .pg:disabled { opacity: .45; cursor: not-allowed; }
     .pg-dots { color: var(--text-mute); font-size: 13px; padding: 0 2px; }
     .pg-info { font-size: 12px; color: var(--text-mute); margin-left: 6px; }
-    .empty { padding: 48px 0; text-align: center; color: var(--text-mute); }
   </style>
 </head>
 <body>

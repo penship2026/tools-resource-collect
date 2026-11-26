@@ -10,10 +10,6 @@
   <noscript><link rel="stylesheet" href="assets/themes/default.css"></noscript>
   <style>
     /* ===== 详情页样式:按渠道切换三套模板(视频 / 公众号文章 / 小红书笔记) ===== */
-    .crumb { font-size: 13px; color: var(--text-mute); margin: 18px 0; }
-    .crumb a { color: var(--brand); text-decoration: none; }
-    .crumb span { margin: 0 8px; }
-
     /* --- 渠道色:模板内部覆盖品牌色,让按钮/链接跟随渠道 --- */
     .tpl-wechat { --brand: #07c160; --brand-soft: #e9f8f0; }
     .tpl-xhs { --brand: #ff2442; --brand-soft: #fff0f3; }
@@ -24,7 +20,7 @@
     }
 
     /* ---------- 模板 A:B站视频(双栏 + 官方 iframe 播放器) ---------- */
-    .single-layout { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(260px, 1fr); gap: 28px; align-items: start; }
+    .single-layout { display: grid; grid-template-columns: var(--layout-detail-cols); gap: 28px; align-items: start; }
     /* 网格子项默认 min-width:auto,里面横向滑动的分集目录会把整列撑宽,移动端尤其明显 */
     .single-layout > * { min-width: 0; }
     @media (max-width: 860px) {
@@ -107,7 +103,7 @@
     }
 
     /* ---------- 模板 B:公众号文章(单栏阅读版式) ---------- */
-    .tpl-wechat { max-width: 780px; margin: 0 auto; }
+    .tpl-wechat { max-width: var(--layout-article-max); margin: 0 auto; }
     .wx-article {
       background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
       overflow: hidden; box-shadow: var(--shadow);
@@ -131,7 +127,7 @@
     /* ---------- 模板 C:小红书笔记(图左文右) ---------- */
     .tpl-xhs { max-width: 900px; margin: 0 auto; }
     .xhs-card {
-      display: grid; grid-template-columns: 330px minmax(0, 1fr); gap: 0;
+      display: grid; grid-template-columns: var(--layout-xhs-cols); gap: 0;
       background: var(--surface); border: 1px solid var(--border); border-radius: 18px;
       overflow: hidden; box-shadow: var(--shadow);
     }
@@ -217,7 +213,7 @@
       background: linear-gradient(transparent, rgba(0,0,0,.65)); color: #fff; font-size: 13px; text-align: right;
     }
 
-    .empty { padding: 40px 0; text-align: center; color: var(--text-mute); }
+
     @media (max-width: 600px) {
       .wx-body { padding: 22px 20px 26px; }
       .wx-body h1 { font-size: 21px; }

@@ -106,6 +106,7 @@
   </footer>
 
   <script src="assets/data-loader.js"></script>
+  <script src="assets/personal.js"></script>
   <script>
     var esc = window.escHtml;  // 统一转义:assets/data-loader.js 提供
     var id = CollectionLoader.currentId();
@@ -191,8 +192,20 @@
       var mark = isVideo ? '<span class="play"><i>▶</i></span>' : '<span class="kind-tag">图文</span>';
       // 编号只对视频展示(BV 号);图文显示平台名
       var idText = v.bv ? (' · ' + v.bv) : '';
+      var fav = window.Personal ? Personal.starButton({
+        unit: id,
+        key: v.key || v.bv || v.url || '',
+        title: v.title,
+        url: v.url,
+        cover: v.cover,
+        date: v.date,
+        author: v.author || platOf(v),
+        kind: v.kind || 'video',
+        unitTitle: document.getElementById('topic-title').textContent
+      }) : '';
       return '<a class="video-card" href="' + detailHref(v) + '">' +
         '<div class="video-thumb">' + cover + mark + '</div>' +
+        fav +
         '<div class="video-info"><h3>' + esc(v.title) + '</h3>' +
         (v.desc ? '<p class="desc">' + esc(v.desc) + '</p>' : '') +
         '<div class="meta"><span>' + esc(v.date) + '</span><span>' + esc(platOf(v) + idText) + '</span></div></div></a>';
@@ -223,6 +236,7 @@
         grid.innerHTML = '<div class="video-grid">' + shown.map(cardHtml).join('') + '</div>';
       }
       document.getElementById('result-stat').textContent = '显示 ' + shown.length + ' / ' + vids.length + ' 条';
+      if (window.Personal) Personal.syncStars(grid);
 
       // 超出上限时给出全量入口(带上当前搜索词,搜索也不丢)
       var q = document.getElementById('search').value.trim();

@@ -198,3 +198,61 @@ a { color: inherit; text-decoration: none; }
   .hero h1 { font-size: 26px; }
   .wrap { padding: 0 16px; }
 }
+
+/* ===== 个人收藏层(assets/personal.js) =====
+ * 数据只在本机 localStorage;页面元素仅在收藏数 > 0 或有 ?view=mine 时出现。
+ */
+.view-switch { display: flex; gap: 4px; background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 3px; }
+.view-switch[hidden] { display: none; }
+.view-btn {
+  border: 0; background: transparent; color: var(--text-sub); font-size: 12px;
+  padding: 5px 12px; border-radius: 16px; cursor: pointer;
+}
+.view-btn.active { background: var(--brand); color: #fff; }
+
+.video-card { position: relative; }
+.fav-btn {
+  position: absolute; right: 8px; bottom: 8px; z-index: 2;
+  width: 30px; height: 30px; line-height: 1;
+  display: grid; place-items: center;
+  border: 1px solid rgba(255,255,255,.5); border-radius: 50%;
+  background: rgba(0,0,0,.55); color: #fff; font-size: 15px; cursor: pointer;
+  padding: 0; backdrop-filter: blur(2px);
+}
+.fav-btn:hover { background: rgba(0,0,0,.8); }
+.fav-btn.on { color: #ffd24a; border-color: #ffd24a; }
+
+.fav-detail { display: flex; align-items: center; gap: 8px; margin: 0 0 14px; font-size: 12px; color: var(--text-mute); }
+.fav-detail .fav-btn { position: static; width: 28px; height: 28px; background: var(--surface); color: var(--text-sub); border-color: var(--border); }
+.fav-detail .fav-btn.on { color: #e0a800; border-color: #e0a800; background: var(--brand-soft); }
+
+.mine-panel { margin: 18px 0 40px; }
+.mine-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+.mine-head h2 { font-size: 18px; }
+.mine-head small { font-size: 12px; color: var(--text-mute); font-weight: 400; margin-left: 8px; }
+.mine-tools { display: flex; gap: 8px; }
+.mine-btn {
+  border: 1px solid var(--border); background: var(--surface); color: var(--text-sub);
+  border-radius: 8px; padding: 6px 12px; font-size: 12px; cursor: pointer;
+}
+.mine-btn:hover { border-color: var(--brand); color: var(--brand); }
+.mine-mode { display: flex; gap: 16px; font-size: 12px; color: var(--text-mute); margin-bottom: 16px; }
+
+.fav-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+.fav-card {
+  display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow);
+}
+.fav-thumb { display: block; aspect-ratio: 16 / 9; background: var(--bg); overflow: hidden; }
+.fav-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.fav-ph { width: 100%; height: 100%; display: grid; place-items: center; font-size: 30px; color: #fff; background: linear-gradient(135deg, #1e3a5f, #2d7ff9); }
+.fav-body { padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 8px; }
+.fav-title { font-size: 14px; font-weight: 600; color: var(--text); line-height: 1.5; }
+.fav-title:hover { color: var(--brand); }
+.fav-meta { display: flex; flex-wrap: wrap; gap: 8px; font-size: 11px; color: var(--text-mute); }
+.fav-off { color: #b45f06; }
+.fav-note { font-size: 12px; color: var(--text-sub); margin: 0; }
+.fav-act { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; }
+.fav-act a { color: var(--brand); }
+.fav-del { border: 0; background: transparent; color: var(--text-mute); cursor: pointer; font-size: 12px; padding: 0; }
+.fav-del:hover { color: #c0392b; }

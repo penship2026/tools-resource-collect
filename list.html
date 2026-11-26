@@ -128,6 +128,7 @@
   </footer>
 
   <script src="assets/data-loader.js"></script>
+  <script src="assets/personal.js"></script>
   <script>
     var id = CollectionLoader.currentId();
     var PAGE_SIZE = 12;  // 每页 12 条(约 3 行),翻页成本低
@@ -260,6 +261,7 @@
       grid.innerHTML = slice.length
         ? slice.map(cardHtml).join('')
         : '<div class="empty">没有匹配的内容,调整筛选条件试试</div>';
+      if (window.Personal) Personal.syncStars(grid);
 
       document.getElementById('result-stat').textContent = list.length
         ? '共 ' + list.length + ' 条,第 ' + page + ' / ' + totalPages + ' 页'
@@ -283,8 +285,20 @@
         ? '<span class="play"><i>▶</i></span>'
         : '<span class="kind-tag">图文</span>';
       var platTag = '<span class="plat-tag" style="background:' + (PLAT_COLORS[plat] || 'rgba(0,0,0,.72)') + '">' + esc(plat) + '</span>';
+      var fav = window.Personal ? Personal.starButton({
+        unit: id,
+        key: v.key || v.bv || v.url || '',
+        title: v.title,
+        url: v.url,
+        cover: v.cover,
+        date: v.date,
+        author: v.author || plat,
+        kind: v.kind || 'video',
+        unitTitle: document.getElementById('unit-title').textContent
+      }) : '';
       return '<a class="video-card" href="' + detailHref(v) + '">' +
         '<div class="video-thumb">' + cover + mark + platTag + '</div>' +
+        fav +
         '<div class="video-info"><h3>' + esc(v.title) + '</h3>' +
         (v.desc ? '<p class="desc">' + esc(v.desc) + '</p>' : '') +
         '<div class="meta"><span>' + esc(v.date || '—') + '</span><span>' + esc(v.author || plat) + '</span></div>' +

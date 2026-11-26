@@ -193,6 +193,7 @@
   </footer>
 
   <script src="assets/data-loader.js"></script>
+  <script src="assets/personal.js"></script>
   <script>
     var id = CollectionLoader.currentId();
     var root = document.getElementById('single-root');
@@ -337,6 +338,27 @@
         '</div></div></div>';
     }
 
+    // 详情页收藏按钮:条目级收藏,写入本机 localStorage 的最小快照
+    function mountFavButton(v, topic) {
+      if (!window.Personal) return;
+      var wrap = document.createElement('div');
+      wrap.className = 'fav-detail';
+      wrap.innerHTML = Personal.starButton({
+        unit: id,
+        key: itemRefKey(v),
+        title: v.title,
+        url: v.url,
+        cover: v.cover,
+        date: v.date,
+        author: v.author || (topic.source && topic.source.name) || '',
+        kind: v.kind || 'video',
+        unitTitle: topic.title
+      }) + '<span>收藏到「我的」</span>';
+      var host = root.querySelector('.detail') || root.querySelector('.xhs-side') || root;
+      host.insertBefore(wrap, host.firstChild);
+      if (window.Personal) Personal.syncStars(root);
+    }
+
     function row(label, value) {
       return '<div class="detail-row"><span class="label">' + label + '</span><span class="value">' + value + '</span></div>';
     }
@@ -469,6 +491,7 @@
         document.body.setAttribute('data-tpl', tplName);
         // 多集内容:详情下方追加「上一集 / 下一集」与全集列表
         root.innerHTML = html + buildEpisodeNav(v, all, topic.title);
+        mountFavButton(v, topic);
         scrollCurrentEpisode();
       });
     }

@@ -66,6 +66,10 @@
           <span>集页</span>
         </a>
       </div>
+      <nav class="view-switch" id="view-switch" hidden>
+        <button type="button" class="view-btn" data-view="public">公开</button>
+        <button type="button" class="view-btn" data-view="mine">我的 0</button>
+      </nav>
       <div class="header-meta">一集一页 · 持续更新</div>
     </div>
   </header>
@@ -98,17 +102,36 @@
     </div>
 
     <div class="topic-grid" id="topic-grid"></div>
+
+    <!-- 个人收藏视图(?view=mine):数据只在本机 localStorage,不上传、不采集 -->
+    <section class="mine-panel" id="mine-panel" hidden>
+      <div class="mine-head">
+        <h2>我的收藏 <small id="mine-stat"></small></h2>
+        <div class="mine-tools">
+          <button type="button" id="mine-export" class="mine-btn">导出备份</button>
+          <button type="button" id="mine-import" class="mine-btn">导入</button>
+          <input type="file" id="mine-file" accept=".json,application/json" hidden>
+        </div>
+      </div>
+      <div class="mine-mode">
+        <label><input type="radio" name="mine-mode" value="merge" checked> 合并(保留较新)</label>
+        <label><input type="radio" name="mine-mode" value="replace"> 替换(覆盖当前,慎用)</label>
+      </div>
+      <div id="mine-body"></div>
+    </section>
   </main>
 
   <footer class="site-footer">
     <div class="wrap">
       <div>内容来自各平台公开内容,版权归原作者所有,本站仅做链接聚合与导航。</div>
       <div>页面为固定模板,采集只更新数据;新增主题请在 <a href="collect.html">采集入口</a> 操作 →</div>
+      <div>个人收藏只存在本机浏览器,可随时<a href="index.html?view=mine">导出备份或导入恢复</a>。</div>
     </div>
   </footer>
 
   <script src="assets/data/index.js"></script>
   <script src="assets/data-loader.js"></script>
+  <script src="assets/personal.js"></script>
   <script>
     var esc = window.escHtml;  // 统一转义:assets/data-loader.js 提供
     var all = (window.COLLECTION_INDEX || window.TOPIC_INDEX || [])

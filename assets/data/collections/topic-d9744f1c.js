@@ -100,5 +100,6 @@ window.COLLECTION_DATA["topic-d9744f1c"] = {
   ],
   "updated": "2026-11-26",
   "latest": "2026.11.24",
-  "enabled": true
+  "enabled": true,
+  "section": "tech"
 };

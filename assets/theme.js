@@ -81,7 +81,7 @@
   function cssHref(name) {
     var script = document.currentScript;
     var src = script && script.src ? script.src : '';
-    var base = src ? src.replace(/theme\.js(?:[?#].*)?$/, '') : '';
+    var base = window.__THEME_BASE || (src ? src.replace(/theme\.js(?:[?#].*)?$/, '') : '');
     if (!base) base = 'assets/';
     return base + 'themes/' + THEMES[name].file;
   }

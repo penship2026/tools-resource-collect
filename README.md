@@ -50,8 +50,13 @@
 ├── collector/                      # 采集管理代码(独立于展示页)
 │   ├── generate.py                 # 采集数据程序(纯标准库,不写页面)
 │   ├── server.py                   # 采集服务(--api-only 可只跑采集端)
+│   ├── settings_store.py           # 设置页配置读写与校验
+│   ├── git_sync.py                 # 数据同步 Git(只提交采集数据)
 │   ├── backup_data.py              # 数据备份/还原工具
-│   └── collect.html                # 采集交互页(表单入口)
+│   ├── collect.html                # 采集交互页(表单入口)
+│   └── settings.html               # 采集设置页(仅本机)
+├── sections.yml                    # 板块注册表(0–18 岁分段 + 全龄)
+├── topics.yml                      # 主题清单(v2: must/any + section)
 ├── docs/                           # 部署、过程与对外文档
 │   ├── DEPLOY.md                   # 服务器 / 群晖 / 飞牛部署
 │   ├── GITHUB-PAGES.md             # GitHub Pages 托管与数据更新
@@ -59,7 +64,7 @@
 │   ├── REVIEW-20261126.md          # 全项目评审
 │   ├── TODO.md / WORKLOG.md        # 执行记录与工作日志
 │   └── CREATION-STORY-20261126.*   # 对外创作过程记录（Markdown + HTML）
-├── .github/workflows/              # 定时采集 workflow
+├── .github/workflows/              # 采集与 Pages artifact workflow
 ├── backups/                        # 备份压缩包(自动生成)
 └── Dockerfile / docker-compose.yml # Docker 部署
 ```

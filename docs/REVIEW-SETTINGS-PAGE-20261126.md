@@ -4,6 +4,8 @@
 > 基线：`git HEAD = 8d4829f`，需求文档尚未提交
 > 方式：通读需求文档 + 现有 `topics.yml`、`collector/generate.py`、`collector/server.py`、两个 workflow、`docs/GITHUB-PAGES.md`
 > 结论：**尚未达到可执行开发水平（DoR 未通过）**。方向清楚，但工程侧仍有 7 个 P0 缺口，直接开发会造成数据模型、采集匹配、部署安全返工。
+>
+> **2026-11-27 更新**：P0 附录已补齐，并已按拍板口径开始实现（数据层/迁移/混合关键词/设置页 API/Git 同步/Pages artifact）。本评审保留为开发前基线，最新实现进度见 `PLAN-20261126.md`、`TODO.md`、`WORKLOG.md`。
 
 ---
 

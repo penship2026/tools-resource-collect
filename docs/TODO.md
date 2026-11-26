@@ -371,3 +371,13 @@
 - 新增 `docs/CREATION-STORY-20261126.md`:600 字小红书文案 + 9 图分镜 + 创作时间线 + 排期方法 + 踩坑 + 资料依据。
 - 新增 `docs/CREATION-STORY-20261126.html`:单文件零依赖,阅读进度、吸顶目录、一键复制文案;1280/390 无横向溢出,复制按钮实测通过。
 - README 文档索引同步;`docs_check.py` 通过。
+
+### ✅ 41. 设置页与板块体系开发启动（D63）（2026-11-27）
+
+- 拍板 3 个口径：`pages=3`、`humanities` 默认关闭、Actions 保持北京 07:00；`run_topics` 增加 partial 契约。
+- 新增 `sections.yml`，`topics.yml` 升 v2；12 个存量单元补 `section`，索引派生 `section_title / section_enabled`。
+- 混合关键词：must 全命中 + any 至少一个；B站聚类与公众号/小红书候选都走同一过滤。
+- 新增 `collector/settings.html` 与本机 API：读取/保存配置、CSRF、cron 导出、立即执行、Git 预览/推送。
+- 新增 `collector/git_sync.py`：只提交数据白名单，固定 `origin/main`，fast-forward 前置校验，不 force/reset/clean。
+- 新增 `pages.yml` artifact 发布，线上不暴露 `collector/`；`docs/GITHUB-PAGES.md` 同步。
+- 验收：Python 54 例、node 12 例、verify 12 单元 0 问题、docs-check 通过；设置页 HTTP 冒烟通过。

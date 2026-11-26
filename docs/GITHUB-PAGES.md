@@ -108,14 +108,15 @@ assets/data/*.js
 
 1. 进入仓库 → **Settings** → **Pages**(左侧栏)。
 2. **Build and deployment**:
-   - Source 选择 **Deploy from a branch**;
-   - Branch 选择 `main`,目录选择 `/ (root)`;
-   - 点击 **Save**。
+   - Source 选择 **GitHub Actions**（不要选 Deploy from a branch）；
+   - 项目已内置 `.github/workflows/pages.yml`，推送 `main` 后自动构建并部署；
 3. 等待 1–2 分钟,页面顶部会出现访问地址,形如:
 
 ```
 https://<你的用户名>.github.io/<仓库名>/
 ```
+
+> 发布产物是白名单 artifact：`index.html`、`series.html`、`list.html`、`single.html`、`assets/**`、`CNAME`、`.nojekyll`。`collector/**`、`docs/**`、`topics.yml`、`sections.yml` 都不会进入 Pages；线上访问 `/collector/settings.html` 和 `/collector/collect.html` 应为 404。
 
 ### 2.5 子路径兼容性
 
@@ -214,8 +215,9 @@ git push
 项目已内置 `.github/workflows/update-data.yml`,随仓库提交即自动生效。当前配置:
 
 - 定时:每天 **北京时间 07:00**(UTC `0 23 * * *`)跑一次;
-- 内容:按仓库根目录 `topics.yml` 的清单逐条采集,默认每个主题搜 10 页;
+- 内容:按仓库根目录 `topics.yml` 的清单逐条采集,默认每个主题搜 **3 页**;
 - 手动:`Run workflow` 时可填 `pages` 覆盖页数;
+- 部分成功:某个主题失败时 CLI 仍退出 0，继续 `--verify` 并提交已成功数据；全部失败才中断;
 - 提交:数据有变化才 commit 并 push,提交信息前缀 `data:`。
 
 完整内容以仓库里的实际文件为准(本文件不再重复贴 YAML,避免两处漂移)。本地可先用同一份清单验证解析与抓取:

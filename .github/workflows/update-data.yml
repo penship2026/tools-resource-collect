@@ -1,7 +1,8 @@
 name: update-data
 
 # 每天北京时间 07:00(UTC 23:00)采集一次;也可在 Actions 页手动触发。
-# 本机 launchd 兜底见 scripts/launchd/,两者请错开时间,不要同时跑(数据写入遵循「先提交者为准」)。
+# 公网唯一自动写入方；板块/主题查询由 topics.yml 提供。本机设置页不发布。
+# 部分主题失败时 CLI 退出 0，仍继续校验并提交已成功数据。
 
 on:
   schedule:
@@ -9,9 +10,9 @@ on:
   workflow_dispatch:
     inputs:
       pages:
-        description: "每个主题的搜索页数(默认 10)"
+        description: "每个主题的搜索页数(默认 3)"
         required: false
-        default: "10"
+        default: "3"
 
 concurrency:
   group: update-data
@@ -37,7 +38,7 @@ jobs:
 
       - name: 按主题清单采集
         run: |
-          python3 collector/generate.py --topics topics.yml --pages "${{ github.event.inputs.pages || '10' }}"
+          python3 collector/generate.py --topics topics.yml --pages "${{ github.event.inputs.pages || '3' }}"
 
       - name: 校验索引与数据一致性
         run: |

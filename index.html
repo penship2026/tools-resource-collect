@@ -137,6 +137,10 @@
           <button class="chip" data-filter="single">单条精选</button>
         </div>
       </div>
+      <div class="filter-group" id="section-group" hidden>
+        <span class="filter-label">板块</span>
+        <div class="filter-opts"><span id="section-chips"></span></div>
+      </div>
       <div class="filter-group" id="platform-group" hidden>
         <span class="filter-label">平台</span>
         <div class="filter-opts"><span id="platform-chips"></span></div>
@@ -254,8 +258,9 @@
   <script>
     var esc = window.escHtml;  // 统一转义:assets/data-loader.js 提供
     var all = (window.COLLECTION_INDEX || window.TOPIC_INDEX || [])
-      .filter(function (t) { return t.enabled !== false; }); // 关闭显示的单元不展示
+      .filter(function (t) { return t.enabled !== false && t.section_enabled !== false; }); // 关闭显示/停用板块的单元不展示
     var currentFilter = 'all';
+    var currentSection = 'all';
     var currentPlatform = 'all';
     var currentTag = '';
     var keyword = '';
@@ -285,6 +290,36 @@
       });
     });
     document.getElementById('stat-platforms').textContent = platforms.length;
+
+    // 板块筛选：索引里带 section / section_title 时自动出现；人文等停用板块不展示
+    (function () {
+      var counts = {};
+      var titles = {};
+      all.forEach(function (t) {
+        var sid = t.section;
+        if (!sid || t.section_enabled === false) return;
+        counts[sid] = (counts[sid] || 0) + 1;
+        titles[sid] = t.section_title || sid;
+      });
+      var keys = Object.keys(counts);
+      if (!keys.length) return;
+      var group = document.getElementById('section-group');
+      var wrap = document.getElementById('section-chips');
+      if (group) group.hidden = false;
+      var html = '<button class="chip active" data-section="all">全部板块</button>';
+      keys.forEach(function (sid) {
+        html += '<button class="chip" data-section="' + esc(sid) + '">' + esc(titles[sid]) + ' (' + counts[sid] + ')</button>';
+      });
+      wrap.innerHTML = html;
+      wrap.querySelectorAll('.chip').forEach(function (chip) {
+        chip.addEventListener('click', function () {
+          wrap.querySelectorAll('.chip').forEach(function (c) { c.classList.remove('active'); });
+          chip.classList.add('active');
+          currentSection = chip.getAttribute('data-section');
+          render();
+        });
+      });
+    })();
 
     var pWrap = document.getElementById('platform-chips');
     var pGroup = document.getElementById('platform-group');
@@ -347,6 +382,7 @@
     function render() {
       var list = all.filter(function (t) {
         if (currentFilter !== 'all' && (t.type || 'series') !== currentFilter) return false;
+        if (currentSection !== 'all' && t.section !== currentSection) return false;
         if (currentPlatform !== 'all' && platformsOf(t).indexOf(currentPlatform) < 0) return false;
         if (currentTag && tagsOf(t).indexOf(currentTag) < 0) return false;
         if (keyword) {

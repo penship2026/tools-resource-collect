@@ -56,6 +56,7 @@ import re
 import sys
 import threading
 import time
+import unicodedata
 import urllib.parse
 import urllib.request
 import uuid
@@ -106,6 +107,9 @@ def _resolve_dir(env_name, default_rel):
 
 DATA_DIR = _resolve_dir("VIDEO_DATA_DIR", os.path.join("assets", "data"))
 INDEX_JS = os.path.join(DATA_DIR, "index.js")
+# 板块与主题注册表放在项目根,随仓库公开;采集端只读。
+SECTIONS_FILE = os.path.join(ROOT, "sections.yml")
+TOPICS_FILE = os.path.join(ROOT, "topics.yml")
 # 每次采集是独立单元,数据单独存一个文件,便于局部更新与单独关闭显示
 COLLECTIONS_DIR = os.path.join(DATA_DIR, "collections")
 # 覆盖索引前的自动快照目录(仅本地保留,已在 .gitignore 中排除)
@@ -179,37 +183,106 @@ def title_match(title, keyword):
     return keyword in title
 
 
-def pick_series(items, keyword, up_name):
+def normalize_match_text(text):
+    """匹配前的文本归一化：NFKC、小写、全角转半角、去空白与常见标点。
+
+    中文按归一化后的子串匹配；英文大小写、全角括号/空格不影响结果。
     """
-    纯统计规则聚类同系列:
-      1. 按标题匹配筛候选
-      2. 指定 --up 时按作者过滤(仍要求标题相关)
-      3. 否则取候选中频次最高的 UP 主作为系列主账号
+    text = unicodedata.normalize("NFKC", str(text or "")).lower()
+    # \w 在 Unicode 下包含中文；去掉标点、空白和符号，保留字母/数字/汉字
+    return re.sub(r"[\W_]+", "", text, flags=re.UNICODE)
+
+
+def keyword_list(value):
+    """把标量/列表/逗号分隔字符串规整成去重后的关键词列表。"""
+    if value is None:
+        return []
+    if isinstance(value, str):
+        parts = re.split(r"[,，\s|]+", value.strip().strip("[]"))
+    elif isinstance(value, (list, tuple)):
+        parts = [str(x) for x in value]
+    else:
+        parts = [str(value)]
+    out = []
+    for part in parts:
+        word = unicodedata.normalize("NFKC", str(part or "")).strip()
+        if word and word not in out:
+            out.append(word)
+    return out
+
+
+def keyword_match(text, must_keywords, any_keywords=None):
+    """混合匹配：must 全部命中；any 为空时忽略，否则至少命中一个。"""
+    normalized = normalize_match_text(text)
+    must = [normalize_match_text(k) for k in keyword_list(must_keywords)]
+    any_list = [normalize_match_text(k) for k in keyword_list(any_keywords)]
+    if not must or not all(k and k in normalized for k in must):
+        return False
+    if any_list and not any(k and k in normalized for k in any_list):
+        return False
+    return True
+
+
+def item_match_text(item):
+    """候选条目的可匹配文本：标题 + 简介 + 分P标题。"""
+    parts = []
+    for key in ("title", "desc", "description"):
+        value = item.get(key)
+        if value:
+            parts.append(str(value))
+    for part in item.get("parts") or []:
+        if isinstance(part, dict):
+            value = part.get("title") or part.get("part")
+            if value:
+                parts.append(str(value))
+        elif part:
+            parts.append(str(part))
+    return "\n".join(parts)
+
+
+def pick_series_multi(items, must_keywords, any_keywords=None, up_name=None, log=None):
+    """混合关键词聚类：先按 must/any 过滤候选，再取命中最多的 UP 主作为系列。
+
+    返回 (chosen, ranked, report)。report 里保留候选数、must 通过数、any 通过数，
+    供 --dry-run 与设置页预览直接展示。
     """
-    candidates = [
-        x for x in items
-        if title_match(clean_html(x.get("title", "")), keyword)
-    ]
-    if not candidates:
-        return [], []
+    must = keyword_list(must_keywords)
+    any_list = keyword_list(any_keywords)
+    total = len(items)
+    must_pass = [x for x in items if keyword_match(item_match_text(x), must, [])]
+    stage = [x for x in must_pass if keyword_match(item_match_text(x), must, any_list)]
+    report = {
+        "candidates": total,
+        "must": len(must_pass),
+        "any": len(stage),
+        "must_keywords": must,
+        "any_keywords": any_list,
+    }
+    if not stage:
+        return [], [], report
 
     if up_name:
-        chosen = [
-            x for x in candidates
-            if x.get("author") == up_name
-        ]
-        return chosen, [(up_name, len(chosen))]
+        chosen = [x for x in stage if x.get("author") == up_name]
+        return chosen, [(up_name, len(chosen))], report
 
     counter = {}
-    for x in candidates:
-        author = x.get("author", "")
+    for item in stage:
+        author = item.get("author", "")
         counter[author] = counter.get(author, 0) + 1
     ranked = sorted(counter.items(), key=lambda kv: -kv[1])
     if not ranked:
-        return [], []
+        return [], [], report
     main_author = ranked[0][0]
-    chosen = [x for x in candidates if x.get("author") == main_author]
-    return chosen, ranked[:5]
+    chosen = [x for x in stage if x.get("author") == main_author]
+    if log:
+        log("候选 %d 条，must 通过 %d 条，any 通过 %d 条，系列主账号「%s」命中 %d 条" % (
+            total, len(must_pass), len(stage), main_author, len(chosen)))
+    return chosen, ranked, report
+
+
+def pick_series(items, keyword, up_name):
+    """兼容旧调用：单关键词按原规则聚类。"""
+    return pick_series_multi(items, [keyword], [], up_name)
 
 
 def normalize(video, keyword=""):
@@ -453,13 +526,28 @@ def _bad_platform(value):
 
 
 def verify_data(log=print):
-    """数据一致性自检(D13):索引与数据文件一一对应、count 与 videos 一致、
-    key 唯一、日期格式、开关两处一致。返回 {"ok", "problems", "units"}。"""
+    """数据一致性自检(D13):索引/数据/板块/主题的注册关系、count、key、日期、开关。"""
     problems = []
+    sections, section_map = [], {}
+    topics = []
+    try:
+        sections = load_sections_yaml()
+        section_map = {s["id"]: s for s in sections}
+    except ValueError as exc:
+        problems.append("板块注册表: %s" % exc)
+    try:
+        topics = load_topics_yaml(TOPICS_FILE) if os.path.exists(TOPICS_FILE) else []
+        for topic in topics:
+            if topic.get("section") and topic["section"] not in section_map:
+                problems.append("主题 %s: section 不存在(%s)" % (topic.get("id"), topic["section"]))
+            if len(topic.get("must_keywords") or []) < 1:
+                problems.append("主题 %s: must_keywords 为空" % topic.get("id"))
+    except ValueError as exc:
+        problems.append("主题清单: %s" % exc)
     st = index_status()
     if not st["ok"]:
         log("  ✗ 索引不可用: %s" % st["reason"])
-        return {"ok": False, "problems": ["索引不可用: %s" % st["reason"]], "units": 0}
+        return {"ok": False, "problems": problems + ["索引不可用: %s" % st["reason"]], "units": 0}
     items = load_index()
     ids = [t.get("id") for t in items if t.get("id")]
     units = 0
@@ -479,6 +567,15 @@ def verify_data(log=print):
             problems.append("%s: 数据文件里的 id 不一致(%s)" % (uid, data.get("id")))
         if int(t.get("count", -1)) != len(vids):
             problems.append("%s: 索引 count=%s,数据 videos=%d" % (uid, t.get("count"), len(vids)))
+        # 板块归属：数据文件是事实源，索引必须同步派生
+        section = data.get("section") or ""
+        if not section:
+            problems.append("%s: 单元缺少 section 字段" % uid)
+        elif section_map and section not in section_map:
+            problems.append("%s: section 不存在(%s)" % (uid, section))
+        elif t.get("section") != section:
+            problems.append("%s: 索引 section=%s 与数据 section=%s 不一致" % (
+                uid, t.get("section"), section))
         keys = {}
         for i, v in enumerate(vids):
             k = item_key(v)
@@ -515,8 +612,10 @@ def verify_data(log=print):
                 problems.append("%s: 数据文件未登记到索引" % fn)
     for p in problems:
         log("  ✗ %s" % p)
-    log("  检查单元 %d 个,问题 %d 项" % (units, len(problems)))
-    return {"ok": not problems, "problems": problems, "units": units}
+    log("  检查单元 %d 个、板块 %d 个、主题 %d 个,问题 %d 项" % (
+        units, len(sections), len(topics), len(problems)))
+    return {"ok": not problems, "problems": problems, "units": units,
+            "sections": len(sections), "topics": len(topics)}
 
 
 def snapshot_file(path, keep=SNAPSHOT_KEEP):
@@ -541,6 +640,73 @@ def snapshot_file(path, keep=SNAPSHOT_KEEP):
         # 快照失败不影响主写入,但要在日志里留痕
         print("  警告:写入前快照失败(%s): %s" % (path, exc), file=sys.stderr)
         return None
+
+
+# 存量单元主板块归属（P0 附录 2.4）。只补字段，不重采。
+SECTION_MIGRATION = {
+    "bv1uks66oeeh": "ai",
+    "topic-4e6ee53f": "ai",
+    "topic-205064a1": "ai",
+    "topic-df282732": "ai",
+    "bv1j4w16reys": "ai",
+    "guwen-animation": "k12",
+    "topic-621ae722": "k12",
+    "bv1wg39zpetl": "k12",
+    "topic-e5b5c763": "k12",
+    "topic-d9744f1c": "tech",
+    "daily-website": "tools",
+    "wx-nxpxhhghan9dvfzoat5avg": "humanities",
+}
+
+
+def migrate_sections(dry_run=False, log=print):
+    """给存量单元补 section 字段并重建索引；幂等，不重采、不改其他字段。"""
+    try:
+        sections = load_sections_yaml()
+    except ValueError as exc:
+        return {"ok": False, "error": str(exc), "changed": 0}
+    valid = {s["id"] for s in sections}
+    mapping = dict(SECTION_MIGRATION)
+    try:
+        if os.path.exists(TOPICS_FILE):
+            for topic in load_topics_yaml(TOPICS_FILE):
+                mapping[topic["id"]] = topic["section"]
+    except ValueError as exc:
+        return {"ok": False, "error": str(exc), "changed": 0}
+
+    index = load_index()
+    changed, missing = 0, []
+    for item in index:
+        uid = item.get("id")
+        if not uid:
+            continue
+        data = load_collection_data(uid)
+        if data is None:
+            continue
+        section = data.get("section") or mapping.get(uid)
+        if not section:
+            missing.append(uid)
+            continue
+        if section not in valid:
+            missing.append("%s(%s)" % (uid, section))
+            continue
+        if data.get("section") != section:
+            data["section"] = section
+            changed += 1
+            log("  %s → %s" % (uid, section))
+            if not dry_run:
+                write_collection_file(data)
+    if changed and not dry_run:
+        rebuild_index(index)
+    if missing:
+        log("  以下单元无法归属，请先在 sections.yml/topics.yml 中补配置: %s" % ", ".join(missing))
+    log("迁移%s: %d 个单元补 section%s" % (
+        "预览" if dry_run else "完成", changed, "（未写盘）" if dry_run else ""))
+    if dry_run:
+        return {"ok": not missing, "changed": changed, "missing": missing}
+    result = verify_data(log=log)
+    return {"ok": bool(result["ok"] and not missing), "changed": changed,
+            "missing": missing, "verify": result}
 
 
 def write_text_atomic(path, text, snapshot=False):
@@ -632,6 +798,31 @@ def load_collection_data(unit_id):
 load_topic_data = load_collection_data
 
 
+def section_title_for(section_id):
+    """按板块 id 取展示名；配置缺失时返回空串，不阻断采集。"""
+    if not section_id:
+        return ""
+    try:
+        for section in load_sections_yaml():
+            if section["id"] == section_id:
+                return section["title"]
+    except ValueError:
+        return ""
+    return ""
+
+
+def section_enabled_for(section_id):
+    if not section_id:
+        return True
+    try:
+        for section in load_sections_yaml():
+            if section["id"] == section_id:
+                return bool(section["enabled"])
+    except ValueError:
+        return True
+    return True
+
+
 def meta_from_collection(collection, created=None):
     """从采集单元提取索引元信息(不含视频列表,采集记录也只留摘要,避免索引膨胀)"""
     meta = {k: v for k, v in collection.items()
@@ -641,6 +832,10 @@ def meta_from_collection(collection, created=None):
         meta["cover"] = videos[0].get("cover", "")
         meta["latest"] = videos[0].get("date", "")
     meta["count"] = len(videos)
+    if collection.get("section"):
+        meta["section"] = collection["section"]
+        meta["section_title"] = section_title_for(collection["section"])
+        meta["section_enabled"] = section_enabled_for(collection["section"])
     # 最近一次采集的填写方式与时间:列表里直接显示,不需要再读数据文件
     intake = collection.get("intake") or {}
     if intake:
@@ -704,10 +899,11 @@ def save_collection(collection, index):
 
 
 def _finalize_unit(uid, unit_type, title, slogan, source, videos, tags, keyword,
-                   existing_data, intake, report, index, platforms=None, season=None):
+                   existing_data, intake, report, index, platforms=None, season=None,
+                   section=None):
     """D15:采集单元收口的唯一实现。
 
-    组装字段(id/type/title/slogan/source/keyword/tags/count/videos,可选 platforms)
+    组装字段(id/type/title/slogan/source/keyword/tags/count/videos,可选 platforms/section)
     → 记录本次填写信息与统计 → 原子写数据文件并重建索引。
     返回 (data_path, index);调用方只负责算字段,不再各拼一份 dict。
     """
@@ -722,6 +918,10 @@ def _finalize_unit(uid, unit_type, title, slogan, source, videos, tags, keyword,
         "count": len(videos),
         "videos": videos,
     }
+    # 单元只能有一个主板块；更新已有单元时保留原 section，避免重采丢失归属
+    final_section = section or (existing_data or {}).get("section")
+    if final_section:
+        collection["section"] = final_section
     if season:
         collection["season"] = season
     if platforms:
@@ -1053,13 +1253,17 @@ def normalize_topic_channels(value, log=print):
 @serialized_collect
 def collect_topic(keyword, pages=30, title=None, up=None, slug=None,
                   slogan=None, dry_run=False,
-                  unit_id=None, log=print, intake=None, topic_channels=None, replace=False):
+                  unit_id=None, log=print, intake=None, topic_channels=None, replace=False,
+                  must_keywords=None, any_keywords=None, section=None):
     """
     按主题采集一个 series 单元,可同时选 B站 / 公众号 / 小红书多个渠道。
     B站走官方搜索并聚类同系列;公众号 / 小红书借搜索引擎找候选链接,
     公众号再抓正文,小红书以搜索标题 + 原文链接收录(正文需登录)。
     只写数据,不生成页面;命中已有 id 时只更新该单元,不动其他单元。
     """
+    must = keyword_list(must_keywords) or ([keyword] if (keyword or "").strip() else [])
+    any_list = keyword_list(any_keywords)
+    keyword = must[0] if must else (keyword or "").strip()
     result = {
         "ok": False, "keyword": keyword, "error": None,
         "added": 0, "updated": 0, "kept": 0, "total": 0,
@@ -1067,7 +1271,6 @@ def collect_topic(keyword, pages=30, title=None, up=None, slug=None,
         "sample_url": "", "topic_count": 0, "unit_id": "", "type": "series",
         "channels": [], "channel_report": [],
     }
-    keyword = (keyword or "").strip()
     if not keyword:
         result["error"] = "主题关键词不能为空"
         return result
@@ -1075,9 +1278,12 @@ def collect_topic(keyword, pages=30, title=None, up=None, slug=None,
     selected = normalize_topic_channels(topic_channels, log=log)
     result["channels"] = selected
     log("主题: %s | 渠道: %s" % (keyword, "、".join(channels.platform_name(c) for c in selected)))
+    if len(must) > 1 or any_list:
+        log("匹配规则: must=%s | any=%s" % ("/".join(must), "/".join(any_list) or "无"))
 
     incoming, chosen, reports = [], [], []
     author, mid = "", ""
+    match_report = {}
     result["fetched"] = 0
 
     # B站:官方搜索 + 同系列聚类(只有这里需要聚类;--up 可限定 UP 主)
@@ -1085,8 +1291,8 @@ def collect_topic(keyword, pages=30, title=None, up=None, slug=None,
         log("正在搜索 B站 (最多 %d 页)..." % pages)
         items = search_bilibili(keyword, pages, verbose=False)
         result["fetched"] += len(items)
-        log("共抓取 %d 条结果,正在聚类同系列..." % len(items))
-        found, ranked = pick_series(items, keyword, up)
+        log("共抓取 %d 条结果,正在按 must/any 匹配并聚类..." % len(items))
+        found, ranked, match_report = pick_series_multi(items, must, any_list, up, log=log)
         if found:
             chosen = found
             author = up or found[0].get("author", "")
@@ -1094,11 +1300,11 @@ def collect_topic(keyword, pages=30, title=None, up=None, slug=None,
             result["author"] = author
             log("识别系列: UP主「%s」,命中 %d 期" % (author, len(found)))
             if not up and ranked:
-                log("候选UP主: %s" % ", ".join("%s(%d)" % (a, c) for a, c in ranked))
+                log("候选UP主: %s" % ", ".join("%s(%d)" % (a, c) for a, c in ranked[:5]))
             incoming.extend(normalize(v, keyword) for v in found)
             reports.append({"channel": "bilibili", "name": "B站", "found": len(found), "error": ""})
         else:
-            reason = "B站未找到匹配视频(关键词需完整出现在标题中,或取消「指定UP主」再试)"
+            reason = "B站未找到匹配视频（must 关键词需全部出现在标题/简介中，any 至少命中一个）"
             log(reason)
             reports.append({"channel": "bilibili", "name": "B站", "found": 0, "error": reason})
     else:
@@ -1119,6 +1325,7 @@ def collect_topic(keyword, pages=30, title=None, up=None, slug=None,
             continue
         result["fetched"] += len(hits)
         picked = []
+        matched_raw = 0
         for hit in hits:
             raw = {
                 "platform": pkey, "kind": channels.platform_kind(pkey),
@@ -1134,13 +1341,19 @@ def collect_topic(keyword, pages=30, title=None, up=None, slug=None,
                 ids = re.findall(r"/(?:explore|discovery/item)/([0-9a-zA-Z]{16,})", hit.get("url", ""))
                 if ids:
                     raw["key"] = "xhs:" + ids[0]
+            # 图文渠道同样执行 must/any；正文抓不到时只剩标题，日志标记 title_only
+            if not keyword_match((raw.get("title") or "") + "\n" + (raw.get("desc") or ""),
+                                 must, any_list):
+                continue
+            matched_raw += 1
             item = article_item(raw, pkey)
             if item.get("key"):
                 picked.append(item)
-        log("  %s命中 %d 条,成功入库候选 %d 条" % (label, len(hits), len(picked)))
+        log("  %s命中 %d 条，must/any 通过 %d 条，成功入库候选 %d 条" % (
+            label, len(hits), matched_raw, len(picked)))
         reports.append({
             "channel": pkey, "name": label, "found": len(picked),
-            "error": "" if picked else "命中的链接均无法解析,可改用「按链接采集」手工补录",
+            "error": "" if picked else "命中的链接均无法解析或未通过关键词过滤,可改用「按链接采集」手工补录",
         })
         incoming.extend(picked)
 
@@ -1251,7 +1464,7 @@ def collect_topic(keyword, pages=30, title=None, up=None, slug=None,
         uid, "series", title, final_slogan,
         {"platform": plat_key, "name": author or plat_name, "url": source_url},
         videos, unit_tags, keyword, existing_data, intake, report, index,
-        platforms=plat_list)
+        platforms=plat_list, section=section)
 
     result["ok"] = True
     result["type"] = unit_type
@@ -1958,12 +2171,55 @@ def build_parser():
     parser.add_argument("--off", dest="toggle_off", action="store_true", help="配合 --toggle:关闭显示")
     parser.add_argument("--topics", action="append", default=None, metavar="FILE",
                         help="按主题清单批量采集(如 topics.yml),可多次指定以合并清单")
+    parser.add_argument("--section", default=None,
+                        help="采集单元归属板块（sections.yml 中的 id）；按主题采集时由 topics.yml 提供")
+    parser.add_argument("--migrate-sections", action="store_true",
+                        help="给存量单元补 section 字段并重建索引（幂等）")
     return parser
 
 
+def _strip_yaml_comment(value):
+    """去掉行内注释；引号内的 # 不当作注释。"""
+    quote = None
+    for idx, ch in enumerate(value):
+        if quote:
+            if ch == quote:
+                quote = None
+            continue
+        if ch in ('"', "'"):
+            quote = ch
+        elif ch == "#" and (idx == 0 or value[idx - 1].isspace()):
+            return value[:idx].rstrip()
+    return value
+
+
+def _split_inline_list(body):
+    """按逗号切分行内列表，保留引号内的逗号。"""
+    parts, buf, quote = [], [], None
+    for ch in body:
+        if quote:
+            buf.append(ch)
+            if ch == quote:
+                quote = None
+            continue
+        if ch in ('"', "'"):
+            quote = ch
+            buf.append(ch)
+        elif ch in (",", "，"):
+            parts.append("".join(buf).strip())
+            buf = []
+        else:
+            buf.append(ch)
+    parts.append("".join(buf).strip())
+    return [p for p in parts if p]
+
+
 def _yaml_value(raw):
-    """解析 topics.yml 里的标量:去引号、去行内注释(引号内的 # 不当作注释)"""
-    value = raw.strip()
+    """解析受限 YAML 标量：字符串、null、布尔、整数、行内列表。
+
+    不引入 PyYAML，保持采集器零依赖；只覆盖 sections.yml / topics.yml 用到的语法。
+    """
+    value = _strip_yaml_comment(str(raw or "")).strip()
     if not value:
         return ""
     if value[0] in ('"', "'"):
@@ -1972,43 +2228,47 @@ def _yaml_value(raw):
         if end > 0:
             return value[1:end]
         return value[1:]
-    # 无引号时,空格后的 # 视为注释
-    for idx, ch in enumerate(value):
-        if ch == "#" and idx > 0 and value[idx - 1].isspace():
-            value = value[:idx].rstrip()
-            break
+    if value.startswith("[") and value.endswith("]"):
+        return [_yaml_value(part) for part in _split_inline_list(value[1:-1])]
+    lowered = value.lower()
+    if lowered in ("null", "~"):
+        return None
+    if lowered in ("true", "false"):
+        return lowered == "true"
+    if re.fullmatch(r"-?\d+", value):
+        return int(value)
     return value
 
 
-def load_topics_yaml(path):
-    """解析 topics.yml 的受限子集(不引入 PyYAML,保持零依赖)
+def _parse_yaml_list(path, root_key):
+    """解析 `<root_key>:` 下的一组扁平列表项，返回 (entries, line_numbers)。"""
+    entries, lines, current = [], [], None
 
-    支持的结构:
-        topics:
-          - keyword: "关键词"      # 必填,精准匹配标题
-            id: daily-website      # 可选,命中已有单元则续采该单元
-            title: "显示标题"       # 可选
-            channels: [bilibili, wechat, xhs]   # 可选,默认 bilibili
-    不支持嵌套、多行字符串、锚点等高级语法;解析失败会明确报行号。
-    """
-    entries = []
-    current = None
+    def flush():
+        if current:
+            entries.append(current)
+            lines.append(start_line)
+
     started = False
+    start_line = 0
     with open(path, encoding="utf-8") as fh:
-        lines = fh.read().splitlines()
-    for lineno, line in enumerate(lines, 1):
+        raw_lines = fh.read().splitlines()
+    for lineno, line in enumerate(raw_lines, 1):
         stripped = line.strip()
         if not stripped or stripped.startswith("#"):
             continue
-        if stripped.rstrip(":") == "topics" and not line.startswith(" "):
+        if not line.startswith(" ") and stripped.rstrip(":") == root_key:
             started = True
             continue
+        if not line.startswith(" ") and stripped.startswith("version:"):
+            # 版本字段只在顶层出现，不参与列表解析
+            continue
+        if not started:
+            raise ValueError("%s:%d 无法识别的内容: %s" % (path, lineno, stripped))
         if stripped.startswith("- "):
-            if not started:
-                raise ValueError("%s:%d 列表项必须位于 topics: 之下" % (path, lineno))
-            if current:
-                entries.append(current)
+            flush()
             current = {}
+            start_line = lineno
             item = stripped[2:].strip()
             if item:
                 if ":" not in item:
@@ -2016,32 +2276,147 @@ def load_topics_yaml(path):
                 key, raw = item.split(":", 1)
                 current[key.strip()] = _yaml_value(raw)
             continue
-        if not started:
-            raise ValueError("%s:%d 无法识别的内容: %s" % (path, lineno, stripped))
         if current is None or ":" not in stripped:
             raise ValueError("%s:%d 无法解析字段: %s" % (path, lineno, stripped))
         key, raw = stripped.split(":", 1)
         current[key.strip()] = _yaml_value(raw)
-    if current:
-        entries.append(current)
+    flush()
+    return entries, lines
 
-    result = []
-    for idx, item in enumerate(entries, 1):
-        keyword = (item.get("keyword") or "").strip()
-        if not keyword:
-            raise ValueError("%s:第 %d 个主题缺少 keyword" % (path, idx))
+
+def load_sections_yaml(path=SECTIONS_FILE):
+    """读取并校验板块注册表；返回板块列表，失败抛 ValueError。"""
+    if not os.path.exists(path):
+        raise ValueError("板块注册表不存在: %s" % path)
+    entries, lines = _parse_yaml_list(path, "sections")
+    result, seen = [], set()
+    for idx, (item, lineno) in enumerate(zip(entries, lines), 1):
+        sid = str(item.get("id") or "").strip()
+        title = str(item.get("title") or "").strip()
+        if not re.fullmatch(r"[a-z0-9-]+", sid):
+            raise ValueError("%s:%d 板块 id 非法: %s" % (path, lineno, sid))
+        if sid in seen:
+            raise ValueError("%s:%d 板块 id 重复: %s" % (path, lineno, sid))
+        seen.add(sid)
+        if not title:
+            raise ValueError("%s:%d 板块缺少 title" % (path, lineno))
+        order = item.get("order")
+        if not isinstance(order, int):
+            raise ValueError("%s:%d 板块 order 必须是整数" % (path, lineno))
+        age_min = item.get("age_min_months")
+        age_max = item.get("age_max_months")
+        for age, label in ((age_min, "age_min_months"), (age_max, "age_max_months")):
+            if age is not None and not isinstance(age, int):
+                raise ValueError("%s:%d %s 必须是整数或 null" % (path, lineno, label))
+        if (age_min is None) != (age_max is None):
+            raise ValueError("%s:%d 年龄段必须同时填写或同时为 null" % (path, lineno))
+        if age_min is not None and age_min >= age_max:
+            raise ValueError("%s:%d 年龄段起点必须小于终点" % (path, lineno))
+        enabled = item.get("enabled", True)
+        if not isinstance(enabled, bool):
+            raise ValueError("%s:%d enabled 必须是 true/false" % (path, lineno))
+        description = str(item.get("description") or "").strip()
+        if len(description) > 60:
+            raise ValueError("%s:%d description 超过 60 字" % (path, lineno))
+        result.append({
+            "id": sid,
+            "title": title,
+            "age_min_months": age_min,
+            "age_max_months": age_max,
+            "order": order,
+            "enabled": enabled,
+            "description": description,
+        })
+
+    reserved = {"infant-care": (0, 36), "preschool": (36, 72), "k12": (72, 216)}
+    for sid, bounds in reserved.items():
+        section = next((s for s in result if s["id"] == sid), None)
+        if not section:
+            raise ValueError("%s:缺少保留板块 %s" % (path, sid))
+        if (section["age_min_months"], section["age_max_months"]) != bounds:
+            raise ValueError("%s:保留板块 %s 的年龄区间必须是 %s–%s" % (
+                path, sid, bounds[0], bounds[1]))
+    for section in result:
+        if section["id"] not in reserved and section["age_min_months"] is not None:
+            raise ValueError("%s:自定义板块 %s 只能全龄" % (path, section["id"]))
+    # 0–18 连续：0–36 / 36–72 / 72–216，不允许空档或重叠
+    ordered = sorted((next(s for s in result if s["id"] == sid) for sid in reserved),
+                     key=lambda s: s["age_min_months"])
+    for left, right in zip(ordered, ordered[1:]):
+        if left["age_max_months"] != right["age_min_months"]:
+            raise ValueError("%s:年龄段存在空档或重叠：%s / %s" % (
+                path, left["id"], right["id"]))
+    return result
+
+
+def section_ids(path=SECTIONS_FILE):
+    try:
+        return {s["id"] for s in load_sections_yaml(path)}
+    except ValueError:
+        return set()
+
+
+def load_topics_yaml(path, sections_path=SECTIONS_FILE):
+    """解析 topics.yml v2（兼容旧 keyword 写法）。
+
+    支持：
+        version: 1
+        topics:
+          - id: infant-feeding
+            section: infant-care
+            title: 喂养与睡眠
+            must_keywords: ["婴幼儿", "喂养"]
+            any_keywords: ["辅食", "母乳"]
+            channels: [bilibili]
+            enabled: true
+    """
+    entries, lines = _parse_yaml_list(path, "topics")
+    valid_sections = section_ids(sections_path) if os.path.exists(sections_path) else set()
+    result, seen = [], set()
+    for idx, (item, lineno) in enumerate(zip(entries, lines), 1):
+        legacy = str(item.get("keyword") or "").strip()
+        must = keyword_list(item.get("must_keywords"))
+        if not must and legacy:
+            must = [legacy]
+        if not must:
+            raise ValueError("%s:%d 主题缺少 must_keywords" % (path, lineno))
+        if not 1 <= len(must) <= 4:
+            raise ValueError("%s:%d must_keywords 数量必须是 1–4 个" % (path, lineno))
+        any_list = keyword_list(item.get("any_keywords"))
+        if len(any_list) > 5:
+            raise ValueError("%s:%d any_keywords 最多 5 个" % (path, lineno))
+        sid = str(item.get("section") or "").strip()
+        if not sid:
+            raise ValueError("%s:%d 主题缺少 section" % (path, lineno))
+        if valid_sections and sid not in valid_sections:
+            raise ValueError("%s:%d 主题的 section 不存在: %s" % (path, lineno, sid))
+        topic_id = str(item.get("id") or "").strip()
+        if not topic_id:
+            raise ValueError("%s:%d 主题缺少 id（新格式必填）" % (path, lineno))
+        if topic_id in seen:
+            raise ValueError("%s:%d 主题 id 重复: %s" % (path, lineno, topic_id))
+        seen.add(topic_id)
         channel_list = item.get("channels") or "bilibili"
         if isinstance(channel_list, str):
             channel_list = [c.strip() for c in channel_list.strip("[]").split(",") if c.strip()]
+        channel_list = keyword_list(channel_list) or ["bilibili"]
         unknown = [c for c in channel_list if c not in channels_valid()]
         if unknown:
-            raise ValueError("%s:第 %d 个主题的渠道不支持: %s(可选 %s)" % (
-                path, idx, ", ".join(unknown), ", ".join(channels_valid())))
+            raise ValueError("%s:%d 主题的渠道不支持: %s(可选 %s)" % (
+                path, lineno, ", ".join(unknown), ", ".join(channels_valid())))
+        enabled = item.get("enabled", True)
+        if not isinstance(enabled, bool):
+            raise ValueError("%s:%d enabled 必须是 true/false" % (path, lineno))
         result.append({
-            "keyword": keyword,
-            "id": (item.get("id") or "").strip() or None,
-            "title": (item.get("title") or "").strip() or None,
+            # 兼容旧调用方：keyword 取第一个 must 关键词作为搜索词
+            "keyword": must[0],
+            "id": topic_id,
+            "title": str(item.get("title") or must[0]).strip(),
+            "must_keywords": must,
+            "any_keywords": any_list,
+            "section": sid,
             "channels": channel_list,
+            "enabled": enabled,
         })
     return result
 
@@ -2051,46 +2426,77 @@ def channels_valid():
 
 
 def run_topics(paths, pages=30, dry_run=False, log=print):
-    """按 topics.yml 批量采集:逐个主题调用 collect_topic,单条失败不影响其余"""
+    """按 topics.yml 批量采集：单条失败不影响其余，返回 ok/partial/failed。
+
+    - 全部成功：{"ok": True, "status": "ok"}
+    - 部分成功：{"ok": True, "status": "partial", "failed": [...]}，CLI 退出 0
+    - 全部失败：{"ok": False, "status": "failed", "failed": [...]}，CLI 退出 1
+    """
     entries = []
     for path in paths:
         if not os.path.exists(path):
             print("错误:主题清单不存在: %s" % path, file=sys.stderr)
-            return {"ok": False, "error": "主题清单不存在: %s" % path}
+            return {"ok": False, "status": "failed", "error": "主题清单不存在: %s" % path}
         try:
             entries.extend(load_topics_yaml(path))
         except ValueError as exc:
             print("错误:%s" % exc, file=sys.stderr)
-            return {"ok": False, "error": str(exc)}
+            return {"ok": False, "status": "failed", "error": str(exc)}
     if not entries:
-        return {"ok": False, "error": "主题清单为空"}
+        return {"ok": False, "status": "failed", "error": "主题清单为空"}
 
-    log("按主题清单采集:共 %d 个主题" % len(entries))
-    failed = []
-    for idx, item in enumerate(entries, 1):
+    enabled_entries = [e for e in entries if e.get("enabled", True)]
+    skipped = len(entries) - len(enabled_entries)
+    log("按主题清单采集：共 %d 个主题，启用 %d 个%s" % (
+        len(entries), len(enabled_entries), "，跳过 %d 个停用主题" % skipped if skipped else ""))
+    if not enabled_entries:
+        return {"ok": False, "status": "failed", "error": "没有启用的主题", "skipped": skipped}
+
+    failed, succeeded = [], 0
+    for idx, item in enumerate(enabled_entries, 1):
         log("")
-        log("=== [%d/%d] %s ===" % (idx, len(entries), item["keyword"]))
+        log("=== [%d/%d] %s ===" % (idx, len(enabled_entries), item["title"]))
         try:
             result = collect_topic(
                 keyword=item["keyword"], pages=pages, title=item["title"],
                 unit_id=item["id"], dry_run=dry_run, log=log,
                 topic_channels=item["channels"],
+                must_keywords=item["must_keywords"],
+                any_keywords=item["any_keywords"],
+                section=item["section"],
             )
         except Exception as exc:
             log("采集失败: %s" % exc)
-            failed.append({"keyword": item["keyword"], "error": str(exc)})
+            failed.append({"id": item["id"], "keyword": item["keyword"], "error": str(exc)})
             continue
         if not result.get("ok"):
-            failed.append({"keyword": item["keyword"], "error": result.get("error", "未知错误")})
-    if failed:
+            failed.append({
+                "id": item["id"],
+                "keyword": item["keyword"],
+                "error": result.get("error", "未知错误"),
+            })
+            continue
+        succeeded += 1
+
+    total = len(enabled_entries)
+    if failed and succeeded:
         log("")
-        log("完成,但 %d 个主题失败:" % len(failed))
+        log("完成：成功 %d / 失败 %d（部分成功）" % (succeeded, len(failed)))
         for f in failed:
             log("  - %s: %s" % (f["keyword"], f["error"]))
-        return {"ok": False, "failed": failed}
+        return {"ok": True, "status": "partial", "failed": failed,
+                "succeeded": succeeded, "total": total, "skipped": skipped}
+    if failed:
+        log("")
+        log("完成：全部 %d 个主题失败" % len(failed))
+        for f in failed:
+            log("  - %s: %s" % (f["keyword"], f["error"]))
+        return {"ok": False, "status": "failed", "failed": failed,
+                "succeeded": 0, "total": total, "skipped": skipped}
     log("")
-    log("全部 %d 个主题采集完成" % len(entries))
-    return {"ok": True}
+    log("全部 %d 个主题采集完成" % total)
+    return {"ok": True, "status": "ok", "succeeded": succeeded, "total": total,
+            "skipped": skipped}
 
 
 def main():
@@ -2098,6 +2504,11 @@ def main():
 
     if args.normalize:
         r = normalize_dataset(dry_run=args.dry_run)
+        sys.exit(0 if r["ok"] else 1)
+    if args.migrate_sections:
+        r = migrate_sections(dry_run=args.dry_run)
+        if r.get("error"):
+            print("错误:%s" % r["error"], file=sys.stderr)
         sys.exit(0 if r["ok"] else 1)
     if args.verify:
         r = verify_data()
@@ -2167,6 +2578,7 @@ def main():
             keyword=args.keyword, pages=args.pages, title=args.title, up=args.up,
             slug=args.slug, slogan=args.slogan, dry_run=args.dry_run, unit_id=args.unit_id,
             topic_channels=args.channels, intake=intake, replace=args.replace,
+            section=args.section,
         )
     if not result["ok"]:
         sys.exit(1)

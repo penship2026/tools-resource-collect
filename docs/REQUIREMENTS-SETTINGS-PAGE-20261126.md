@@ -334,4 +334,18 @@ artifact 白名单：`index.html`、`series.html`、`list.html`、`single.html`�
 
 ---
 
-> 本文件只补需求口径，不实现代码。剩余待定项：`humanities` 是否默认上首页、Actions 统一 cron 是否保持北京 07:00、`pages` 默认值统一为 3。
+> 本文件只补需求口径，不实现代码。
+
+---
+
+## 十、开发口径确认（2026-11-27）
+
+以下三项在开发启动时已拍板，后续实现与测试以此为准：
+
+| 待定项 | 决策 | 理由 |
+|---|---|---|
+| `pages` 默认值 | **3** | 与设置页/文档一致；降低 Actions 采集耗时与 B站风控概率 |
+| `humanities` 是否默认上首页 | **否，`enabled: false`** | 现阶段无稳定主题，先保留历史数据，避免首页出现空板块 |
+| Actions 统一 cron | **保持 `0 23 * * *`（北京 07:00）** | 单一时间槽，v1 不做板块错峰；设置页只读展示 |
+
+补充契约：`run_topics()` 返回 `ok / partial / failed`。至少一个主题成功时返回 `ok: true, status: partial`，CLI 退出 0，workflow 继续 `--verify` 与提交；全部失败才退出 1。

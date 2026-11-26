@@ -475,3 +475,12 @@ Chrome 无头截图三页面全部正常:首页卡片标签独立行两行截断
 - 新增 `docs/CREATION-STORY-20261126.md`：600 字小红书文案、9 图分镜、完整创作过程、排期理由、做对/踩坑、资料依据。
 - 新增同名单文件 HTML：阅读进度、吸顶目录、统计卡、一键复制文案、时间线、里程碑表；Playwright 1280/390 实测无横向溢出，复制按钮通过。
 - README 文档索引补充；docs-check 通过。
+
+### 15:20–17:00 设置页与板块体系开发启动（D63）
+- 拍板 `pages=3`、`humanities` 默认关闭、Actions 保持 `0 23 * * *`；`run_topics` 增加 `ok/partial/failed` 契约。
+- 新增 `sections.yml`（7 板块）与 `topics.yml` v2（section + must/any + enabled）；12 个存量单元补 `section` 并重建索引。
+- 实现 `keyword_match` / `pick_series_multi`：must 全命中 + any 任一命中；B站与图文渠道共用。
+- 新增设置页 `collector/settings.html` 及 API：保存配置、CSRF/Origin、cron 导出、立即执行、Git 预览/推送、任务查询；Actions schedule 生效时本机调度 409。
+- 新增 `git_sync.py`：白名单只提交 `assets/data`，固定 `origin/main`，fetch 后 fast-forward，不 force/reset/clean。
+- 新增 `pages.yml` artifact；Pages 不再直出 `collector/`，线上设置页/采集页 404。
+- 验收：Python 54 例、node 12 例、verify 12 单元 0 问题、docs-check 通过；本机 HTTP 冒烟通过；Playwright 390/1280 无横向溢出、无 JS 报错。

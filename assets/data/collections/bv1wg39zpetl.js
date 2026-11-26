@@ -872,5 +872,6 @@ window.COLLECTION_DATA["bv1wg39zpetl"] = {
     "初中英语",
     "英语词汇",
     "影子跟读"
-  ]
+  ],
+  "section": "k12"
 };

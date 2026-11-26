@@ -3,7 +3,7 @@
 window.SITE = {
   name: "集页",
   description: "一集一页,把值得收藏的内容收成清单",
-  updated: "2026-11-26",
+  updated: "2026-11-27",
 };
 window.COLLECTION_INDEX = [
   {
@@ -31,7 +31,10 @@ window.COLLECTION_INDEX = [
     "count": 1,
     "updated": "2026-11-26",
     "latest": "2026.11.17",
+    "section": "ai",
     "cover": "http://i2.hdslb.com/bfs/archive/4da6ca7a7f48bc0135a58ef20c4f1af98f87cb24.jpg",
+    "section_title": "AI 与智能工具",
+    "section_enabled": true,
     "last_at": "2026-11-26 16:50",
     "last_mode": "url",
     "last_mode_label": "按链接采集",
@@ -59,7 +62,10 @@ window.COLLECTION_INDEX = [
     "count": 2,
     "updated": "2026-11-26",
     "latest": "2026.11.24",
+    "section": "ai",
     "cover": "https://i0.hdslb.com/bfs/archive/cd52743195fa9e690f91595ccd588976ae7790cc.jpg",
+    "section_title": "AI 与智能工具",
+    "section_enabled": true,
     "last_at": "2026-11-26 09:42",
     "last_mode": "keyword",
     "last_mode_label": "按主题采集",
@@ -93,7 +99,10 @@ window.COLLECTION_INDEX = [
       "初中英语",
       "英语词汇",
       "影子跟读"
-    ]
+    ],
+    "section": "k12",
+    "section_title": "中小学教育",
+    "section_enabled": true
   },
   {
     "id": "guwen-animation",
@@ -121,7 +130,10 @@ window.COLLECTION_INDEX = [
       "高中文言文",
       "实词",
       "虚词"
-    ]
+    ],
+    "section": "k12",
+    "section_title": "中小学教育",
+    "section_enabled": true
   },
   {
     "id": "topic-205064a1",
@@ -151,7 +163,10 @@ window.COLLECTION_INDEX = [
       "大模型",
       "Agent",
       "LLM"
-    ]
+    ],
+    "section": "ai",
+    "section_title": "AI 与智能工具",
+    "section_enabled": true
   },
   {
     "id": "topic-621ae722",
@@ -181,7 +196,10 @@ window.COLLECTION_INDEX = [
       "数学思维",
       "数学基础",
       "小学数学思维"
-    ]
+    ],
+    "section": "k12",
+    "section_title": "中小学教育",
+    "section_enabled": true
   },
   {
     "id": "topic-d9744f1c",
@@ -206,7 +224,10 @@ window.COLLECTION_INDEX = [
     "updated": "2026-11-26",
     "latest": "2026.11.24",
     "enabled": true,
+    "section": "tech",
     "cover": "https://mmbiz.qpic.cn/sz_mmbiz_jpg/eT2Hxs8JQmMDJ5Krh3jU9mnd8osccsDd06wUGcxe5hiaicx3dHZuDNz63PRfk89Ozf5DVThyibRuyQ1dibibtu5My0wo9Dmle04uia8p5MnT9agwU/0?wx_fmt=jpeg",
+    "section_title": "科技前沿",
+    "section_enabled": true,
     "created": "2026-11-26"
   },
   {
@@ -237,7 +258,10 @@ window.COLLECTION_INDEX = [
       "Java",
       "Agent",
       "AI开发"
-    ]
+    ],
+    "section": "ai",
+    "section_title": "AI 与智能工具",
+    "section_enabled": true
   },
   {
     "id": "topic-e5b5c763",
@@ -265,7 +289,10 @@ window.COLLECTION_INDEX = [
       "学习视频",
       "学前",
       "英语启蒙"
-    ]
+    ],
+    "section": "k12",
+    "section_title": "中小学教育",
+    "section_enabled": true
   },
   {
     "id": "wx-nxpxhhghan9dvfzoat5avg",
@@ -284,7 +311,10 @@ window.COLLECTION_INDEX = [
     "count": 1,
     "updated": "2026-11-26",
     "latest": "2026.11.24",
+    "section": "humanities",
     "cover": "https://mmbiz.qpic.cn/mmbiz_jpg/eT2Hxs8JQmMYuUGAPiaibwuBm9JslsPRcDz78NnibsEBKY89feEvibT0Qkf4BT2F0SXsnnGsA6VVa0NSn1IiajTvwkUicMo9ekQ3XFVHzonAZduzo/0?wx_fmt=jpeg",
+    "section_title": "人文与通识",
+    "section_enabled": false,
     "created": "2026-11-26",
     "enabled": true
   },
@@ -316,7 +346,10 @@ window.COLLECTION_INDEX = [
       "素人",
       "AI绘画",
       "AI副业"
-    ]
+    ],
+    "section": "ai",
+    "section_title": "AI 与智能工具",
+    "section_enabled": true
   },
   {
     "id": "daily-website",
@@ -341,6 +374,9 @@ window.COLLECTION_INDEX = [
       "实用工具",
       "汉语拼音",
       "网站推荐"
-    ]
+    ],
+    "section": "tools",
+    "section_title": "工具与效率",
+    "section_enabled": true
   }
 ];

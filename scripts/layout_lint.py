@@ -2,7 +2,7 @@
 """版式层自检(M1b 半成品,后续 M5 扩展为截图矩阵前置检查)。
 
 检查项:
-  1. 4 个页面不得再有 <style> 内联块(样式统一在 style.css / pages/*.css)
+  1. 4 个公开页不得再有 <style> 内联块(样式统一在 style.css / pages/*.css)
   2. 页面按顺序引用 style.css → 自己的 pages/*.css
   3. style.css 定义 17 个 --layout-* 默认值
   4. pages/*.css 不写死渠道品牌色(公众号绿 / 小红书红 / 旧渐变蓝)
@@ -15,7 +15,7 @@ import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PAGES = {
-    "index.html": None,
+    "index.html": "assets/pages/index.css",
     "series.html": "assets/pages/series.css",
     "list.html": "assets/pages/list.css",
     "single.html": "assets/pages/single.css",
@@ -69,7 +69,7 @@ def check_layout_layer():
             problems.append("缺少版式层文件: %s" % rel)
     for page in PAGES:
         html = read(page)
-        if page != "index.html" and "assets/layout.js" not in html:
+        if "assets/layout.js" not in html:
             problems.append("%s 未接入 layout.js" % page)
         if "assets/templates.js" not in html:
             problems.append("%s 未接入 templates.js" % page)
@@ -109,7 +109,7 @@ def main():
             print("✗", p)
         print("版式自检失败: %d 项" % len(problems))
         return 1
-    print("版式自检通过:4 页无内联样式、版式层接入有序、17 个 token 齐全、页级样式无渠道色")
+    print("版式自检通过:%d 页无内联样式、版式层接入有序、17 个 token 齐全、页级样式无渠道色" % len(PAGES))
     return 0
 
 

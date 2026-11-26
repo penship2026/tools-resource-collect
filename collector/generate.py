@@ -107,6 +107,7 @@ def _resolve_dir(env_name, default_rel):
 
 DATA_DIR = _resolve_dir("VIDEO_DATA_DIR", os.path.join("assets", "data"))
 INDEX_JS = os.path.join(DATA_DIR, "index.js")
+SECTIONS_JS = os.path.join(DATA_DIR, "sections.js")
 # 板块与主题注册表放在项目根,随仓库公开;采集端只读。
 SECTIONS_FILE = os.path.join(ROOT, "sections.yml")
 TOPICS_FILE = os.path.join(ROOT, "topics.yml")
@@ -568,6 +569,14 @@ def verify_data(log=print):
         log("  ✗ 索引不可用: %s" % st["reason"])
         return {"ok": False, "problems": problems + ["索引不可用: %s" % st["reason"]], "units": 0}
     items = load_index()
+    # 板块注册表必须与索引计数一致,防止页面导航显示旧数量
+    if sections:
+        expected = build_sections_payload(items)
+        actual = read_sections_js()
+        if actual is None:
+            problems.append("板块注册表: assets/data/sections.js 缺失或无法解析")
+        elif actual != expected:
+            problems.append("板块注册表: sections.js 与 sections.yml/索引不一致(请重新生成)")
     ids = [t.get("id") for t in items if t.get("id")]
     units = 0
     for t in items:
@@ -758,6 +767,53 @@ def unit_sort_key(item):
     return (stamp, str(item.get("created") or "").strip())
 
 
+def build_sections_payload(items):
+    """板块注册表 + 索引计数(D66):导航只需要这一份,不再从单元数据反推。"""
+    counts = {}
+    for item in items:
+        sid = str(item.get("section") or "").strip()
+        if sid:
+            counts[sid] = counts.get(sid, 0) + 1
+    payload = []
+    for section in load_sections_yaml():
+        payload.append({
+            "id": section["id"],
+            "title": section["title"],
+            "description": section["description"],
+            "order": section["order"],
+            "enabled": section["enabled"],
+            "count": counts.get(section["id"], 0),
+        })
+    payload.sort(key=lambda x: (x["order"], x["id"]))
+    return payload
+
+
+def write_sections_file(items):
+    """写 assets/data/sections.js(调用方已持有写锁,这里不再加装饰器)"""
+    payload = build_sections_payload(items)
+    lines = [
+        "// 板块注册表,由 generate.py 自动生成",
+        "// 页面用 window.SECTIONS 读取;修改板块请改 sections.yml,不要手改本文件",
+        "window.SECTIONS = %s;" % json.dumps(payload, ensure_ascii=False, indent=2),
+    ]
+    write_text_atomic(SECTIONS_JS, "\n".join(lines) + "\n", snapshot=True)
+    return payload
+
+
+def read_sections_js():
+    """读回 sections.js 的数组,供 --verify 比对;文件缺失/损坏返回 None。"""
+    if not os.path.exists(SECTIONS_JS):
+        return None
+    text = open(SECTIONS_JS, encoding="utf-8").read()
+    m = re.search(r"window\.SECTIONS\s*=\s*(\[.*\]);", text, re.S)
+    if not m:
+        return None
+    try:
+        return json.loads(m.group(1))
+    except ValueError:
+        return None
+
+
 @locked_write
 def write_index(items, updated):
     """重写采集单元索引文件(按采集时间降序,新采集的排最前)"""
@@ -774,6 +830,8 @@ def write_index(items, updated):
     ]
     # 索引是首页的唯一入口,覆盖前留快照,写入走原子替换
     write_text_atomic(INDEX_JS, "\n".join(lines) + "\n", snapshot=True)
+    # 板块注册表与索引同批更新,避免导航计数与索引脱节
+    write_sections_file(items)
 
 
 @locked_write

@@ -594,3 +594,15 @@ Chrome 无头截图三页面全部正常:首页卡片标签独立行两行截断
 - 版式层只接 4 个公开页（D77），采集页与设置页不接。
 - 新增 `tests/test_layout.js` 11 个逻辑用例（vm + 假 DOM）；Python 71 例通过；`?layout=news` 截图与默认页面一致，切换器高亮简洁。
 - 顺带修正一期详设的「5 页接入」表述为 4 个公开页。
+
+## 十四、页面模板一期 M3：门户版式与板块导航(2026-11-27)
+
+- `generate.py` 新增 `sections.js` 生成与 `--verify` 比对：板块数、计数、主题归属与索引一致才通过。
+- `Render.sectionNav / lead / sectionBand / breadcrumb`：门户结构由版式能力声明驱动，简洁版式不显示导航/头条/分节。
+- 首页新增 `assets/pages/index.css`：板块导航吸顶横滑、头条 1 主 + 3 副、分节标题与紧凑空占位、860/600 两档断点。
+- 新增 `assets/layouts/news.css`：1180 宽栏、40px hero、品牌色顶线分节；只调布局与密度，不动组件与主题色。
+- `?section=<id>` 生效：hero、统计口径（收录主题/收录内容）、`document.title`、`meta description`、返回链接同步；非法/停用显示「该栏目暂未开放」。
+- 板块 chips 在门户导航下隐藏；切换版式触发重渲染，结构能力即时生效。
+- 修复首页漏引 `assets/data/sections.js` 导致导航与分节为空；非法板块不再重复渲染两处空态。
+- `layout_lint.py` 将首页纳入页面层检查；新增 3 个视图用例（导航排序/头条 1+3/分节空态）。
+- 验证：Python 71 例、Node 视图 15 例、版式逻辑 11 例、`--verify`、`docs_check`、`layout_lint` 全通过；1280 门户/板块页与 500 窄屏截图复核。

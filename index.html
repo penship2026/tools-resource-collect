@@ -6,6 +6,7 @@
   <title>集页 · 主题内容清单</title>
   <meta name="description" content="一集一页,把值得收藏的内容收成清单。按主题汇总视频与图文,持续更新">
   <link rel="stylesheet" href="assets/style.css">
+  <link rel="stylesheet" href="assets/pages/index.css">
   <!-- 主题:阻塞脚本在 <head> 里同步注入主题 CSS,避免首屏闪一下 -->
   <script src="assets/theme.js"></script>
   <script src="assets/templates.js"></script>
@@ -15,7 +16,7 @@
     <link rel="stylesheet" href="assets/layouts/standard.css">
   </noscript>
 </head>
-<body>
+<body class="page-index">
   <header class="site-header">
     <div class="wrap">
       <div class="brand">
@@ -32,20 +33,26 @@
     </div>
   </header>
 
+  <nav class="section-nav" id="section-nav" aria-label="板块导航" hidden></nav>
+
   <main class="wrap">
-    <section class="hero">
-      <h1>每个值得收藏的宝藏主题<br>都有一页完整清单</h1>
-      <p class="sub">按主题收录各平台的视频与图文(公众号、小红书等),点开卡片即可看原片或原文。<br>清单由采集程序自动整理,持续更新。</p>
+    <section class="hero" id="hero">
+      <h1 id="hero-title">每个值得收藏的宝藏主题<br>都有一页完整清单</h1>
+      <p class="sub" id="hero-sub">按主题收录各平台的视频与图文(公众号、小红书等),点开卡片即可看原片或原文。<br>清单由采集程序自动整理,持续更新。</p>
+      <p class="section-back" id="section-back" hidden><a href="index.html">← 全部主题</a></p>
       <div class="facts">
-        <div class="fact"><b id="stat-topics">0</b><span>主题系列</span></div>
-        <div class="fact"><b id="stat-platforms">0</b><span>来源渠道</span></div>
+        <div class="fact"><b id="stat-topics">0</b><span id="stat-topics-label">主题系列</span></div>
+        <div class="fact"><b id="stat-platforms">0</b><span id="stat-platforms-label">来源渠道</span></div>
         <div class="fact"><b id="stat-updated">—</b><span>最近更新</span></div>
       </div>
     </section>
 
-    <div class="section-title">
-      <h2>全部主题</h2>
-      <span class="hint">点击卡片进入合集 / 单条内容</span>
+    <!-- 门户版式(?layout=news):头条区;标准版式下隐藏 -->
+    <section class="lead" id="lead" hidden></section>
+
+    <div class="section-title" id="all-title">
+      <h2 id="all-title-text">全部主题</h2>
+      <span class="hint" id="all-title-hint">点击卡片进入合集 / 单条内容</span>
     </div>
 
     <div class="filter-bar" id="filter-bar">
@@ -78,6 +85,8 @@
     </div>
 
     <div class="topic-grid" id="topic-grid"></div>
+    <div id="section-bands"></div>
+    <div class="section-empty" id="section-empty" hidden></div>
 
     <!-- 个人收藏视图(?view=mine):数据只在本机 localStorage,不上传、不采集 -->
     <section class="mine-panel" id="mine-panel" hidden>
@@ -172,6 +181,7 @@
   </footer>
 
   <script src="assets/data/index.js"></script>
+  <script src="assets/data/sections.js"></script>
   <script src="assets/data-loader.js"></script>
   <script src="assets/render.js"></script>
   <script src="assets/personal.js"></script>
@@ -185,6 +195,30 @@
     var currentTag = '';
     var keyword = '';
 
+    // ===== 板块导航与 ?section 路由(D66/D67) =====
+    var SECTION_LIST = (window.SECTIONS || []);
+    var routeParam = '';
+    try { routeParam = new URLSearchParams(location.search).get('section') || ''; } catch (e) {}
+    var routeSection = routeParam && routeParam !== 'all'
+      ? SECTION_LIST.filter(function (s) { return s.id === routeParam; })[0] || null
+      : null;
+    var routeInvalid = !!routeParam && routeParam !== 'all' && (!routeSection || routeSection.enabled === false);
+    if (routeSection && routeSection.enabled !== false) {
+      currentSection = routeSection.id;
+    }
+    function layoutKey() {
+      return document.documentElement.getAttribute('data-layout') || 'standard';
+    }
+    function cap(name) {
+      var reg = window.TEMPLATES;
+      var item = reg && reg.list && reg.list[layoutKey()];
+      return !!(item && item[name]);
+    }
+    function sectionItems() {
+      if (!routeSection || routeSection.enabled === false) return all;
+      return all.filter(function (t) { return t.section === routeSection.id; });
+    }
+
     // 多平台合集同时出现在它包含的每个渠道筛选下
     function platformsOf(t) {
       var list = Array.isArray(t.platforms) && t.platforms.length
@@ -197,10 +231,7 @@
       return Array.isArray(t.tags) ? t.tags : [];
     }
 
-    document.getElementById('stat-topics').textContent = all.length;
     var updated = (window.SITE && window.SITE.updated) || '';
-    // 站点日期统一 yyyy.mm.dd 格式
-    document.getElementById('stat-updated').textContent = updated.replace(/-/g, '.');
 
     // 来源渠道统计与动态筛选:当前仅一个渠道时不显示筛选,新增渠道后自动出现
     var platforms = [];
@@ -209,7 +240,57 @@
         if (platforms.indexOf(p) < 0) platforms.push(p);
       });
     });
-    document.getElementById('stat-platforms').textContent = platforms.length;
+    var BASE_TITLE = document.title;
+    var BASE_DESC = (document.querySelector('meta[name=description]') || {}).content || '';
+
+    // hero 随 ?section 切换:板块标题/说明/计数;非法板块给明确提示,不静默回首页
+    function renderHero() {
+      var h1 = document.getElementById('hero-title');
+      var sub = document.getElementById('hero-sub');
+      var back = document.getElementById('section-back');
+      var topicsLabel = document.getElementById('stat-topics-label');
+      var itemsLabel = document.getElementById('stat-platforms-label');
+      var topics = all.length;
+      var items = platforms.length;
+      var title = '每个值得收藏的宝藏主题<br>都有一页完整清单';
+      var desc = '按主题收录各平台的视频与图文(公众号、小红书等),点开卡片即可看原片或原文。<br>清单由采集程序自动整理,持续更新。';
+      var backHidden = true;
+      var tLabel = '主题系列';
+      var iLabel = '来源渠道';
+      var metaTitle = BASE_TITLE;
+      var metaDesc = BASE_DESC;
+
+      if (routeInvalid) {
+        title = '该栏目暂未开放';
+        desc = '板块不存在或已停用,可能已更名。回到全部主题继续浏览。';
+        topics = 0; items = 0; backHidden = false;
+        tLabel = '收录主题'; iLabel = '收录内容';
+        metaTitle = '栏目未开放 · 集页';
+        metaDesc = '该板块不存在或已停用。';
+      } else if (routeSection) {
+        var scoped = sectionItems();
+        topics = scoped.length;
+        items = scoped.reduce(function (n, t) { return n + (t.count || 0); }, 0);
+        title = esc(routeSection.title);
+        desc = esc(routeSection.description || '') + '<br>' + topics + ' 个主题 · ' + items + ' 条内容';
+        backHidden = false;
+        tLabel = '收录主题'; iLabel = '收录内容';
+        metaTitle = routeSection.title + ' · 集页';
+        metaDesc = routeSection.description || routeSection.title;
+      }
+
+      h1.innerHTML = title;
+      sub.innerHTML = desc;
+      back.hidden = backHidden;
+      topicsLabel.textContent = tLabel;
+      itemsLabel.textContent = iLabel;
+      document.getElementById('stat-topics').textContent = topics;
+      document.getElementById('stat-platforms').textContent = items;
+      document.getElementById('stat-updated').textContent = updated.replace(/-/g, '.') || '—';
+      document.title = metaTitle;
+      var meta = document.querySelector('meta[name=description]');
+      if (meta) meta.setAttribute('content', metaDesc);
+    }
 
     // 板块筛选：索引里带 section / section_title 时自动出现；人文等停用板块不展示
     (function () {
@@ -299,8 +380,28 @@
       return (type === 'single' ? 'single.html?id=' : 'series.html?id=') + encodeURIComponent(t.id || '');
     }
 
-    function render() {
-      var list = all.filter(function (t) {
+    var leadBox = document.getElementById('lead');
+    var bandsBox = document.getElementById('section-bands');
+    var emptyBox = document.getElementById('section-empty');
+    var filterBar = document.getElementById('filter-bar');
+    var allTitle = document.getElementById('all-title');
+    var sectionNavBox = document.getElementById('section-nav');
+
+    function renderSectionNav() {
+      if (!sectionNavBox) return;
+      var on = cap('nav') && SECTION_LIST.length >= 2;
+      sectionNavBox.hidden = !on;
+      sectionNavBox.innerHTML = on
+        ? Render.sectionNav(SECTION_LIST, routeInvalid ? '__none' : (routeSection ? routeSection.id : 'all'))
+        : '';
+    }
+
+    function starOf(t) {
+      return window.Personal ? Personal.seriesButton(t) : '';
+    }
+
+    function filtered(base) {
+      return base.filter(function (t) {
         if (currentFilter !== 'all' && (t.type || 'series') !== currentFilter) return false;
         if (currentSection !== 'all' && t.section !== currentSection) return false;
         if (currentPlatform !== 'all' && platformsOf(t).indexOf(currentPlatform) < 0) return false;
@@ -311,16 +412,81 @@
         }
         return true;
       });
-      grid.innerHTML = list.length ? list.map(function (t) {
-        return Render.topicCard(t, {
-          href: cardHref(t),
+    }
+
+    function render() {
+      var hasFilter = currentFilter !== 'all' || currentPlatform !== 'all' || !!currentTag || !!keyword;
+      var base = routeInvalid ? [] : sectionItems();
+      var list = filtered(base);
+      var newsFull = !routeSection && !routeInvalid && cap('bands');
+      var showBands = newsFull && !hasFilter;
+      var showGrid = !showBands;
+
+      renderHero();
+      renderSectionNav();
+
+      allTitle.hidden = !!routeSection || routeInvalid || showBands;
+      document.getElementById('all-title-text').textContent = hasFilter ? '筛选结果' : '全部主题';
+      document.getElementById('all-title-hint').textContent = hasFilter
+        ? '共 ' + list.length + ' 个匹配主题'
+        : '点击卡片进入合集 / 单条内容';
+
+      filterBar.hidden = routeInvalid;
+      var sectionGroup = document.getElementById('section-group');
+      if (sectionGroup) sectionGroup.hidden = cap('nav') || !!routeSection || routeInvalid;
+
+      grid.hidden = !showGrid || routeInvalid;
+      if (showGrid && !routeInvalid) {
+        grid.innerHTML = list.length ? list.map(function (t) {
+          return Render.topicCard(t, {
+            href: cardHref(t),
+            updated: updated,
+            platName: platformOf(t),
+            tags: tagsOf(t),
+            starHtml: starOf(t)
+          });
+        }).join('') : '<div class="empty">没有匹配的主题</div>';
+      } else {
+        grid.innerHTML = '';
+      }
+
+
+      if (showBands) {
+        var enabled = SECTION_LIST.filter(function (s) { return s.enabled !== false; })
+          .slice().sort(function (a, b) { return (a.order || 0) - (b.order || 0); });
+        bandsBox.innerHTML = enabled.map(function (sec, i) {
+          return Render.sectionBand(sec, all.filter(function (t) { return t.section === sec.id; }), {
+            href: cardHref,
+            updated: updated,
+            plat: platformOf,
+            tags: tagsOf,
+            star: starOf
+          }, i + 1);
+        }).join('');
+      } else {
+        bandsBox.innerHTML = '';
+      }
+
+      var leadOn = cap('lead') && !routeSection && !routeInvalid && !hasFilter;
+      leadBox.hidden = !leadOn;
+      if (leadOn) {
+        leadBox.innerHTML = Render.lead(all, {
+          href: cardHref,
           updated: updated,
-          platName: platformOf(t),
-          tags: tagsOf(t),
-          // 合集/单条主题卡片也可整卡收藏,key 固定 __series 与条目级收藏区分
-          starHtml: window.Personal ? Personal.seriesButton(t) : ''
+          plat: platformOf,
+          tags: tagsOf,
+          star: starOf
         });
-      }).join('') : '<div class="empty">没有匹配的主题</div>';
+      } else {
+        leadBox.innerHTML = '';
+      }
+
+      if (routeInvalid) {
+        emptyBox.hidden = false;
+        emptyBox.innerHTML = '<div class="empty">该栏目暂未开放。<a href="index.html">返回全部主题 →</a></div>';
+      } else {
+        emptyBox.hidden = true;
+      }
     }
 
     // 只处理类型筛选;平台/标签 chip 有各自的处理器,不能被这里接管
@@ -336,6 +502,9 @@
       keyword = e.target.value.trim().toLowerCase();
       render();
     });
+    // 版式切换后结构能力变化(导航/头条/分节),需要重渲染一次
+    document.addEventListener('jiye:layout', render);
+    document.addEventListener('jiye:layout-fallback', render);
     render();
   </script>
 </body>

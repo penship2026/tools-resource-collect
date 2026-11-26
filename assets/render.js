@@ -115,7 +115,101 @@
       '</span><span>' + metaRight + '</span></div></div></a>';
   }
 
-  /* ---------------- 三、详情页模板 ---------------- */
+  /* ---------------- 三、板块导航 / 门户区块(M3) ---------------- */
+
+  function enabledSections(sections) {
+    return (sections || []).filter(function (s) { return s && s.enabled !== false; })
+      .slice().sort(function (a, b) { return (a.order || 0) - (b.order || 0); });
+  }
+
+  // 板块一级导航:全部 + 启用板块;少于 2 个板块时整条不渲染(D66)
+  function sectionNav(sections, activeId) {
+    var list = enabledSections(sections);
+    if (list.length < 2) return '';
+    var active = activeId || 'all';
+    var html = '<div class="wrap nav-scroll">';
+    html += '<a class="section-tab' + (active === 'all' ? ' active' : '') + '" href="index.html"' +
+      (active === 'all' ? ' aria-current="page"' : '') + '>全部</a>';
+    list.forEach(function (s) {
+      html += '<a class="section-tab' + (active === s.id ? ' active' : '') +
+        '" href="index.html?section=' + encodeURIComponent(s.id) + '"' +
+        (active === s.id ? ' aria-current="page"' : '') + '>' + esc(s.title) +
+        '<span class="tab-count">' + esc(s.count || 0) + '</span></a>';
+    });
+    return html + '</div>';
+  }
+
+  // 门户头条:主位 1 + 副位 2;opts 提供 href/平台/标签/收藏按钮
+  function lead(items, opts) {
+    opts = opts || {};
+    var list = (items || []).slice(0, 4);
+    if (!list.length) {
+      return '<div class="empty">还没有内容,去采集入口新增第一集 →</div>';
+    }
+    var cardOpts = function (t) {
+      return {
+        href: opts.href ? opts.href(t) : '#',
+        updated: opts.updated || '',
+        platName: opts.plat ? opts.plat(t) : '',
+        tags: opts.tags ? opts.tags(t) : [],
+        starHtml: opts.star ? opts.star(t) : ''
+      };
+    };
+    var main = topicCard(list[0], cardOpts(list[0]));
+    var side = list.slice(1).map(function (t) {
+      var cover = t.cover
+        ? '<img src="' + esc(t.cover) + '" alt="" loading="lazy" referrerpolicy="no-referrer">'
+        : '<span class="lead-mini-ph">' + esc((t.title || '内').charAt(0)) + '</span>';
+      return '<a class="lead-mini" href="' + esc(opts.href ? opts.href(t) : '#') + '">' +
+        '<div class="lead-mini-cover">' + cover + '</div>' +
+        '<div class="lead-mini-body"><h3>' + esc(t.title) + '</h3>' +
+        '<span>' + esc((t.type || 'series') === 'single' ? '单条精选' : (t.count || 0) + ' 条内容') +
+        ' · ' + esc(t.latest || opts.updated || '') + '</span></div></a>';
+    }).join('');
+    return '<div class="lead-main">' + main + '</div>' +
+      '<div class="lead-side">' + (side || '<div class="empty">暂无副头条</div>') + '</div>';
+  }
+
+  // 板块分节:标题 + 说明 + 计数 + 查看全部;最多 6 张,空板块保留一行占位
+  function sectionBand(section, items, opts, index) {
+    opts = opts || {};
+    var list = (items || []).slice(0, 6);
+    var no = (index || 1) < 10 ? '0' + (index || 1) : String(index || 1);
+    var head = '<div class="band-head">' +
+      '<div class="band-title"><span class="band-no">' + no + '</span>' +
+      '<h2>' + esc(section.title) + '</h2>' +
+      '<span class="band-count">' + esc(section.count || 0) + ' 个主题</span></div>' +
+      '<div class="band-desc">' + esc(section.description || '') + '</div>' +
+      '<a class="band-more" href="index.html?section=' + encodeURIComponent(section.id) + '">查看全部 →</a>' +
+      '</div>';
+    if (!list.length) {
+      return '<section class="section-band" id="band-' + esc(section.id) + '">' + head +
+        '<div class="band-empty">本板块还没有内容,采集后会出现在这里</div></section>';
+    }
+    var cards = list.map(function (t) {
+      return topicCard(t, {
+        href: opts.href ? opts.href(t) : '#',
+        updated: opts.updated || '',
+        platName: opts.plat ? opts.plat(t) : '',
+        tags: opts.tags ? opts.tags(t) : [],
+        starHtml: opts.star ? opts.star(t) : ''
+      });
+    }).join('');
+    return '<section class="section-band" id="band-' + esc(section.id) + '">' + head +
+      '<div class="band-grid">' + cards + '</div></section>';
+  }
+
+  // 详情页面包屑:全部主题 / 板块 / 主题(D66 一级导航的落点)
+  function breadcrumb(section, title) {
+    var html = '<a href="index.html">全部主题</a>';
+    if (section && section.id) {
+      html += '<span>/</span><a href="index.html?section=' + encodeURIComponent(section.id) + '">' +
+        esc(section.title) + '</a>';
+    }
+    return html + '<span>/</span><span>' + esc(title || '') + '</span>';
+  }
+
+  /* ---------------- 四、详情页模板 ---------------- */
 
   function row(label, value) {
     return '<div class="detail-row"><span class="label">' + label + '</span><span class="value">' + value + '</span></div>';
@@ -386,6 +480,10 @@
     detailHref: detailHref,
     topicCard: topicCard,
     videoCard: videoCard,
+    sectionNav: sectionNav,
+    lead: lead,
+    sectionBand: sectionBand,
+    breadcrumb: breadcrumb,
     detail: detail,
     episodes: episodes,
     parts: parts,

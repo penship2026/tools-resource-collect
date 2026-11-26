@@ -51,6 +51,7 @@ assets/
 ├── templates.js              版式注册表（新增）
 ├── layout.js                 版式选择与注入（新增，head 内阻塞）
 ├── pages/
+│   ├── index.css             首页专属：板块导航、头条、分节（M3 新增）
 │   ├── series.css            子页专属：hero、截断提示（M1b 外置）
 │   ├── list.css              列表页专属：筛选、分页、平台角标
 │   └── single.css            详情页专属：视频/公众号/小红书三套模板
@@ -438,7 +439,7 @@ magazine 只改"形"：封面比例、单栏、章节间距、编号排版，全
 | 文件 | 改动 |
 |---|---|
 | `assets/style.css` | 布局 token 默认值、合并 10 处重复、替换 43 处布局字面量 |
-| `index.html` | 加 `site.js`/`templates.js`/`layout.js`、加导航容器/头条容器/分节容器、`?section` 路由 |
+| `index.html` | 加 `site.js`/`sections.js`/`templates.js`/`layout.js`、加导航/头条/分节/空态容器、`?section` 路由、`jiye:layout` 重渲染 |
 | `series.html` / `list.html` / `single.html` | 页面样式外置到 `assets/pages/*.css`、加两个脚本、内页面包屑（板块 › 主题） |
 | `assets/render.js` | 新增 `sectionNav()`、`lead()`、`sectionBand()`、`breadcrumb()`；置顶角标与画册大图；能力开关判断 |
 | `collector/generate.py` | `write_sections()`、`write_site_config()`、`rebuild_index()` 调用、`--verify` 新增板块与 `site.yml` 校验 |
@@ -474,15 +475,19 @@ magazine 只改"形"：封面比例、单栏、章节间距、编号排版，全
 
 **退出条件**：切 standard 与"完全不加载版式 CSS"视觉一致；`?layout=news` 在 news.css 未完成时安全降级为 standard（文件 404 检测）。
 
-### M3 门户版式（2.5–3 人日）
+### M3 门户版式（已完成 2026-11-27）
 
-1. `generate.py` 产出 `sections.js` + `--verify` 校验 + 设置页联动。
-2. `Render.sectionNav/lead/sectionBand`；能力声明驱动渲染。
-3. `index.html` 结构重排；筛选条保留、板块 chips 在 news 下隐藏。
-4. `?section` 路由：hero/标题/空态/非法参数。
-5. 移动端与无障碍；390 断言。
+1. `generate.py` 产出 `sections.js` + `--verify` 校验（`write_index()` 同批写，`--verify` 比对板块数与计数）。
+2. `Render.sectionNav / lead / sectionBand / breadcrumb`；能力声明驱动渲染。
+3. `index.html` 结构重排：`page-index`、`nav#section-nav`、`#lead`、`#section-bands`、`#section-empty`、hero 各 id、`#section-back`。
+4. 新增 `assets/pages/index.css`：导航吸顶/横向滚动、头条 1 主 + 3 副、分节标题、空态与 860/600 断点。
+5. 新增 `assets/layouts/news.css`：1180 宽栏、40px hero、品牌色顶线分节；不改组件外观与主题色。
+6. `?section` 路由：hero/标题/计数/`document.title`/`meta description`/返回链接；非法或停用显示「该栏目暂未开放」，不静默回首页。
+7. 筛选条保留，板块 chips 在 nav 能力下隐藏；`jiye:layout` / `jiye:layout-fallback` 后重渲染结构。
+8. 空板块在分节保留紧凑占位；停用板块导航与分节都不出现。
+9. 500 宽截图复核：导航可横滑、头条副卡横排、分节单列；1280 门户与简洁对照。
 
-**退出条件**：6 板块可导航；空板块占位；停用板块消失；`?section` 分享可复现。
+**退出条件**：7 板块可导航（含「全部」）；空板块占位；停用板块消失；`?section` 分享可复现；`layout_lint` 纳入首页样式。
 
 ### M4 多模板与编辑推荐（2.5–3 人日）
 
@@ -520,9 +525,9 @@ smoke 只断言无溢出、无控制台报错、导航可点，不做像素比�
 
 | 编号 | 断言 |
 |---|---|
-| T1 | 导航项数 = `enabled:true` 板块数；顺序 = `order` |
+| T1 | 导航项数 = `enabled:true` 板块数 + 1（「全部」）；板块顺序 = `order` |
 | T2 | `?section=k12` 只渲染 k12 单元；`document.title` 含板块名 |
-| T3 | 0 单元板块在导航与分节占位均出现；停用板块两处都不出现 |
+| T3 | 0 单元板块在导航与分节紧凑占位均出现；停用板块两处都不出现 |
 | T4 | `?layout=magazine` 刷新后回到 `jiye.layout`；`?layout` 不写存储 |
 | T5 | 主题切换后版式不变；版式切换后主题不变 |
 | T6 | 390 / 768 / 1280 三档 `scrollWidth == innerWidth` |

@@ -146,6 +146,44 @@ ok('detailHref 只生成站内路由', () => {
   assert.strictEqual(R.detailHref('u1', {}), 'single.html?id=u1');
 });
 
+ok('sectionNav 只列启用板块并按 order 排序', () => {
+  const sections = [
+    { id: 'b', title: '后<b>面', count: 2, order: 2, enabled: true },
+    { id: 'x', title: '停用', count: 3, order: 0, enabled: false },
+    { id: 'a', title: '前<em>面', count: 1, order: 1, enabled: true }
+  ];
+  const html = R.sectionNav(sections, 'a');
+  assert(html.includes('href="index.html?section=a"'));
+  assert(html.indexOf('a') < html.indexOf('b'));
+  assert(!html.includes('section=x'));
+  assert(html.includes('后&lt;b&gt;面'));
+  assert(html.includes(' aria-current="page"'));
+  assert(html.includes('1</span>'));
+});
+
+ok('lead 渲染 1 主 + 3 副且标题转义', () => {
+  const items = [
+    topic,
+    { ...topic, id: 's2', title: '副一<b>', type: 'single' },
+    { ...topic, id: 's3', title: '副二', cover: '' },
+    { ...topic, id: 's4', title: '副三' },
+    { ...topic, id: 's5', title: '不应出现' }
+  ];
+  const html = R.lead(items, { href: (t) => 'series.html?id=' + t.id, plat: () => 'B站' });
+  assert((html.match(/class="lead-mini"/g) || []).length === 3);
+  assert(!html.includes('不应出现'));
+  assert(html.includes('副一&lt;b&gt;'));
+});
+
+ok('sectionBand 空板块占位且查看全部走稳定 id', () => {
+  const html = R.sectionBand({ id: 'k12', title: '中小学', description: '说明', count: 0 },
+    [], { href: (t) => t.id }, 3);
+  assert(html.includes('id="band-k12"'));
+  assert(html.includes('index.html?section=k12'));
+  assert(html.includes('03'));
+  assert(html.includes('本板块还没有内容'));
+});
+
 ok('fmtDate 兼容 ISO 与点号', () => {
   assert.strictEqual(R.fmtDate('2026-11-19'), '2026.11.19');
   assert.strictEqual(R.fmtDate('2026.11.19'), '2026.11.19');

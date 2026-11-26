@@ -1,39 +1,34 @@
 /* 集页 · 科技风主题(tech)
- * 深空靛蓝底 + 青/品红霓虹 + 细网格,近直角、卡片带霓虹描边;与「深色」主题明确区隔。
- * 契约与 default.css 相同:只定义 token,不改 DOM、不写业务逻辑,所有 token 必须齐全。
+ * 参考拉勾网(Lagou)的视觉语言:浅灰底 + 纯白卡片 + 绿色主色 + 细分隔线 + 小圆角,干净利落。
+ * 契约与 default.css 相同:只定义 token,不改 DOM/不写业务逻辑,所有 token 必须齐全。
  */
 :root {
-  color-scheme: dark;
-  --bg: #05060d;
-  --surface: #0c1022;
-  --text: #eaf6ff;
-  --text-sub: #a6b8e8;
-  --text-mute: #6d7fa8;
-  --border: #2b2160;
-  --brand: #00e5ff;
-  --brand-soft: #062b3f;
-  --shadow: 0 0 0 1px rgba(0, 229, 255, .06), 0 12px 30px rgba(0, 0, 0, .55);
-  --radius: 4px;
-  --radius-sm: 2px;
+  color-scheme: light;
+  --bg: #f5f7f8;
+  --surface: #ffffff;
+  --text: #1f2329;
+  --text-sub: #646a73;
+  --text-mute: #8f959e;
+  --border: #e5e6eb;
+  --brand: #00b389;
+  --brand-soft: #e6f7f1;
+  --shadow: 0 1px 2px rgba(31, 35, 41, .04), 0 6px 16px rgba(31, 35, 41, .05);
+  --radius: 8px;
+  --radius-sm: 4px;
   --radius-pill: 999px;
   --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
-  --font-display: "SF Mono", ui-monospace, Menlo, Consolas, "PingFang SC", monospace;
+  --font-display: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
   --fs-hero: clamp(30px, 4.2vw, 42px);
   --fs-title: 19px;
   --fs-body: 15px;
   --fs-sm: 13px;
   --fs-xs: 12px;
-  --gap-card: 18px;
-  --pad-card: 18px;
-  --shadow-hover: 0 0 0 1px var(--brand), 0 0 26px rgba(0, 229, 255, .35);
-  --brand-2: #ff4ecd;
-  --hero-wash:
-    repeating-linear-gradient(0deg, rgba(0, 229, 255, .045) 0 1px, transparent 1px 56px),
-    repeating-linear-gradient(90deg, rgba(0, 229, 255, .045) 0 1px, transparent 1px 56px),
-    radial-gradient(900px 420px at 10% -10%, rgba(0, 229, 255, .28), rgba(0, 229, 255, 0) 62%),
-    radial-gradient(800px 400px at 92% -6%, rgba(255, 78, 205, .24), rgba(255, 78, 205, 0) 65%),
-    linear-gradient(180deg, #080b18, #05060d 55%);
-  --header-bg: rgba(5, 6, 13, .9);
+  --gap-card: 16px;
+  --pad-card: 16px;
+  --shadow-hover: 0 4px 10px rgba(0, 179, 137, .12), 0 14px 30px rgba(31, 35, 41, .08);
+  --brand-2: #00c9a7;
+  --hero-wash: radial-gradient(1100px 420px at 10% -12%, rgba(0, 179, 137, .1), rgba(0, 179, 137, 0) 68%);
+  --header-bg: rgba(255, 255, 255, .92);
   /* 渠道徽标配色(与数据无关,只影响展示) */
   --plat-bilibili: #fb7299;
   --plat-wechat: #07c160;

@@ -237,6 +237,12 @@
 - **自定义标题**:标题旁 ✎ → 行内输入,Enter/失焦保存、Esc 取消(抑制 blur 回写),上限 20 字、留空恢复默认;存 `jiye.mine.title.v1`,同步 `document.title`;新增 `test_pages.py::test_mine_title_hooks`。
 - **验证**:33 个 Python 用例、10 个 node 用例、`--verify`、docs-check 通过;截图确认 `?view=mine` 不再出现公开网格。
 
+### ✅ 23. 科技风改为拉勾风格(D45)(2026-11-26)
+
+- `tech.css` 重做为拉勾视觉:浅灰底 + 纯白卡片 + 拉勾绿 `#00b389` + `#e5e6eb` 分隔线 + 8px 圆角 + 轻阴影;间距收紧到 16px,标题回归系统无衬线。
+- 与 default(蓝/14px)和 dark(深色)形成三套明确区分;token 仍 29 个且与 default 完全对齐。
+- PLAN 追加 10.6(D45);截图对比 tech/default 通过,32 个 Python + 10 个 node 用例、docs-check、`--verify` 全通过。
+
 ---
 
 ## 新增待办

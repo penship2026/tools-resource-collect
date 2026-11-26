@@ -15,6 +15,10 @@
   var DEFAULT_TITLE = '我的收藏';
   // 我的页顶部副标题(与公开首页 hero 对齐,只存本机)
   var SUB_KEY = 'jiye.mine.subtitle.v1';
+  // 顶部「公开 / 我的」开关里「我的」的显示名称(只显示名称,不显示收藏数)
+  var SWITCH_KEY = 'jiye.mine.switch.v1';
+  var SWITCH_MAX = 12;
+  var DEFAULT_SWITCH = '我的';
   var SUB_MAX = 120;
   var DEFAULT_SUB = '只保存在这台设备的收藏,不上传、不同步。';
   var LIMIT = 800;
@@ -47,6 +51,24 @@
   // 浏览器标签不支持换行,压成单行
   function docTitle() {
     return mineTitle().replace(/\s+/g, ' ') + ' · 集页';
+  }
+
+  function switchLabel() {
+    try {
+      var t = String(global.localStorage.getItem(SWITCH_KEY) || '').trim();
+      return t ? t.slice(0, SWITCH_MAX) : DEFAULT_SWITCH;
+    } catch (e) {
+      return DEFAULT_SWITCH;
+    }
+  }
+
+  function setSwitchLabel(value) {
+    var t = String(value || '').trim().replace(/\s+/g, ' ').slice(0, SWITCH_MAX);
+    try {
+      if (t) global.localStorage.setItem(SWITCH_KEY, t);
+      else global.localStorage.removeItem(SWITCH_KEY);
+    } catch (e) { /* 隐私模式忽略 */ }
+    return t || DEFAULT_SWITCH;
   }
 
   function mineSubtitle() {
@@ -280,7 +302,7 @@
     var n = count();
     wrap.hidden = n === 0;               // 零收藏不出现入口
     var mineBtn = wrap.querySelector('[data-view="mine"]');
-    if (mineBtn) mineBtn.textContent = '我的 ' + n;
+    if (mineBtn) mineBtn.textContent = switchLabel();
   }
 
   function mountHeaderSwitch() {
@@ -414,6 +436,8 @@
       var btn = panel.querySelector('#mine-settings');
       var box = panel.querySelector('#mine-settings-panel');
       var titleInput = panel.querySelector('#mine-set-title');
+      var switchInput = panel.querySelector('#mine-set-switch');
+      var switchReset = panel.querySelector('#mine-set-switch-reset');
       var subInput = panel.querySelector('#mine-set-sub');
       var subReset = panel.querySelector('#mine-set-sub-reset');
       var themeSel = panel.querySelector('#mine-set-theme');
@@ -435,6 +459,10 @@
       function fill() {
         titleInput.value = mineTitle() === DEFAULT_TITLE ? '' : mineTitle();
         titleInput.placeholder = DEFAULT_TITLE;
+        if (switchInput) {
+          switchInput.value = switchLabel() === DEFAULT_SWITCH ? '' : switchLabel();
+          switchInput.placeholder = DEFAULT_SWITCH;
+        }
         if (subInput) {
           subInput.value = mineSubtitle() === DEFAULT_SUB ? '' : mineSubtitle();
           subInput.placeholder = DEFAULT_SUB;
@@ -463,6 +491,12 @@
         titleInput.value = '';
         titleInput.focus();
       });
+      if (switchReset && switchInput) {
+        switchReset.addEventListener('click', function () {
+          switchInput.value = '';
+          switchInput.focus();
+        });
+      }
       if (subReset && subInput) {
         subReset.addEventListener('click', function () {
           subInput.value = '';
@@ -471,6 +505,8 @@
       }
       saveBtn.addEventListener('click', function () {
         setMineTitle(titleInput.value);
+        if (switchInput) setSwitchLabel(switchInput.value);
+        updateSwitchCount();
         if (subInput) setMineSubtitle(subInput.value);
         var titleEl = panel.querySelector('#mine-title');
         if (titleEl) titleEl.textContent = mineTitle();
@@ -548,6 +584,8 @@
     setMineTitle: setMineTitle,
     mineSubtitle: mineSubtitle,
     setMineSubtitle: setMineSubtitle,
+    switchLabel: switchLabel,
+    setSwitchLabel: setSwitchLabel,
     renderMineContent: renderMineContent
   };
 })(window);

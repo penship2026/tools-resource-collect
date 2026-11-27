@@ -96,6 +96,15 @@
     .hero-editor .toggle-btn { flex: 0 0 auto; }
     .hero-editor img { display: block; width: 210px; max-width: 100%; aspect-ratio: 3 / 2; object-fit: cover; border-radius: 8px; margin-top: 8px; background: var(--bg); }
     .hero-editor img[hidden] { display: none; }
+    .meta-editor { padding: 2px 0 16px; border-top: 1px dashed var(--border); margin-bottom: 12px; }
+    .meta-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 12px; }
+    .meta-grid .field { margin-bottom: 10px; }
+    .meta-grid .field label { font-size: 11px; color: var(--text-mute); }
+    .meta-grid .field input[type=text], .meta-grid .field select { padding: 7px 9px; font-size: 12px; }
+    .meta-checks { display: flex; gap: 16px; align-items: center; padding: 3px 0 8px; font-size: 12px; color: var(--text-sub); }
+    .meta-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .meta-actions .tip { margin: 0 0 0 4px; }
+    @media (max-width: 620px) { .meta-grid { grid-template-columns: 1fr; } }
     .unit-pager {
       display: flex; align-items: center; justify-content: space-between; gap: 12px;
       margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border);
@@ -376,6 +385,7 @@
     let recollectEnabled = true; // 该单元当前是否在首页显示(重新采集态用于「下线 / 重新上线」)
     let siteCsrf = '';           // 站点外观写入需要 CSRF,token 由 GET /api/site 下发
     let sectionsCache = [];      // 板块注册表,来自 GET /api/topics 的 sections 字段
+    let targetTitleApplied = ''; // 由目标主题自动带入的标题,取消目标时据此清理
 
     function mergeMode() {
       return (document.querySelector('input[name="merge_mode"]:checked') || {}).value || 'append';
@@ -398,22 +408,31 @@
       return id ? unitCache.find(t => t.id === id) : null;
     }
 
-    // 板块下拉:保留当前选择,避免 loadTopics 刷新后把用户刚选的板块/主题冲掉
+    // 板块下拉:保留当前选择,避免 loadTopics 刷新后把用户刚选的板块冲掉
+    function sectionOptionsHtml(selected) {
+      const cur = selected || '';
+      const all = sectionsCache.slice();
+      return '<option value=""' + (cur ? '' : ' selected') + '>不指定(未分类)</option>' + all.map(s =>
+        '<option value="' + esc(s.id) + '"' + (s.id === cur ? ' selected' : '') + '>' + esc(s.title) +
+        (s.enabled === false ? ' (已停用)' : '') + ' (' + (s.count || 0) + ')</option>'
+      ).join('');
+    }
+
     function renderSectionOptions() {
       const sel = $('section-id');
       const cur = sel.value;
-      const all = sectionsCache.slice();
-      sel.innerHTML = '<option value="">不指定(未分类)</option>' + all.map(s =>
-        '<option value="' + esc(s.id) + '">' + esc(s.title) +
-        (s.enabled === false ? ' (已停用)' : '') + ' (' + (s.count || 0) + ')</option>'
-      ).join('');
-      sel.value = all.some(s => s.id === cur) ? cur : '';
+      sel.innerHTML = sectionOptionsHtml(cur);
+      sel.value = sectionsCache.some(s => s.id === cur) ? cur : '';
     }
 
+    // 已有主题跟随板块过滤:不选板块显示全部,选了板块只显示同板块主题
     function renderTargetOptions() {
       const sel = $('target-topic');
       const cur = sel.value;
-      const units = unitCache.slice().sort((a, b) => (a.title || '').localeCompare(b.title || '', 'zh'));
+      const section = $('section-id').value.trim();
+      const units = unitCache
+        .filter(t => !section || (t.section || '') === section)
+        .sort((a, b) => (a.title || '').localeCompare(b.title || '', 'zh'));
       sel.innerHTML = '<option value="">不追加,新建采集单元</option>' + units.map(t => {
         const bits = [sectionName(t.section) || '未分类', (t.count || 0) + ' 条'];
         if (t.enabled === false) bits.push('已下线');
@@ -423,21 +442,32 @@
       sel.value = units.some(t => t.id === cur) ? cur : '';
     }
 
-    // 选择已有主题后:板块锁定为该主题板块,标题沿用主题标题;清空则恢复可编辑
-    function syncTargetTopic() {
+    // 选择已有主题后标题沿用主题标题;选板块后主题下拉只保留同板块主题
+    function syncTargetTopic(autoSection) {
       if (recollectId) return;
       const unit = selectedTargetUnit();
-      const locked = !!unit;
-      $('section-id').disabled = locked;
-      if (locked) {
+      if (unit && autoSection && !$('section-id').value.trim()) {
         $('section-id').value = unit.section || '';
-        if (!$('title').value.trim() || !titleTouched) {
-          $('title').value = unit.title || '';
-          titleTouched = true;
-          lastAutoTitle = '';
-        }
+        renderTargetOptions();
+      }
+      if (unit && ((!$('title').value.trim() || !titleTouched) ||
+          (targetTitleApplied && $('title').value === targetTitleApplied))) {
+        $('title').value = unit.title || '';
+        titleTouched = true;
+        lastAutoTitle = '';
+        targetTitleApplied = unit.title || '';
+      } else if (!unit && targetTitleApplied && $('title').value === targetTitleApplied) {
+        $('title').value = '';
+        titleTouched = false;
+        lastAutoTitle = '';
+        targetTitleApplied = '';
       }
       $('submit').textContent = submitLabel();
+    }
+
+    function onSectionChange() {
+      renderTargetOptions();
+      syncTargetTopic(false);
     }
 
     // 重新采集时不显示「加入已有主题」,避免把本次结果误追加到另一个单元
@@ -446,6 +476,7 @@
       $('field-target-topic').classList.toggle('hidden', inRecollect);
       if (inRecollect) {
         $('target-topic').value = '';
+        targetTitleApplied = '';
         $('section-id').disabled = false;
       }
     }
@@ -506,7 +537,8 @@
     document.querySelectorAll('input[name="merge_mode"]').forEach(radio => {
       radio.addEventListener('change', () => { $('submit').textContent = submitLabel(); });
     });
-    $('target-topic').addEventListener('change', syncTargetTopic);
+    $('target-topic').addEventListener('change', () => syncTargetTopic(true));
+    $('section-id').addEventListener('change', onSectionChange);
 
     // 用相对路径调用接口,兼容站点部署在子目录下(根路径下也正常)
     const API_COLLECT = 'api/collect';
@@ -515,6 +547,7 @@
     const API_SITE    = 'api/site';
     const API_INTAKE  = 'api/intake';
     const API_TITLE   = 'api/title';
+    const API_UNIT_META = 'api/unit/meta';
 
     // ---- 访问口令:仅 --public 启动时需要;只存本机 localStorage,不写进页面 ----
     const TOKEN_KEY = 'collect_token';
@@ -606,6 +639,7 @@
       $('field-merge-mode').classList.add('hidden');
       $('section-id').disabled = false;
       $('target-topic').value = '';
+      targetTitleApplied = '';
       syncTargetField();
       const appendRadio = document.querySelector('input[name="merge_mode"][value="append"]');
       if (appendRadio) appendRadio.checked = true;
@@ -839,7 +873,7 @@
         renderSectionOptions();
         renderTargetOptions();
         renderUnitPage();
-        syncTargetTopic();
+        syncTargetTopic(false);
       }).catch(err => { $('topics').innerHTML = '<div class="tip">加载失败: ' + esc(err.message) + '</div>'; });
     }
 
@@ -950,6 +984,7 @@
             </button>
             <button class="toggle-btn ${t.pin ? 'pin-on' : ''}" data-pin-id="${esc(t.id)}">${t.pin ? '取消置顶' : '置顶'}</button>
             <button class="toggle-btn" data-hero-id="${esc(t.id)}">画册大图${hero ? ' ✓' : ''}</button>
+            <button class="toggle-btn" data-meta-id="${esc(t.id)}">编辑信息</button>
             <button class="toggle-btn" data-fill-id="${esc(t.id)}">重新采集</button>
           </div>
         </div>
@@ -961,6 +996,35 @@
             <button class="toggle-btn" data-hero-clear="${esc(t.id)}">用封面</button>
           </div>
           <img data-hero-preview alt="" ${hero ? '' : 'hidden'} src="${esc(hero)}">
+        </div>
+        <div class="meta-editor" data-meta-editor="${esc(t.id)}" hidden>
+          <div class="meta-grid">
+            <div class="field">
+              <label>标题</label>
+              <input type="text" data-meta-title value="${esc(t.title || '')}" autocomplete="off">
+            </div>
+            <div class="field">
+              <label>板块</label>
+              <select data-meta-section>${sectionOptionsHtml(t.section)}</select>
+            </div>
+            <div class="field">
+              <label>标签(逗号分隔)</label>
+              <input type="text" data-meta-tags value="${esc((t.tags || []).join(', '))}" placeholder="例如:AI, 工具, 教程" autocomplete="off">
+            </div>
+            <div class="field">
+              <label>画册大图 URL</label>
+              <input type="text" data-meta-hero value="${esc(hero)}" placeholder="https://… 留空则用封面" autocomplete="off">
+            </div>
+          </div>
+          <div class="meta-checks">
+            <label class="pick"><input type="checkbox" data-meta-enabled ${enabled ? 'checked' : ''}> 显示中</label>
+            <label class="pick"><input type="checkbox" data-meta-pin ${t.pin ? 'checked' : ''}> 置顶</label>
+          </div>
+          <div class="meta-actions">
+            <button class="toggle-btn" type="button" data-meta-save="${esc(t.id)}">保存信息</button>
+            <button class="toggle-btn" type="button" data-meta-cancel="${esc(t.id)}">取消</button>
+            <div class="tip">只改元数据,不会重新抓取内容。</div>
+          </div>
         </div>
         </div>`;
       }).join('');
@@ -1084,6 +1148,70 @@
       });
 
       // 「重新采集」:带出上次采集信息并切到重新采集状态,不自动采集,等用户确认
+      // 编辑信息:只改元数据(标题/板块/标签/显示/置顶/大图),不触发采集
+      box.querySelectorAll('[data-meta-id]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = btn.getAttribute('data-meta-id');
+          const editor = box.querySelector('[data-meta-editor="' + id + '"]');
+          if (!editor) return;
+          const heroEditor = box.querySelector('[data-hero-editor="' + id + '"]');
+          if (heroEditor) heroEditor.hidden = true;
+          editor.hidden = !editor.hidden;
+          if (!editor.hidden) {
+            const input = editor.querySelector('[data-meta-title]');
+            if (input) input.focus();
+          }
+        });
+      });
+      box.querySelectorAll('[data-meta-cancel]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = btn.getAttribute('data-meta-cancel');
+          const editor = box.querySelector('[data-meta-editor="' + id + '"]');
+          if (editor) editor.hidden = true;
+        });
+      });
+      box.querySelectorAll('[data-meta-save]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const id = btn.getAttribute('data-meta-save');
+          const editor = box.querySelector('[data-meta-editor="' + id + '"]');
+          if (!editor) return;
+          const title = (editor.querySelector('[data-meta-title]').value || '').trim();
+          const tags = (editor.querySelector('[data-meta-tags]').value || '')
+            .split(/[,，\n]/).map(x => x.trim()).filter(Boolean);
+          const payload = {
+            id: id,
+            title: title,
+            section: editor.querySelector('[data-meta-section]').value,
+            tags: tags,
+            enabled: editor.querySelector('[data-meta-enabled]').checked,
+            pin: editor.querySelector('[data-meta-pin]').checked,
+            hero_image: (editor.querySelector('[data-meta-hero]').value || '').trim(),
+          };
+          if (!title) {
+            statusBox.className = 'status err';
+            statusBox.textContent = '标题不能为空';
+            return;
+          }
+          btn.disabled = true;
+          try {
+            const resp = await apiFetch(API_UNIT_META, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': siteCsrf },
+              body: JSON.stringify(payload),
+            });
+            const r = await readJSON(resp);
+            if (!r.ok) throw new Error((r.error && r.error.message) || r.error || '保存失败');
+            statusBox.className = 'status ok';
+            statusBox.textContent = '「' + (r.title || title) + '」信息已保存,未重新采集';
+            loadTopics();
+          } catch (err) {
+            statusBox.className = 'status err';
+            statusBox.textContent = '保存信息失败: ' + err.message;
+            btn.disabled = false;
+          }
+        });
+      });
+
       box.querySelectorAll('[data-fill-id]').forEach(btn => {
         btn.addEventListener('click', () => fillFromUnit(btn.getAttribute('data-fill-id')));
       });

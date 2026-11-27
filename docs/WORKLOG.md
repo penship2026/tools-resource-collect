@@ -755,7 +755,7 @@ Chrome 无头截图三页面全部正常:首页卡片标签独立行两行截断
 - 重新采集态隐藏「加入已有主题」,回填原单元板块;退出重新采集/重置时恢复新建态。
 - 实测:8765 旧进程已重启;`/api/topics` 返回 7 板块、13 单元及 `section/section_title`;预览追加 `topic-35bc9a90` 返回 `type=series`、`unit_id` 正确、`added`/`updated` 正常。全量 Python 132 例、`--verify`、`docs_check`、`layout_lint` 通过。
 
-## 三十一、二期 A3 预览与闸门(2026-11-27)
+## 三十二、二期 A3 预览与闸门(2026-11-27)
 
 - 新增 `tools/ai-template/metrics.py`：G1 手写 schema、G2 CSS 白名单/预算、G5 性能预算、G6 结构/token 辨识度；每个失败带 `G1_SCHEMA`、`G2_FORBIDDEN`、`G4_CONTRAST`、`G6_STRUCTURE` 等错误码。
 - 新增 `tools/ai-template/preview.py`：把 `tests/fixtures/preview.html` 改造成候选预览；版式候选移除 `layout.js`、注入候选能力断言，主题候选在基础主题 CSS 之后追加候选 token。
@@ -765,3 +765,12 @@ Chrome 无头截图三页面全部正常:首页卡片标签独立行两行截断
 - 调整 mock 版式候选（方图改 4 列、文字首屏、舒适密度）与 mock 雾青圆角 18px，使 3 个版式 + 3 个主题候选均能过 G1–G6，同时保留 A2 的 2 项差异约束。
 - 新增 `tests/test_preview_ai.py` 11 例：静态双类型、G1/G6 错误码、预览 HTML、DOM 失败码、no-shot、CLI 冒烟、Chrome quick 冒烟。
 - 验收：Python 132 例全过；6 个 mock 候选各 15 张截图全过；Node 版式 34、主题 12、视图 21、`layout_lint`、45 张基线、5+5 容量全过。
+
+
+## 三十三、采集单元信息编辑与板块联动(2026-11-27)
+
+- 已采集单元列表新增「编辑信息」:展开行内表单,可改标题、板块、标签、置顶、画册大图、显示状态;保存只写元数据,不重新抓取,不改变 `videos`。
+- 新增 `POST /api/unit/meta`(需 CSRF):标题/板块/标签/显示走 `generate.update_unit_meta`,置顶/大图复用 `save_site_patch`;保存后重建索引与板块计数。
+- 采集页「归属板块」选择后,「加入已有主题」下拉只保留同板块单元;选择主题仍会自动带入板块和标题,切换板块导致目标不匹配时清空目标并回收自动标题。
+- `/api/topics` 增补 `tags`,供编辑区回填。
+- 验收:全量 Python 140 例、`--verify`、`docs_check`、`layout_lint` 通过;临时数据目录起 8766 实测 `/api/unit/meta` 保存后标题/标签/板块/显示状态回读一致,`videos` 未变。

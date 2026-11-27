@@ -302,6 +302,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     "author": (t.get("source") or {}).get("name", ""),
                     "platform": generate.platform_label((t.get("source") or {}).get("platform")),
                     "keyword": t.get("keyword", ""),
+                    "tags": t.get("tags") or [],
                     "section": t.get("section", ""),
                     "section_title": section_titles.get(t.get("section", ""), ""),
                     "created": t.get("created", ""),
@@ -436,6 +437,47 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 self._json({"ok": False, "error": {"code": "VALIDATION_ERROR", "message": str(exc)}}, 400)
                 return
             self._json({"ok": True, "site": site})
+            return
+        # 只改单元元数据(标题/板块/标签/显示/置顶/大图),不触发采集
+        if path.endswith("/api/unit/meta"):
+            if not self._csrf_ok():
+                self._json({"ok": False, "error": {"code": "CSRF_FAILED", "message": "CSRF token 或 Origin 校验失败"}}, 403)
+                return
+            unit_id = (payload.get("id") or "").strip()
+            if not generate.valid_unit_id(unit_id):
+                self._json({"ok": False, "error": "单元 id 不合法"}, 400)
+                return
+            if "pin" in payload and not isinstance(payload.get("pin"), bool):
+                self._json({"ok": False, "error": "pin 必须是布尔值"}, 400)
+                return
+            meta_kw = {}
+            for key in ("title", "section", "tags", "enabled"):
+                if key in payload:
+                    meta_kw[key] = payload.get(key)
+            try:
+                result = generate.update_unit_meta(unit_id, **meta_kw)
+                if not result.get("ok"):
+                    status = 404 if "未找到" in (result.get("error") or "") else 400
+                    self._json(result, status)
+                    return
+                if "pin" in payload or "hero_image" in payload:
+                    patch = {"id": unit_id}
+                    if "pin" in payload:
+                        patch["pin"] = payload.get("pin")
+                    if "hero_image" in payload:
+                        patch["hero_image"] = str(payload.get("hero_image") or "").strip()
+                    site = generate.save_site_patch(patch)
+                    result["site"] = site
+                    entry = (site.get("editorial") or {}).get(unit_id) or {}
+                    result["pin"] = bool(entry.get("pin"))
+                    result["hero_image"] = entry.get("hero_image", "")
+            except ValueError as exc:
+                self._json({"ok": False, "error": {"code": "VALIDATION_ERROR", "message": str(exc)}}, 400)
+                return
+            except Exception as exc:
+                self._json({"ok": False, "error": {"code": "INTERNAL", "message": str(exc)}}, 500)
+                return
+            self._json(result)
             return
         # 开启/关闭某采集单元的显示
         if path.endswith("/api/scheduler/toggle"):

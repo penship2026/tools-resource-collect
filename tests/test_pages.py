@@ -45,7 +45,11 @@ class PagesContractTest(unittest.TestCase):
         for text in ('id="section-id"', 'id="target-topic"',
                      "renderSectionOptions", "renderTargetOptions",
                      "merge_mode: targetId ? 'append' : mergeMode()",
-                     "section: $('section-id').value.trim()"):
+                     "section: $('section-id').value.trim()",
+                     "data-meta-id", "data-meta-title", "data-meta-section",
+                     "data-meta-tags", "data-meta-enabled", "data-meta-pin",
+                     "API_UNIT_META", "onSectionChange",
+                     ".filter(t => !section || (t.section || '') === section)"):
             self.assertIn(text, html, text)
 
     def test_public_pages_have_skip_link_and_main_anchor(self):

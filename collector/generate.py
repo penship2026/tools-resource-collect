@@ -1516,6 +1516,77 @@ def update_title(unit_id, title, log=print):
             "page": page}
 
 
+_META_UNSET = object()
+
+
+@locked_write
+def update_unit_meta(unit_id, title=None, section=_META_UNSET, tags=_META_UNSET,
+                     enabled=_META_UNSET, log=print):
+    """只更新采集单元的元数据(标题/板块/标签/显示状态),不碰 videos、不重新采集。"""
+    unit_id = (unit_id or "").strip()
+    if not valid_unit_id(unit_id):
+        return {"ok": False, "error": "单元 id 不合法"}
+    data = load_collection_data(unit_id)
+    if data is None:
+        return {"ok": False, "error": "未找到采集单元: %s" % unit_id}
+
+    if title is not None:
+        title = str(title).strip()
+        if not title:
+            return {"ok": False, "error": "标题不能为空"}
+        data["title"] = title
+        if data.get("intake"):
+            data["intake"] = dict(data["intake"], title=title)
+        if data.get("runs"):
+            runs = list(data["runs"])
+            runs[0] = dict(runs[0], title=title)
+            data["runs"] = runs
+
+    if section is not _META_UNSET:
+        section = str(section or "").strip()
+        if section and section not in section_ids():
+            return {"ok": False, "error": "板块不存在: %s" % section}
+        if section:
+            data["section"] = section
+        else:
+            data.pop("section", None)
+
+    if tags is not _META_UNSET:
+        if not isinstance(tags, (list, tuple)):
+            return {"ok": False, "error": "标签必须是数组"}
+        clean_tags = []
+        for tag in tags:
+            tag = str(tag).strip()
+            if tag and tag not in clean_tags:
+                clean_tags.append(tag)
+        data["tags"] = clean_tags[:10]
+
+    if enabled is not _META_UNSET:
+        if not isinstance(enabled, bool):
+            return {"ok": False, "error": "enabled 必须是布尔值"}
+        data["enabled"] = enabled
+
+    data["updated"] = datetime.date.today().isoformat()
+    write_collection_file(data)
+    index = rebuild_index()
+    target = next((t for t in index if t.get("id") == unit_id), {})
+    log("单元元数据已更新: %s" % unit_id)
+    return {
+        "ok": True, "id": unit_id, "title": target.get("title", data.get("title")),
+        "section": target.get("section", ""),
+        "section_title": target.get("section_title", ""),
+        "tags": data.get("tags") or [],
+        "enabled": bool(data.get("enabled", True)),
+        "page": unit_page_for(target),
+    }
+
+
+def unit_page_for(t):
+    t = t or {}
+    return ("single.html?id=%s" if (t.get("type") or "series") == "single"
+            else "series.html?id=%s") % (t.get("id") or "")
+
+
 def merge_videos(existing, incoming):
     """
     增量合并 + 去重(纯规则):

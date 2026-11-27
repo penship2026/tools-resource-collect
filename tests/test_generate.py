@@ -298,6 +298,29 @@ class GenerateDataTest(unittest.TestCase):
             generate.load_index(), section="tools")
         self.assertEqual(generate.load_collection_data("u-tools")["section"], "tools")
 
+    def test_update_unit_meta_only_touches_metadata(self):
+        """编辑信息只改标题/板块/标签/显示,不碰 videos,也不重新采集。"""
+        write_unit("meta1", [video(0), video(1)])
+        generate.rebuild_index()
+        before = generate.load_collection_data("meta1")
+        r = generate.update_unit_meta(
+            "meta1", title="改过的标题", section="", tags=["AI", "AI", "工具"],
+            enabled=False)
+        self.assertTrue(r["ok"])
+        data = generate.load_collection_data("meta1")
+        self.assertEqual(data["title"], "改过的标题")
+        self.assertEqual(data["tags"], ["AI", "工具"])
+        self.assertNotIn("section", data)
+        self.assertFalse(data["enabled"])
+        self.assertEqual(data["videos"], before["videos"])
+        item = next(t for t in generate.load_index() if t["id"] == "meta1")
+        self.assertEqual(item["title"], "改过的标题")
+        self.assertEqual(item["count"], 2)
+        self.assertFalse(item["enabled"])
+        bad = generate.update_unit_meta("meta1", section="not-a-section")
+        self.assertFalse(bad["ok"])
+        self.assertIn("板块不存在", bad["error"])
+
     def test_title_match_is_exact_keyword(self):
         """D16:匹配只做「关键词完整出现在标题」,死参数已移除"""
         self.assertTrue(generate.title_match("跟着动画学古文:第 1 集", "跟着动画学古文"))

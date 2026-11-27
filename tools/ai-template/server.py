@@ -35,6 +35,7 @@ preview = _load_local("ai_template_preview", "preview.py")
 publish = _load_local("ai_template_publish", "publish.py")
 registry = _load_local("ai_template_registry", "registry.py")
 site_store = _load_local("ai_template_site_store", "site_store.py")
+studio = _load_local("ai_template_studio", "studio.py")
 
 DRAFTS = "tools/ai-template/drafts"
 WORKBENCH = HERE / "workbench"
@@ -163,7 +164,10 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         path = urllib.parse.urlsplit(self.path).path
-        if path in ("/", "/review", "/review.html"):
+        if path in ("/", "/ide", "/ide.html"):
+            self._file(WORKBENCH / "ide.html")
+            return
+        if path in ("/review", "/review.html"):
             self._file(WORKBENCH / "review.html")
             return
         if path in ("/manage", "/manage.html"):
@@ -183,6 +187,9 @@ class Handler(BaseHTTPRequestHandler):
             return
         if path == "/api/manage":
             self._json(display.manage_payload(self.root))
+            return
+        if path == "/api/models":
+            self._json(studio.model_catalog(self.root))
             return
         if path == "/favicon.ico":
             self._send(204, b"")
@@ -286,7 +293,7 @@ class Handler(BaseHTTPRequestHandler):
                 spec_path = _safe_path(self.root, body.get("path", ""))
                 if spec_path is None:
                     raise publish.PublishError("PREVIEW_PATH", "候选路径不合法")
-                spec = compiler.load_json(spec_path)
+                spec = body.get("spec") if isinstance(body.get("spec"), dict) else compiler.load_json(spec_path)
                 kind = body.get("kind") or spec.get("kind")
                 report = preview.evaluate(spec, kind, spec_path.parent,
                                           no_shot=bool(body.get("noShot")), quick=bool(body.get("quick")))
@@ -296,6 +303,19 @@ class Handler(BaseHTTPRequestHandler):
             elif path == "/api/spec/save":
                 result = generate.save_manual(
                     _safe_path(self.root, body.get("path", "")), body.get("spec"),
+                )
+            elif path == "/api/preview-draft":
+                result = studio.preview_draft(body.get("spec"), body.get("kind") or "layout", self.root)
+            elif path == "/api/ai-edit":
+                spec_path = _safe_path(self.root, body.get("path", ""))
+                if spec_path is None:
+                    raise publish.PublishError("EDIT_PATH", "候选路径不合法")
+                spec = body.get("spec") if isinstance(body.get("spec"), dict) else compiler.load_json(spec_path)
+                kind = body.get("kind") or spec.get("kind")
+                result = studio.edit_spec(
+                    spec, kind, body.get("instruction", ""),
+                    model_id=body.get("model", ""), custom=body.get("custom"),
+                    root=self.root,
                 )
             elif path == "/api/clone":
                 result = generate.clone_published(
@@ -322,6 +342,9 @@ class Handler(BaseHTTPRequestHandler):
         except (publish.PublishError, display.DisplayError) as exc:
             self._json(exc.as_dict())
             return
+        except studio.StudioError as exc:
+            self._json(exc.as_dict())
+            return
         except generate.GenerationError as exc:
             self._json({"ok": False, "code": "GENERATE", "message": "; ".join(exc.errors),
                         "errors": exc.errors})
@@ -333,19 +356,20 @@ class Handler(BaseHTTPRequestHandler):
         self._json(result)
 
 
-def make_server(port=8787, root=ROOT):
+def make_server(port=8787, root=ROOT, host="127.0.0.1"):
     class Bound(Handler):
         pass
     Bound.root = root
-    server = ThreadingHTTPServer(("127.0.0.1", int(port)), Bound)
+    server = ThreadingHTTPServer((host, int(port)), Bound)
     server.daemon_threads = True
     return server
 
 
-def serve(port=8787, root=ROOT):
-    server = make_server(port, root)
-    print("工作台已启动:http://127.0.0.1:%d/  (Ctrl+C 停止)" % server.server_address[1])
-    print("管理处:http://127.0.0.1:%d/manage.html" % server.server_address[1])
+def serve(port=8787, root=ROOT, host="127.0.0.1"):
+    server = make_server(port, root, host)
+    shown = "127.0.0.1" if host in ("0.0.0.0", "::") else host
+    print("工作台已启动:http://%s:%d/  (Ctrl+C 停止)" % (shown, server.server_address[1]))
+    print("管理处:http://%s:%d/manage.html" % (shown, server.server_address[1]))
     try:
         server.serve_forever()
     except KeyboardInterrupt:

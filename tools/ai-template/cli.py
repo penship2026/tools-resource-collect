@@ -149,7 +149,7 @@ def cmd_lint(args):
 
 
 def cmd_serve(args):
-    server.serve(args.port, ROOT)
+    server.serve(args.port, ROOT, host=args.host)
     return 0
 
 
@@ -239,8 +239,9 @@ def main(argv=None):
     p.add_argument("--file", required=True, help="主题 CSS 路径")
     p.set_defaults(func=cmd_lint)
 
-    p = sub.add_parser("serve", help="启动 127.0.0.1 工作台（评审 + 管理处）")
+    p = sub.add_parser("serve", help="启动工作台（评审 + 管理处）")
     p.add_argument("--port", type=int, default=8787, help="默认 8787")
+    p.add_argument("--host", default="127.0.0.1", help="监听地址，局域网访问用 0.0.0.0")
     p.set_defaults(func=cmd_serve)
 
     p = sub.add_parser("approve", help="批准候选并原子发布")

@@ -1,11 +1,12 @@
 # 二期详细设计 · AI 模板与主题工坊
 
-> 版本 v1.8 · 2026-11-27 · 状态：A4 实现完成，待验收；A4.5 模板编辑闭环、内置版式与主题 Spec 抽取已落地
+> 版本 v1.9 · 2026-11-28 · 状态：A4 实现完成，待验收；A5 六套候选已生成并通过闸门；新增 IDE 式模板工作台
 > 对应方案：`docs/PLAN-TEMPLATES-20261127.md`（D70–D73、D92–D98）
 > 评审记录：`docs/REVIEW-TEMPLATES-P2-20261127.md`
 > 前置：一期 3 套版式、布局 token 白名单、`templates.js` 注册表已就绪；截图脚本与基线由 A0 新建，不再假设已存在
 > 核心定位：**AI 是可选增强，不是运行时依赖**——生成在离线/本机完成，线上仍是零构建纯静态
 
+> **v1.9 修订**：工作台从「候选评审卡片」升级为 IDE 形态：左侧模板树与工具、中间可编辑 `spec.json` + 实时预览、右侧 AI 对话改 Spec 并可切换模型；三栏可拖宽、左右可互换，`serve --host 0.0.0.0` 支持局域网。旧评审页保留在 `/review`。
 > **v1.8 修订**：补齐 `default/dark/tech/campus/classical/anime` 六套内置主题 Spec，内置版式与主题均可克隆维护；A5 试点期 `max_layouts` 放开到 20，不再受 5 套限制，主题仍为 8。
 > **v1.7 修订**：从现有内置版式 `standard/news/magazine` 抽取三份 Design Spec，放 `tools/ai-template/builtin-specs/layout/`；管理页据此把内置版式标为可克隆，克隆出的新 key 草稿可手改、预览、批准，原 CSS/注册表不动。主题尚未抽取，内置主题仍只能归档。
 > **v1.6 修订**：二期从“一次性批量生成 3 个候选”改为**模板编辑维护闭环**：管理台内 AI 生成 1–5 个候选、人工选 1 个；候选 Spec 可直接手改并存为新版本；批准时可勾选立即上架；已发布 AI 模板可克隆新版本，内置/旧模板可下线归档但文件不动。
@@ -362,7 +363,7 @@ docs/templates/<key>.json       Spec 原文件（可复现）
 
 ## 八、评审工作台
 
-本机页面 `tools/ai-template/workbench/`，`python3 tools/ai-template/cli.py serve --port 8787` 启动，仅监听 127.0.0.1。
+本机页面 `tools/ai-template/workbench/`，默认 `python3 tools/ai-template/cli.py serve --port 8787` 启动，监听 127.0.0.1；需要局域网访问时显式加 `--host 0.0.0.0`。`/` 与 `/ide` 是新 IDE，`/review` 保留旧候选评审页，`/manage.html` 仍是管理处。
 
 ```
 ┌ 候选 A / B / C ───────────────────────────────────┐
@@ -442,7 +443,7 @@ docs/templates/<key>.json       Spec 原文件（可复现）
 - 批准事务顺序：CSS → `docs/templates/*.json` / `*.md` → `reviews/*.json` → `templates.js` / `theme.js` 注册表 → `published.json` sidecar；任一步失败按备份回滚，草稿保留。批准不自动 git commit。
 - 驳回写 `reviews/<date>-<key>-reject.json`，原因是固定四类；迭代记录 `*-revise-N.json`，第 3 轮返回 `REVISE_LIMIT`。
 - 管理处只写 `site.yml` 的 `display.visible_layouts` / `display.visible_themes` / `display.max_layouts` / `display.max_themes` 与 `assets/site.js`，保留 `site.default_layout`、`editorial` 与 `window.EDITORIAL`；默认上限 5，管理页可设 1–20，`standard` / `default` 锁定，超过当前上限返回 `DISPLAY_FULL`。
-- 工作台只监听 `127.0.0.1`，页面不发布到 Pages；运行时仍只读 `site.js`，不需要 `tools/`。
+- 工作台默认只监听 `127.0.0.1`；显式 `--host 0.0.0.0` 才开放局域网，且没有登录鉴权，只应在可信局域网短时使用。页面不发布到 Pages；运行时仍只读 `site.js`，不需要 `tools/`。
 
 ### 8.3 A4.5 模板编辑闭环
 
@@ -454,6 +455,44 @@ docs/templates/<key>.json       Spec 原文件（可复现）
 - 归档：`POST /api/archive` 先从展示清单移除，再写 `published.json.archived`；不改 CSS、注册表或原 published 条目。归档项不能直接重新上架，需克隆新版本。
 - 内置抽取范围：已抽 `standard / news / magazine` 三套版式与 `default / dark / tech / campus / classical / anime` 六套主题；主题的 `tech` / `anime` 品牌对比度低于 G4，克隆后需先调深品牌色再批准。
 - 仍未覆盖：空白手动新建模板。当前“从零新建”走 AI 生成 1 个候选，或从内置/已发布模板克隆。
+
+### 8.4 IDE 式模板工作台（v1.9）
+
+旧评审页是“候选卡片 + 指标 + 批准”，适合一次性评审，不适合反复改模板。v1.9 新增 `workbench/ide.html`，把工作台做成三栏 IDE：
+
+```text
+┌ 顶栏：项目 / 当前模板 / 模型 / 评审页 / 管理处 / 站点 ┐
+│ 左：模板树、搜索、新建、跑闸门、布局设置 │ 中：spec.json 编辑 + 预览 │ 右：AI 对话 + 模型 │
+└ 状态栏：当前文件 / JSON 状态 / 模型 / 保存状态 ┘
+```
+
+- 左栏：候选按版式/主题分组；点击加载 `spec.json` 与同目录编译出的 CSS；支持新建候选、刷新、跑 G1–G6、左右面板互换。
+- 中栏：`源码 / 分屏 / 预览` 三态；`spec.json` 可直接编辑，保存走 `POST /api/spec/save` 写 `candidate-N-eN`，不覆盖原候选；`styles.css` 是只读编译产物；预览支持桌面/平板/手机三档、主题/版式切换、刷新与新标签打开。
+- 右栏：对话输入改 Spec 要求，`POST /api/ai-edit` 返回完整新 Spec；用户点「应用到编辑器」后才进入源码，仍需手动「保存新版本」。模型下拉来自 `/api/models`，可切 `.env` 当前模型、OpenRouter 预设、本机 Ollama；自定义模型只存浏览器 `localStorage`，随单次请求发给本机服务。
+- 草稿预览：`POST /api/preview-draft` 把当前未保存 Spec 编译到 `drafts/<key>/studio-preview`，只读、不进候选列表、不批准；保存前的预览不落正式候选。
+- 布局：三栏 CSS 变量 + 拖动分隔条调宽，左右面板可互换，宽度与顺序存 `localStorage`；窄屏退化为纵向堆叠。
+- 边界：AI 不执行模型输出、不自动保存、不自动批准；服务端校验 Spec schema 且强制 `kind/key` 不变；预览 iframe 同源，主题/版式切换只改 DOM/CSS link，不改发布产物。
+
+#### 8.4.1 入口与接口
+
+| 入口/接口 | 用途 |
+|---|---|
+| `GET /`、`GET /ide` | IDE 工作台 |
+| `GET /review` | 旧候选评审页 |
+| `GET /manage.html` | AI 设计管理处 |
+| `GET /api/candidates` | 候选列表与预览路径 |
+| `POST /api/spec/save` | 保存手改版本 |
+| `POST /api/preview-draft` | 未保存 Spec 草稿预览 |
+| `POST /api/preview` | 跑 15 张截图与 G1–G6 |
+| `POST /api/ai-edit` | AI 改 Spec，不落盘 |
+| `GET /api/models` | 模型目录，不返回 API Key |
+
+#### 8.4.2 局域网验收
+
+- Mac 局域网 `192.168.0.100`；启动：`python3 tools/ai-template/cli.py serve --host 0.0.0.0 --port 8787`。
+- 工作台：`http://192.168.0.100:8787/`；二期站点：`http://192.168.0.100:8899/`。
+- 验收项：候选加载、源码编辑、JSON 校验、草稿预览、保存新版本、AI 改 Spec 应用、模型切换、三栏拖宽/互换、手机宽度下不横向溢出。
+- 已知边界：管理处与写接口无登录鉴权，只应在可信局域网使用；AI 结果和候选仍需人工保存/批准，不自动发布。
 
 ---
 

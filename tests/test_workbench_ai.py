@@ -456,7 +456,8 @@ class HttpSmokeTest(unittest.TestCase):
         self.assertTrue(data["ok"])
         self.assertEqual(data["items"][0]["key"], "http-a4")
         self.assertFalse(data["items"][0]["ok"])
-        self.assertIn("AI 设计评审", urllib.request.urlopen(base + "/", timeout=3).read().decode("utf-8"))
+        self.assertIn("AI 设计评审", urllib.request.urlopen(base + "/review", timeout=3).read().decode("utf-8"))
+        self.assertIn("集页 Studio", urllib.request.urlopen(base + "/", timeout=3).read().decode("utf-8"))
         manage = json.loads(urllib.request.urlopen(base + "/api/manage", timeout=3).read().decode("utf-8"))
         self.assertEqual(manage["kinds"]["theme"]["count"], 5)
 

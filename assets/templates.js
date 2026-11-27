@@ -18,12 +18,12 @@ window.TEMPLATES = {
     },
     news: {
       label: '门户',
-      desc: '板块导航 + 头条区 + 分节 + 侧栏',
+      desc: '板块导航 + 头条区（1 主 3 副，副卡即窄侧栏）+ 板块分节',
       file: 'assets/layouts/news.css',
       nav: true,
       lead: true,
       bands: true,
-      sidebar: true,
+      sidebar: false,
       toc: false
     },
     magazine: {

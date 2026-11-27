@@ -628,3 +628,12 @@ Chrome 无头截图三页面全部正常:首页卡片标签独立行两行截断
 - T6：Chrome CDP 实测 390/768/1280 × 6 组页面，`scrollWidth == innerWidth`，18 组全通过。
 - T4/T5/T14：CDP 自动化验证查询预览不落存储、手动切换保留、主题/版式互不影响、默认版式只影响新会话。
 - T1–T15 结果与证据归档 `docs/ACCEPTANCE-TEMPLATES-P1-20261127.md`。
+
+## 十七、页面模板一期 M6：验收整改(2026-11-27)
+
+- 子页面补板块面包屑：`Render.breadcrumb(section,title,tail)` + `Render.sectionMeta(topic)`；`series/list/single` 加载 `assets/data/sections.js`，实测三级（列表页四级）。
+- 门户 `sidebar` 能力统一关闭：注册表 `news.sidebar=false`，窄侧栏明确由头条区 1 主 3 副的副卡承担；README/设计/决策 D80 同步，避免无消费方的能力声明。
+- 无障碍：四页新增「跳到主要内容」与 `#main-content`；`.section-tab` 最小高 44px；首页新增视觉隐藏 `h1`「集页」，hero 改 `h2`（子页保留页面主题 `h1`）。
+- 规格对齐：设计内容宽改为 news 1180 / magazine 960；头条断点按设计 ≤1080 下移；`--layout-band-cols` 接入门户分节，`--layout-lead-cols` 接入头条主栏。
+- 补测试：breadcrumb/sectionMeta、站点默认版式优先级、skip link/main、首页标题层级、导航 44px。
+- 验证：Python 78 例、Node 视图 19 例、版式 15 例、`layout_lint`、`docs_check` 通过；CDP 实测三子页包屑、Tab 聚焦、44px、18 组宽度无溢出；1280 首页/门户/子页截图复核。

@@ -2,7 +2,7 @@
 
 - 日期：2026-11-27
 - 分支：`feat/templates-p1-20261127`
-- 范围：D64–D79，M1–M5
+- 范围：D64–D80，M1–M6
 - 环境：macOS，Chrome Headless（CDP，`file://` 直开），Python 3.14，Node 22
 
 ## 一、自动化闸门
@@ -53,3 +53,19 @@
 - 置顶只影响展示顺序，不写 `assets/data/index.js`；列表页/合集页语义不变。
 - 画册首页不排空章正文（D79），空章只在目录与板块视图出现。
 - `site.js` 缺失时默认版式回退 `standard`；`sections.js` 缺失时导航按索引聚合。
+
+## 五、签收前整改复核（2026-11-27）
+
+针对评审提出的 3 个签收前项与 2 个低优先项，按建议顺序处理并复核：
+
+| 项 | 整改 | 结果 | 证据 |
+|---|---|---|---|
+| R1 子页面包屑 | `Render.breadcrumb()` 增加尾级参数；`series/list/single` 加载 `sections.js`，用 `Render.sectionMeta()` 取板块名 | 通过 | 三页实测：`全部主题 / 工具与效率 / 主题`；列表页多 `/ 全部内容`；板块链接为 `index.html?section=tools` |
+| R2 门户 sidebar 口径 | `news.sidebar` 改为 `false`，README、设计 6.4、决策 D80 同步；窄侧栏明确由头条区 300px 副卡承担 | 通过 | 注册表三版式 `sidebar` 均为 false；无空转能力声明 |
+| R3 无障碍 | 四页加「跳到主要内容」+ `#main-content`；`.section-tab` 最小高 44px；首页补视觉隐藏 `h1`，主头条改 `h2` | 通过 | Tab 首站聚焦后 `top=12px`；1280 门户 tab 高 44px；首页 `h1=集页`、hero 为 `H2` |
+| R4 规格漂移 / 未用 token | 文档按实拍改为 news 1180 / magazine 960；头条 ≤1080 下移；`--layout-band-cols` 接入门户分节栅格，`--layout-lead-cols` 接入头条主栏 | 通过 | `layout_lint` 17 token 齐全；1280 门户 `814px 300px`，768/390 单栏 |
+| R5 回归测试 | 补 breadcrumb/sectionMeta、`SITE_CONFIG.default_layout`、skip link/main、首页标题层级、导航 44px 用例 | 通过 | Python 78 例、视图 19 例、版式 15 例 |
+
+**复核结论**：原「有条件通过」的 3 个签收前问题已闭合，低优先项同步处理；18 组 390/768/1280 页面组合仍 `scrollWidth == innerWidth`，`layout_lint`、`docs_check`、`--verify` 均通过。可提交用户做最终签收确认。
+
+**遗留（不阻塞签收）**：`dump_site_yaml` 的引号转义与 `site.yml`/`site.js` 双文件写入仍未做事务化；独立侧栏能力留待后续版式扩展。

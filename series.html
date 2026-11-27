@@ -17,6 +17,8 @@
   </noscript>
 </head>
 <body>
+  <a class="skip-link" href="#main-content">跳到主要内容</a>
+
   <header class="site-header">
     <div class="wrap">
       <div class="brand">
@@ -26,8 +28,8 @@
     </div>
   </header>
 
-  <main class="wrap" data-default-id="">
-    <div class="crumb"><a href="index.html">全部主题</a><span>/</span><span id="crumb-title">—</span></div>
+  <main class="wrap" id="main-content" data-default-id="">
+    <div class="crumb" id="crumb"></div>
 
     <section class="hero">
       <h1 id="topic-title">—</h1>
@@ -62,6 +64,7 @@
     </div>
   </footer>
 
+  <script src="assets/data/sections.js"></script>
   <script src="assets/data-loader.js"></script>
   <script src="assets/render.js"></script>
   <script src="assets/personal.js"></script>
@@ -98,7 +101,7 @@
           return;
         }
         document.title = topic.title + ' · 系列合集 · 集页';
-        document.getElementById('crumb-title').textContent = topic.title;
+        document.getElementById('crumb').innerHTML = Render.breadcrumb(Render.sectionMeta(topic), topic.title);
         document.getElementById('topic-title').textContent = topic.title;
         document.getElementById('topic-slogan').textContent = topic.slogan || '';
         if (topic.source && topic.source.url) {

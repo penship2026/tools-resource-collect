@@ -17,6 +17,8 @@
   </noscript>
 </head>
 <body>
+  <a class="skip-link" href="#main-content">跳到主要内容</a>
+
   <header class="site-header">
     <div class="wrap">
       <div class="brand">
@@ -26,8 +28,8 @@
     </div>
   </header>
 
-  <main class="wrap">
-    <div class="crumb"><a href="index.html">全部主题</a><span>/</span><span id="crumb-title">—</span></div>
+  <main class="wrap" id="main-content">
+    <div class="crumb" id="crumb"></div>
     <div id="single-root"></div>
   </main>
 
@@ -38,6 +40,7 @@
     </div>
   </footer>
 
+  <script src="assets/data/sections.js"></script>
   <script src="assets/data-loader.js"></script>
   <script src="assets/render.js"></script>
   <script src="assets/personal.js"></script>
@@ -179,7 +182,7 @@
 
         document.title = (topic.title || v.title) + ' · ' + out.label + ' · 集页';
         document.getElementById('header-meta').textContent = out.label;
-        document.getElementById('crumb-title').textContent = topic.title || v.title;
+        document.getElementById('crumb').innerHTML = Render.breadcrumb(Render.sectionMeta(topic), topic.title || v.title);
         document.body.setAttribute('data-tpl', out.tpl);
         // 多集内容:详情下方追加「上一集 / 下一集」与全集列表
         // 分集目录:放在播放区下方;有目录时不再重复渲染底部的全集列表

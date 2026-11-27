@@ -39,6 +39,32 @@ class PagesContractTest(unittest.TestCase):
         self.assertIn("Render.detail", read("single.html"))
         self.assertIn("Render.episodes", read("single.html"))
 
+    def test_public_pages_have_skip_link_and_main_anchor(self):
+        for page in ["index.html", "series.html", "list.html", "single.html"]:
+            html = read(page)
+            self.assertIn('class="skip-link" href="#main-content"', html, page)
+            self.assertIn('id="main-content"', html, page)
+
+    def test_subpages_render_section_breadcrumb(self):
+        for page in ["series.html", "list.html", "single.html"]:
+            html = read(page)
+            self.assertIn("assets/data/sections.js", html, page)
+            self.assertIn("Render.breadcrumb(Render.sectionMeta(topic)", html, page)
+            self.assertNotIn('id="crumb-title"', html, page)
+        self.assertIn("'全部内容'", read("list.html"))
+
+    def test_index_heading_outline(self):
+        html = read("index.html")
+        self.assertIn('<h1 class="sr-only">集页</h1>', html)
+        self.assertIn('<h2 id="hero-title">', html)
+        self.assertNotIn('<h1 id="hero-title">', html)
+
+    def test_nav_items_min_touch_height(self):
+        css = read("assets/pages/index.css")
+        block = re.search(r"\.section-tab \{([^}]*)\}", css)
+        self.assertIsNotNone(block)
+        self.assertIn("min-height: 44px", block.group(1))
+
     def test_no_duplicate_card_implementation(self):
         """卡片实现只允许存在于 assets/render.js。"""
         for page in PAGES:

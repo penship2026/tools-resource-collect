@@ -249,13 +249,22 @@
   }
 
   // 详情页面包屑:全部主题 / 板块 / 主题(D66 一级导航的落点)
-  function breadcrumb(section, title) {
+  function sectionMeta(topic) {
+    if (!topic || !topic.section) return null;
+    var hit = ((global.SECTIONS) || []).filter(function (s) { return s.id === topic.section; })[0];
+    return { id: topic.section, title: (hit && hit.title) || topic.section_title || topic.section };
+  }
+
+  // 内页面包屑:全部主题 / 板块 / 主题 [/ 尾级];板块名优先读 sections.js,缺失时用索引字段
+  function breadcrumb(section, title, tail) {
     var html = '<a href="index.html">全部主题</a>';
     if (section && section.id) {
       html += '<span>/</span><a href="index.html?section=' + encodeURIComponent(section.id) + '">' +
         esc(section.title) + '</a>';
     }
-    return html + '<span>/</span><span>' + esc(title || '') + '</span>';
+    html += '<span>/</span><span>' + esc(title || '') + '</span>';
+    if (tail) html += '<span>/</span><span>' + esc(tail) + '</span>';
+    return html;
   }
 
   /* ---------------- 四、详情页模板 ---------------- */
@@ -532,6 +541,7 @@
     sectionNav: sectionNav,
     lead: lead,
     sectionBand: sectionBand,
+    sectionMeta: sectionMeta,
     magazineChapter: magazineChapter,
     magazineToc: magazineToc,
     breadcrumb: breadcrumb,

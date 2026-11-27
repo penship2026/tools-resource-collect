@@ -210,6 +210,24 @@ ok('画册章节:hero_image 优先、空章节占位、目录锚点', () => {
   assert(toc.includes('href="#band-k12"'));
 });
 
+ok('breadcrumb 含板块层与尾级', () => {
+  const html = R.breadcrumb({ id: 'k12', title: '中小学教育' }, '跟着动画学古文', '全部内容');
+  assert(html.includes('href="index.html?section=k12"'));
+  assert(html.includes('中小学教育'));
+  assert(html.includes('跟着动画学古文'));
+  assert(html.includes('全部内容'));
+  assert.strictEqual((html.match(/<span>\/<\/span>/g) || []).length, 3);
+});
+
+ok('sectionMeta 优先 sections.js,缺失回退索引', () => {
+  global.SECTIONS = [{ id: 'k12', title: '中小学教育' }];
+  assert.deepStrictEqual(R.sectionMeta({ section: 'k12', section_title: '旧名' }),
+    { id: 'k12', title: '中小学教育' });
+  global.SECTIONS = [];
+  assert.deepStrictEqual(R.sectionMeta({ section: 'k12' }), { id: 'k12', title: 'k12' });
+  assert.strictEqual(R.sectionMeta({}), null);
+});
+
 ok('fmtDate 兼容 ISO 与点号', () => {
   assert.strictEqual(R.fmtDate('2026-11-19'), '2026.11.19');
   assert.strictEqual(R.fmtDate('2026.11.19'), '2026.11.19');

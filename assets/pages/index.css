@@ -21,7 +21,7 @@
 }
 .section-tab {
   flex: 0 0 auto; display: inline-flex; align-items: center; gap: 5px;
-  padding: 6px 12px; border: 1px solid transparent; border-radius: var(--radius-pill);
+  min-height: 44px; padding: 0 12px; border: 1px solid transparent; border-radius: var(--radius-pill);
   color: var(--text-sub); font-size: var(--fs-sm);
   transition: color .15s, border-color .15s, background .15s;
 }
@@ -32,7 +32,7 @@
 
 /* 门户头条:左主位 + 右侧两条 */
 .lead {
-  display: grid; grid-template-columns: minmax(0, 2fr) var(--layout-side-w);
+  display: grid; grid-template-columns: minmax(0, var(--layout-lead-cols)) var(--layout-side-w);
   gap: var(--layout-grid-gap); margin: 30px 0 var(--layout-section-gap);
 }
 .lead[hidden] { display: none; }
@@ -71,7 +71,7 @@
 
 .section-empty[hidden] { display: none; }
 
-@media (max-width: 860px) {
+@media (max-width: 1080px) {
   .lead { grid-template-columns: minmax(0, 1fr); }
   .lead-side { flex-direction: row; overflow-x: auto; }
   .lead-mini { flex: 0 0 300px; }

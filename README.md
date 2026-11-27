@@ -25,7 +25,7 @@
 | 版式 | key | 特征 | 能力 |
 |---|---|---|---|
 | 简洁 | `standard` | 单列 Hero + 卡片网格 | 无导航/头条/分节 |
-| 门户 | `news` | 顶部板块导航 + 1 主 3 副头条 + 板块分节 | nav / lead / bands / sidebar |
+| 门户 | `news` | 顶部板块导航 + 1 主 3 副头条（副卡即窄侧栏）+ 板块分节 | nav / lead / bands |
 | 画册 | `magazine` | 刊头 + 目录 + 章节编号 + 3:2 大图 | nav / bands / toc |
 
 - 切换入口在页脚「版式」三项,文案固定为 **简洁 / 门户 / 画册**;新增版式只需在 `assets/templates.js` 加一行、在 `assets/layouts/` 放一个 CSS,切换器自动出现。

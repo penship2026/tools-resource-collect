@@ -13,7 +13,7 @@ html[data-layout="magazine"] {
 }
 
 html[data-layout="magazine"] .hero { text-align: center; }
-html[data-layout="magazine"] .hero h1 { font-size: 38px; letter-spacing: -1px; }
+html[data-layout="magazine"] .hero h1, .page-index .hero h2 { font-size: 38px; letter-spacing: -1px; }
 html[data-layout="magazine"] .hero .sub { max-width: 620px; margin-left: auto; margin-right: auto; }
 html[data-layout="magazine"] .hero .facts { justify-content: center; }
 
@@ -88,7 +88,7 @@ html[data-layout="magazine"] body.page-index:not(.is-section-view) .filter-bar {
 .mag-chapter.is-empty .mag-empty { padding: 14px 0; border-top: 1px dashed var(--border); }
 
 @media (max-width: 860px) {
-  html[data-layout="magazine"] .hero h1 { font-size: 28px; }
+  html[data-layout="magazine"] .hero h1, .page-index .hero h2 { font-size: 28px; }
   .mag-hero { grid-template-columns: minmax(0, 1fr); gap: 16px; }
   .mag-chapter-head h2 { font-size: 23px; }
   .mag-hero-body h3 { font-size: 22px; }

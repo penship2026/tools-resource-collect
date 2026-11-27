@@ -8,7 +8,7 @@ const vm = require('vm');
 
 const root = path.dirname(__dirname);
 
-function makeEnv(search, initialStore) {
+function makeEnv(search, initialStore, siteConfig) {
   const attrs = {};
   const store = Object.assign({}, initialStore || {});
   const link = {
@@ -34,7 +34,7 @@ function makeEnv(search, initialStore) {
   };
   const window = {
     TEMPLATES: undefined,
-    SITE_CONFIG: undefined,
+    SITE_CONFIG: siteConfig,
     JiyeLayout: undefined
   };
   window.window = window;
@@ -94,7 +94,18 @@ env.window.JiyeLayout.set('news');
 eq('手动切换', env.window.JiyeLayout.current(), 'news');
 eq('手动切换落盘', env.store['jiye.layout'], 'news');
 
-// 7) 版本注册表:三套都在
+// 7) site.yml 默认版式:仅在本机无存储时生效
+env = makeEnv('', null, { default_layout: 'news' });
+eq('站点默认 news', env.window.JiyeLayout.current(), 'news');
+eq('站点默认不落盘', env.store['jiye.layout'], undefined);
+
+env = makeEnv('', { 'jiye.layout': 'magazine' }, { default_layout: 'news' });
+eq('存储优先于站点默认', env.window.JiyeLayout.current(), 'magazine');
+
+env = makeEnv('', null, { default_layout: 'unknown' });
+eq('非法站点默认回退', env.window.JiyeLayout.current(), 'standard');
+
+// 8) 版本注册表:三套都在
 eq('注册表数量', Object.keys(env.window.TEMPLATES.list).length, 3);
 
 if (process.exitCode) {

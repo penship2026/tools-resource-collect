@@ -3,7 +3,7 @@ window.COLLECTION_DATA["topic-df282732"] = {
   "id": "topic-df282732",
   "type": "series",
   "title": "SpringAI",
-  "slogan": "共收录 3 期,点击分集在当前页播放",
+  "slogan": "共收录 4 期,点击分集在当前页播放",
   "source": {
     "platform": "bilibili",
     "name": "徐庶AI实战",
@@ -22,7 +22,7 @@ window.COLLECTION_DATA["topic-df282732"] = {
     "Agent",
     "AI开发"
   ],
-  "count": 3,
+  "count": 4,
   "videos": [
     {
       "platform": "bilibili",
@@ -32,7 +32,7 @@ window.COLLECTION_DATA["topic-df282732"] = {
       "bv": "BV1qByfz4Ens",
       "url": "https://www.bilibili.com/video/BV1qByfz4Ens/",
       "cover": "https://i2.hdslb.com/bfs/archive/7f4ef0ca45c592134ca812cbbeb587835e60b5a9.jpg",
-      "views": "2358",
+      "views": "2430",
       "date": "2026.11.24",
       "ts": 1795511252,
       "author": "徐庶AI实战",
@@ -60,18 +60,32 @@ window.COLLECTION_DATA["topic-df282732"] = {
       "bv": "BV12Cnu64EnF",
       "url": "https://www.bilibili.com/video/BV12Cnu64EnF/",
       "cover": "https://i0.hdslb.com/bfs/archive/06adefd63854485a45a64b0d6af144270e0cee7c.jpg",
-      "views": "2943",
+      "views": "2945",
       "date": "2026.10.18",
       "ts": 1792309405,
       "author": "徐庶AI实战",
       "desc": "从 SpringAI2.0 新特性、多模型对接、流式对话、对话记忆、Tools 工具调用到手写 MCP Server，手把手带 Java 后端落地企业 Agent 应用。"
+    },
+    {
+      "platform": "bilibili",
+      "kind": "video",
+      "key": "bilibili:BV1CUuq6qE5w",
+      "title": "2026最新Java大模型Agent实战教程，SpringAi2.0+Agent Utils+SpringAi Alibaba开发仿ClaudeCode项目实战",
+      "bv": "BV1CUuq6qE5w",
+      "url": "https://www.bilibili.com/video/BV1CUuq6qE5w/",
+      "cover": "https://i0.hdslb.com/bfs/archive/1b8d1c02c29aa4b93b2edd12d206db09d7344acb.jpg",
+      "views": "11666",
+      "date": "2026.08.11",
+      "ts": 1786430678,
+      "author": "徐庶AI实战",
+      "desc": "给大家整理了一份超全学习资料资料包含视频笔记+源码+面试题合集+简历模板+面试指导\n+Java+Al大模型全栈架构师学习路线图|职业规划领资料戳:https://www.bilibili.com/opus/859359240124366930?"
     }
   ],
   "section": "ai",
   "platforms": [
     "bilibili"
   ],
-  "updated": "2026-11-27",
+  "updated": "2026-11-28",
   "latest": "2026.11.24",
   "created": "2026-11-26",
   "enabled": true

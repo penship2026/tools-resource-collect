@@ -3,9 +3,79 @@
 window.SITE = {
   name: "集页",
   description: "一集一页,把值得收藏的内容收成清单",
-  updated: "2026-11-27",
+  updated: "2026-11-28",
 };
 window.COLLECTION_INDEX = [
+  {
+    "id": "topic-df282732",
+    "type": "series",
+    "title": "SpringAI",
+    "slogan": "共收录 4 期,点击分集在当前页播放",
+    "source": {
+      "platform": "bilibili",
+      "name": "徐庶AI实战",
+      "url": "https://space.bilibili.com/3493131121068547/video"
+    },
+    "keyword": "SpringAI",
+    "tags": [
+      "程序员",
+      "AI",
+      "编程",
+      "Java后端开发",
+      "大模型开发",
+      "Spring AI",
+      "后端转AI",
+      "Java",
+      "Agent",
+      "AI开发"
+    ],
+    "count": 4,
+    "section": "ai",
+    "platforms": [
+      "bilibili"
+    ],
+    "updated": "2026-11-28",
+    "latest": "2026.11.24",
+    "created": "2026-11-26",
+    "enabled": true,
+    "cover": "https://i2.hdslb.com/bfs/archive/7f4ef0ca45c592134ca812cbbeb587835e60b5a9.jpg",
+    "section_title": "AI 与智能工具",
+    "section_enabled": true
+  },
+  {
+    "id": "topic-e5b5c763",
+    "type": "series",
+    "title": "英语启蒙必备",
+    "slogan": "共收录 1 期,点击分集在当前页播放",
+    "source": {
+      "platform": "bilibili",
+      "name": "爱学习的柒影",
+      "url": "https://space.bilibili.com/3546645132216606/video"
+    },
+    "keyword": "英语启蒙必备",
+    "tags": [
+      "儿童",
+      "英语",
+      "少儿英语",
+      "学前",
+      "早教",
+      "英语学习",
+      "学习视频",
+      "英语启蒙"
+    ],
+    "count": 1,
+    "section": "k12",
+    "platforms": [
+      "bilibili"
+    ],
+    "updated": "2026-11-28",
+    "latest": "2024.03.14",
+    "created": "2026-11-26",
+    "enabled": true,
+    "cover": "https://i0.hdslb.com/bfs/archive/ebcd3c7807fb70574d651216cc4063b7e109c305.jpg",
+    "section_title": "中小学教育",
+    "section_enabled": true
+  },
   {
     "id": "daily-website",
     "type": "series",
@@ -35,76 +105,6 @@ window.COLLECTION_INDEX = [
     "enabled": true,
     "cover": "https://i2.hdslb.com/bfs/archive/2a2da89665dc1cc8f21f1837861f833731fb51df.png",
     "section_title": "工具与效率",
-    "section_enabled": true
-  },
-  {
-    "id": "topic-df282732",
-    "type": "series",
-    "title": "SpringAI",
-    "slogan": "共收录 3 期,点击分集在当前页播放",
-    "source": {
-      "platform": "bilibili",
-      "name": "徐庶AI实战",
-      "url": "https://space.bilibili.com/3493131121068547/video"
-    },
-    "keyword": "SpringAI",
-    "tags": [
-      "程序员",
-      "AI",
-      "编程",
-      "Java后端开发",
-      "大模型开发",
-      "Spring AI",
-      "后端转AI",
-      "Java",
-      "Agent",
-      "AI开发"
-    ],
-    "count": 3,
-    "section": "ai",
-    "platforms": [
-      "bilibili"
-    ],
-    "updated": "2026-11-27",
-    "latest": "2026.11.24",
-    "created": "2026-11-26",
-    "enabled": true,
-    "cover": "https://i2.hdslb.com/bfs/archive/7f4ef0ca45c592134ca812cbbeb587835e60b5a9.jpg",
-    "section_title": "AI 与智能工具",
-    "section_enabled": true
-  },
-  {
-    "id": "topic-e5b5c763",
-    "type": "series",
-    "title": "英语启蒙必备",
-    "slogan": "共收录 1 期,点击分集在当前页播放",
-    "source": {
-      "platform": "bilibili",
-      "name": "爱学习的柒影",
-      "url": "https://space.bilibili.com/3546645132216606/video"
-    },
-    "keyword": "英语启蒙必备",
-    "tags": [
-      "英语",
-      "儿童",
-      "学习视频",
-      "学前",
-      "早教",
-      "英语学习",
-      "少儿英语",
-      "英语启蒙"
-    ],
-    "count": 1,
-    "section": "k12",
-    "platforms": [
-      "bilibili"
-    ],
-    "updated": "2026-11-27",
-    "latest": "2024.03.14",
-    "created": "2026-11-26",
-    "enabled": true,
-    "cover": "https://i0.hdslb.com/bfs/archive/ebcd3c7807fb70574d651216cc4063b7e109c305.jpg",
-    "section_title": "中小学教育",
     "section_enabled": true
   },
   {

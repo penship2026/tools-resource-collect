@@ -11,13 +11,13 @@ window.COLLECTION_DATA["topic-e5b5c763"] = {
   },
   "keyword": "英语启蒙必备",
   "tags": [
-    "英语",
     "儿童",
-    "学习视频",
+    "英语",
+    "少儿英语",
     "学前",
     "早教",
     "英语学习",
-    "少儿英语",
+    "学习视频",
     "英语启蒙"
   ],
   "count": 1,
@@ -30,7 +30,7 @@ window.COLLECTION_DATA["topic-e5b5c763"] = {
       "bv": "BV1kF4m1c7MU",
       "url": "https://www.bilibili.com/video/BV1kF4m1c7MU/",
       "cover": "https://i0.hdslb.com/bfs/archive/ebcd3c7807fb70574d651216cc4063b7e109c305.jpg",
-      "views": "24158",
+      "views": "24173",
       "date": "2024.03.14",
       "ts": 1710394121,
       "author": "爱学习的柒影",
@@ -41,7 +41,7 @@ window.COLLECTION_DATA["topic-e5b5c763"] = {
   "platforms": [
     "bilibili"
   ],
-  "updated": "2026-11-27",
+  "updated": "2026-11-28",
   "latest": "2024.03.14",
   "created": "2026-11-26",
   "enabled": true

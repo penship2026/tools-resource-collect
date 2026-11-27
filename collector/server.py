@@ -125,7 +125,7 @@ def _job_update(job_id, *, state=None, progress=None, log=None, result=None):
 class Handler(http.server.SimpleHTTPRequestHandler):
     # 静态托管白名单:只放行展示页与 assets,其余(源码/文档/备份/.git)一律 404
     STATIC_EXACT = {
-        "/", "/index.html", "/series.html", "/list.html", "/single.html",
+        "/", "/index.html", "/series.html", "/list.html", "/single.html", "/mine-io.html",
         "/collector/collect.html", "/collect.html",
         "/collector/settings.html", "/settings.html",
         "/collector/settings-guide.html", "/settings-guide.html",
@@ -364,7 +364,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             self._json({
                 "ok": False,
                 "error": "未对外开放的路径",
-                "hint": "静态托管只放行 5 个页面与 assets/;采集接口需本机启动或带 token",
+                "hint": "静态托管只放行展示页、我的导入导出页与 assets/;采集接口需本机启动或带 token",
             }, 404)
             return
         return super().do_GET()

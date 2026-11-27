@@ -669,3 +669,9 @@ Chrome 无头截图三页面全部正常:首页卡片标签独立行两行截断
 - 吸顶后默认收成一行「筛选条件 / 展开」，点开才显示完整分组；展开后文案变「收起」，吸顶期间保持展开，离开吸顶自动复位。
 - 画册版式筛选条补不透明底色，避免滚动内容穿透；400/600 窄屏沿用同一结构。
 - 验证：CDP 简洁主站 61px、门户/我的 122px 吸顶；筛选条由 270/217/164px 收至 50px；展开/收起与回顶复位正常；1280 截图复核。Python 84、视图 21、版式 15、`layout_lint`、`docs_check`、`--verify` 通过。
+
+## 二十二、导入导出页发布白名单修复(2026-11-27)
+
+- 现象:本地访问 `mine-io.html` 返回「未对外开放的路径」;Pages 发布产物也未包含该页。
+- 修复:`collector/server.py` 的 `STATIC_EXACT` 加入 `/mine-io.html`,404 提示同步;`.github/workflows/pages.yml` 的 artifact 清单加入 `mine-io.html`;GITHUB-PAGES/DEPLOY/README 页面清单同步。
+- 验证:本地 18087 端口实测 `/mine-io.html` 200、`/collector/settings.html` 仍 200;Python 85、视图 21、版式 15、`layout_lint`、`docs_check`、`--verify` 通过。线上需等 Pages 重新部署。

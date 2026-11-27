@@ -120,3 +120,18 @@
 - 展开状态在吸顶期间保持，不因继续滚动再次自动收起；重新进入吸顶时回到默认收缩。
 
 **验证**：CDP 在简洁/门户/我的页滚动验证：简洁主站筛选条停在站点头下 61px，门户与我的页停在导航下 122px；吸顶时高度由 270/217/164px 收至 50px，分组 `display:none`；点「展开」恢复完整高度并显示「收起」，回滚到顶部恢复完整筛选。已用 1280 宽截图复核吸顶收缩态。Python 84 例、视图 21 例、版式 15 例、`layout_lint`、`docs_check`、`--verify` 通过。
+
+## 十、我的导入导出页发布白名单修复（2026-11-27）
+
+**现象**：本地访问 `mine-io.html` 返回 `{"ok": false, "error": "未对外开放的路径"}`；部署到 GitHub Pages 时该页也不在发布产物中，线上会 404。
+
+**根因**：`mine-io.html` 是在「我的」入口收口时新增的页面，但两处白名单仍停留在旧页面清单：
+- `collector/server.py` 的 `STATIC_EXACT` 只有 `/index.html`、`/series.html`、`/list.html`、`/single.html` 和采集页；
+- `.github/workflows/pages.yml` 生成 artifact 时只 `cp` 了四个展示页。
+
+**处理**：
+- 本地静态白名单加入 `/mine-io.html`，404 提示同步改为「展示页、我的导入导出页与 assets/」。
+- Pages artifact 清单加入 `mine-io.html`；`assets/pages/mine-io.css` 已在 `assets/**` 内，无需单独放行。
+- `docs/GITHUB-PAGES.md`、`docs/DEPLOY.md`、README 页面清单同步。
+
+**验证**：本地 `python3 collector/server.py --port 18087` 实测 `/mine-io.html` 返回 200、`/collector/settings.html` 仍返回 200（本机白名单内）；Python 85 例、视图 21 例、版式 15 例、`layout_lint`、`docs_check`、`--verify` 通过。线上需等 Pages 重新部署后访问确认。

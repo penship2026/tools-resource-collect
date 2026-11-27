@@ -8,7 +8,7 @@
 
 ### 1.1 为什么可以直接托管
 
-本站的三个展示页(`index.html` / `series.html` / `single.html`)满足 GitHub Pages 的全部要求:
+本站的展示页(`index.html` / `series.html` / `list.html` / `single.html`)与我的导入导出页(`mine-io.html`)满足 GitHub Pages 的全部要求:
 
 - 纯静态 HTML/CSS/JS,无服务端渲染;
 - 所有本地资源引用均为**相对路径**(`assets/style.css`、`assets/data/index.js` 等),天然兼容 Pages 的子路径 `/<仓库名>/`;
@@ -21,7 +21,7 @@ GitHub Pages **只提供静态文件托管,不能运行 Python**。因此:
 
 | 能力 | 能否在 Pages 上完成 | 说明 |
 |---|---|---|
-| 浏览首页、子集合页、单链接页 | ✅ 可以 | Pages 直接托管三个 HTML + 数据文件 |
+| 浏览首页、子集合页、单链接页、我的导入导出页 | ✅ 可以 | Pages 直接托管展示页 + 数据文件 |
 | 点击「开始采集」 | ❌ 不可以 | 采集依赖 `/api/collect`,Pages 无后端,会返回 HTML 导致 JSON 解析报错 |
 | 本地采集后更新数据 | ✅ 可以 | 在本地/NAS/服务器采集,把数据文件提交到仓库即可 |
 | 定时自动采集 | ⚠️ 用 GitHub Actions | 见第三章方式 B,需注意 B站接口风控 |
@@ -116,7 +116,7 @@ assets/data/*.js
 https://<你的用户名>.github.io/<仓库名>/
 ```
 
-> 发布产物是白名单 artifact：`index.html`、`series.html`、`list.html`、`single.html`、`assets/**`、`CNAME`、`.nojekyll`。`collector/**`、`docs/**`、`topics.yml`、`sections.yml` 都不会进入 Pages；线上访问 `/collector/settings.html` 和 `/collector/collect.html` 应为 404。
+> 发布产物是白名单 artifact：`index.html`、`series.html`、`list.html`、`single.html`、`mine-io.html`、`assets/**`、`CNAME`、`.nojekyll`。`collector/**`、`docs/**`、`topics.yml`、`sections.yml` 都不会进入 Pages；线上访问 `/collector/settings.html` 和 `/collector/collect.html` 应为 404。
 
 ### 2.5 子路径兼容性
 

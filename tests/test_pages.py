@@ -39,6 +39,15 @@ class PagesContractTest(unittest.TestCase):
         self.assertIn("Render.detail", read("single.html"))
         self.assertIn("Render.episodes", read("single.html"))
 
+    def test_collect_form_has_section_and_target_topic(self):
+        """采集页:板块可空 + 可追加到已有主题,追加时强制 append 并带板块。"""
+        html = read("collector/collect.html")
+        for text in ('id="section-id"', 'id="target-topic"',
+                     "renderSectionOptions", "renderTargetOptions",
+                     "merge_mode: targetId ? 'append' : mergeMode()",
+                     "section: $('section-id').value.trim()"):
+            self.assertIn(text, html, text)
+
     def test_public_pages_have_skip_link_and_main_anchor(self):
         for page in ["index.html", "series.html", "list.html", "single.html"]:
             html = read(page)

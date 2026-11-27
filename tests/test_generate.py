@@ -281,6 +281,23 @@ class GenerateDataTest(unittest.TestCase):
         self.assertEqual(len(index), 1)
         self.assertTrue(os.path.exists(data_path))
 
+    def test_finalize_unit_section_is_optional(self):
+        """板块可留空表示未分类;选定板块时必须写入数据文件。"""
+        index = []
+        generate._finalize_unit(
+            "u-empty", "single", "未分类", "副标题",
+            {"platform": "bilibili", "name": "作者", "url": ""},
+            [video(0)], ["标签"], "关键词",
+            None, None, {"added": 1, "updated": 0, "kept": 0, "total": 1}, index)
+        self.assertNotIn("section", generate.load_collection_data("u-empty"))
+        generate._finalize_unit(
+            "u-tools", "series", "工具合集", "副标题",
+            {"platform": "bilibili", "name": "作者", "url": ""},
+            [video(1)], ["标签"], "关键词",
+            None, None, {"added": 1, "updated": 0, "kept": 0, "total": 1},
+            generate.load_index(), section="tools")
+        self.assertEqual(generate.load_collection_data("u-tools")["section"], "tools")
+
     def test_title_match_is_exact_keyword(self):
         """D16:匹配只做「关键词完整出现在标题」,死参数已移除"""
         self.assertTrue(generate.title_match("跟着动画学古文:第 1 集", "跟着动画学古文"))

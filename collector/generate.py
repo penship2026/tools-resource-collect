@@ -889,7 +889,9 @@ def verify_data(log=print):
         # 板块归属：数据文件是事实源，索引必须同步派生
         section = data.get("section") or ""
         if not section:
-            problems.append("%s: 单元缺少 section 字段" % uid)
+            # 采集页允许留空,表示「未分类」;索引此时不应残留旧 section
+            if t.get("section"):
+                problems.append("%s: 数据未分类,索引却仍有 section=%s" % (uid, t.get("section")))
         elif section_map and section not in section_map:
             problems.append("%s: section 不存在(%s)" % (uid, section))
         elif t.get("section") != section:
@@ -1779,7 +1781,7 @@ def collect_topic(keyword, pages=30, title=None, up=None, slug=None,
     result.update(report)
     result["sample_url"] = videos[0]["url"] if videos else ""
 
-    unit_type = "series" if len(videos) > 1 else "single"
+    unit_type = "series" if (len(videos) > 1 or (existing_data or {}).get("type") == "series") else "single"
     result["type"] = unit_type
     log("%s: 新增 %d / 更新 %d / 未变 %d / 合计 %d 期" % (
         "覆盖采集" if replace else "去重合并",
@@ -2062,7 +2064,8 @@ def fetch_video_tags(bvid, log=print):
 
 @serialized_collect
 def collect_by_url(url, title=None, slug=None, slogan=None, dry_run=False,
-                   unit_id=None, log=print, manual=None, intake=None, replace=False):
+                   unit_id=None, log=print, manual=None, intake=None, replace=False,
+                   section=None):
     """
     按链接采集单条内容,自动识别渠道:
       - B站(含 BV 号、b23.tv 短链、视频页链接)→ 视频详情接口
@@ -2073,7 +2076,7 @@ def collect_by_url(url, title=None, slug=None, slogan=None, dry_run=False,
     if plat == "bilibili" or (not plat and extract_bvid(url)):
         return _collect_bilibili_single(
             url, title=title, slug=slug, slogan=slogan, dry_run=dry_run,
-            unit_id=unit_id, log=log, intake=intake)
+            unit_id=unit_id, log=log, intake=intake, section=section)
     if not plat:
         return {
             "ok": False, "keyword": url, "error":
@@ -2084,7 +2087,7 @@ def collect_by_url(url, title=None, slug=None, slogan=None, dry_run=False,
         }
     return _collect_article_single(
         url, plat, title=title, slug=slug, slogan=slogan, dry_run=dry_run,
-        unit_id=unit_id, log=log, manual=manual, intake=intake)
+        unit_id=unit_id, log=log, manual=manual, intake=intake, section=section)
 
 
 def _unit_id_from_item(item, plat, existing_ids):
@@ -2110,7 +2113,7 @@ def _unit_id_from_item(item, plat, existing_ids):
 
 def _collect_article_single(url, plat, title=None, slug=None, slogan=None,
                             dry_run=False, unit_id=None, log=print, manual=None,
-                            intake=None):
+                            intake=None, section=None):
     """采集单条图文内容(公众号/小红书),写入一个 single 单元"""
     plat_name = channels.platform_name(plat)
     result = {
@@ -2184,14 +2187,17 @@ def _collect_article_single(url, plat, title=None, slug=None, slogan=None,
                       page_file="single.html?id=%s" % uid, topic_count=len(index))
         return result
 
-    page_path = "single.html?id=%s" % uid
-    final_slogan = slogan or "单条内容精选 · 前往%s阅读原文" % plat_name
+    unit_type = "series" if (len(videos) > 1 or (existing_data or {}).get("type") == "series") else "single"
+    page_path = "%s.html?id=%s" % (unit_type, uid)
+    final_slogan = slogan or (
+        "共收录 %d 条内容 · 点击卡片查看详情" % len(videos) if unit_type == "series"
+        else "单条内容精选 · 前往%s阅读原文" % plat_name)
     unit_tags = item.get("tags") or guess_tags(final_title, [item.get("author") or ""])
     data_path, index = _finalize_unit(
-        uid, "single", final_title, final_slogan,
+        uid, unit_type, final_title, final_slogan,
         {"platform": platform_key(plat_name), "name": item.get("author") or plat_name,
          "url": item["url"]},
-        videos, unit_tags, url, existing_data, intake, report, index)
+        videos, unit_tags, url, existing_data, intake, report, index, section=section)
     result.update(ok=True, data_file=display_path(data_path),
                   page_file=page_path, topic_count=len(index))
     log("采集完成: %s" % result["data_file"])
@@ -2203,7 +2209,8 @@ def _collect_article_single(url, plat, title=None, slug=None, slogan=None,
 
 @serialized_collect
 def collect_batch(text, title=None, slug=None, slogan=None, dry_run=False,
-                  unit_id=None, log=print, intake=None, replace=False):
+                  unit_id=None, log=print, intake=None, replace=False,
+                  section=None):
     """
     批量链接采集:一次粘贴多条链接(可混合 B站/公众号/小红书),合成一个单元。
       - 1 条成功结果按 single 处理,2 条及以上按 series(合集)处理
@@ -2276,7 +2283,7 @@ def collect_batch(text, title=None, slug=None, slogan=None, dry_run=False,
     log("去重合并: 新增 %d / 更新 %d / 未变 %d / 合计 %d 条" % (
         report["added"], report["updated"], report["kept"], report["total"]))
 
-    unit_type = (existing_data or {}).get("type") or ("series" if len(videos) > 1 else "single")
+    unit_type = "series" if (len(videos) > 1 or (existing_data or {}).get("type") == "series") else "single"
     result["type"] = unit_type
 
     if dry_run:
@@ -2318,7 +2325,7 @@ def collect_batch(text, title=None, slug=None, slogan=None, dry_run=False,
         {"platform": platform_key(plat_label), "name": source_name,
          "url": items[0].get("url", "")},
         videos, unit_tags, "batch", existing_data, intake, report, index,
-        platforms=plat_keys)
+        platforms=plat_keys, section=section)
     result.update(ok=True, data_file=display_path(data_path),
                   page_file=page_path, topic_count=len(index))
     log("采集完成: %s" % result["data_file"])
@@ -2471,7 +2478,8 @@ def remove_links(text, unit_id, mode="url", dry_run=False, log=print):
 
 
 def _collect_bilibili_single(url, title=None, slug=None, slogan=None, dry_run=False,
-                             unit_id=None, log=print, intake=None, replace=False):
+                             unit_id=None, log=print, intake=None, replace=False,
+                             section=None):
     """按 B站 视频链接采集单条视频,写入一个 single 单元。来源是视频详情 API。"""
     result = {
         "ok": False, "keyword": "", "error": None,
@@ -2542,7 +2550,7 @@ def _collect_bilibili_single(url, title=None, slug=None, slogan=None, dry_run=Fa
                                     incoming, replace)
     result.update(report)
     result["sample_url"] = videos[0]["url"] if videos else ""
-    unit_type = "series" if len(videos) > 1 else "single"
+    unit_type = "series" if (len(videos) > 1 or (existing_data or {}).get("type") == "series") else "single"
     result["type"] = unit_type
     log("%s: 新增 %d / 更新 %d / 未变 %d / 合计 %d 期" % (
         "覆盖采集" if replace else "去重合并",
@@ -2569,10 +2577,10 @@ def _collect_bilibili_single(url, title=None, slug=None, slogan=None, dry_run=Fa
         result["topic_count"] = len(index)
         return result
 
-    unit_type = "series" if len(videos) > 1 else "single"
+    unit_type = "series" if (len(videos) > 1 or (existing_data or {}).get("type") == "series") else "single"
     page_path = "%s.html?id=%s" % (unit_type, uid)
     final_slogan = slogan or (
-        "共收录 %d 集 · 点击分集在当前页播放" % len(videos) if len(videos) > 1
+        "共收录 %d 集 · 点击分集在当前页播放" % len(videos) if unit_type == "series"
         else "单条视频精选 · 点击进入详情页")
     # 单元标签:视频标签优先;没有标签时退回标题关键词,保证首页筛选有内容
     unit_tags = list(tags)
@@ -2587,7 +2595,7 @@ def _collect_bilibili_single(url, title=None, slug=None, slogan=None, dry_run=Fa
          "url": ("https://space.bilibili.com/%s/video" % raw.get("mid"))
                 if raw.get("mid") else video["url"]},
         videos, unit_tags, url, existing_data, intake, report, index,
-        season=(video.get("season") if season_items else None))
+        season=(video.get("season") if season_items else None), section=section)
 
     result["ok"] = True
     result["type"] = unit_type

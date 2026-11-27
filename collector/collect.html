@@ -15,12 +15,14 @@
     .panel h2 { font-size: 15px; font-weight: 600; margin-bottom: 18px; }
     .field { margin-bottom: 16px; }
     .field label { display: block; font-size: 13px; color: var(--text-sub); margin-bottom: 7px; }
-    .field input[type=text], .field input[type=number], .field textarea {
+    .field input[type=text], .field input[type=number], .field textarea, .field select {
       width: 100%; background: var(--bg); border: 1px solid var(--border);
       border-radius: var(--radius-sm); padding: 10px 12px; color: var(--text); font-size: 14px; outline: none;
       font-family: inherit; line-height: 1.6; resize: vertical;
     }
-    .field input:focus, .field textarea:focus { border-color: var(--brand); }
+    .field select { appearance: auto; cursor: pointer; }
+    .field input:focus, .field textarea:focus, .field select:focus { border-color: var(--brand); }
+    .field select:disabled { color: var(--text-mute); cursor: default; opacity: .85; }
     /* 可选设置:默认收起,只留必填项 */
     .advanced { margin-top: 18px; border-top: 1px dashed var(--border); padding-top: 14px; }
     .advanced summary {
@@ -211,6 +213,22 @@
           <button class="tab" id="tab-keyword" type="button">按主题采集</button>
         </div>
         <form id="form">
+          <!-- 归属板块可留空;选择已有主题时自动沿用该主题的板块 -->
+          <div class="field" id="field-section">
+            <label for="section-id">归属板块(可选)</label>
+            <select id="section-id">
+              <option value="">不指定(未分类)</option>
+            </select>
+            <div class="tip">留空时仍会出现在「全部」,但不计入任何板块导航;重新采集时默认沿用原板块。</div>
+          </div>
+          <!-- 选择已有主题 = 本次结果追加到该主题,按链接去重,不新建单元 -->
+          <div class="field" id="field-target-topic">
+            <label for="target-topic">加入已有主题(可选)</label>
+            <select id="target-topic">
+              <option value="">不追加,新建采集单元</option>
+            </select>
+            <div class="tip">选中后本次采集会追加到该主题,并按链接唯一键去重;标题与板块沿用该主题,不新建单元。</div>
+          </div>
           <!-- 重新采集时才出现:追加(默认)保留旧条目 / 覆盖(只保留本次结果) -->
           <div class="field hidden" id="field-merge-mode">
             <label>采集方式</label>
@@ -357,6 +375,7 @@
     let recollectId = '';       // 非空 = 正在重新采集该单元;为空 = 新建采集
     let recollectEnabled = true; // 该单元当前是否在首页显示(重新采集态用于「下线 / 重新上线」)
     let siteCsrf = '';           // 站点外观写入需要 CSRF,token 由 GET /api/site 下发
+    let sectionsCache = [];      // 板块注册表,来自 GET /api/topics 的 sections 字段
 
     function mergeMode() {
       return (document.querySelector('input[name="merge_mode"]:checked') || {}).value || 'append';
@@ -364,8 +383,71 @@
     function submitLabel() {
       if (recollectId && mergeMode() === 'remove') return '确认移除链接';
       if (recollectId) return '确认重新采集';
+      if (!recollectId && $('target-topic').value) return '追加到该主题';
       if (mode === 'batch') return '开始批量采集';
       return mode === 'url' ? '采集这条内容' : '开始采集';
+    }
+
+    function sectionName(id) {
+      const s = sectionsCache.find(x => x.id === id);
+      return s ? s.title : '';
+    }
+
+    function selectedTargetUnit() {
+      const id = $('target-topic').value;
+      return id ? unitCache.find(t => t.id === id) : null;
+    }
+
+    // 板块下拉:保留当前选择,避免 loadTopics 刷新后把用户刚选的板块/主题冲掉
+    function renderSectionOptions() {
+      const sel = $('section-id');
+      const cur = sel.value;
+      const all = sectionsCache.slice();
+      sel.innerHTML = '<option value="">不指定(未分类)</option>' + all.map(s =>
+        '<option value="' + esc(s.id) + '">' + esc(s.title) +
+        (s.enabled === false ? ' (已停用)' : '') + ' (' + (s.count || 0) + ')</option>'
+      ).join('');
+      sel.value = all.some(s => s.id === cur) ? cur : '';
+    }
+
+    function renderTargetOptions() {
+      const sel = $('target-topic');
+      const cur = sel.value;
+      const units = unitCache.slice().sort((a, b) => (a.title || '').localeCompare(b.title || '', 'zh'));
+      sel.innerHTML = '<option value="">不追加,新建采集单元</option>' + units.map(t => {
+        const bits = [sectionName(t.section) || '未分类', (t.count || 0) + ' 条'];
+        if (t.enabled === false) bits.push('已下线');
+        return '<option value="' + esc(t.id) + '">' + esc(t.title || t.id) +
+          ' · ' + esc(bits.join(' · ')) + '</option>';
+      }).join('');
+      sel.value = units.some(t => t.id === cur) ? cur : '';
+    }
+
+    // 选择已有主题后:板块锁定为该主题板块,标题沿用主题标题;清空则恢复可编辑
+    function syncTargetTopic() {
+      if (recollectId) return;
+      const unit = selectedTargetUnit();
+      const locked = !!unit;
+      $('section-id').disabled = locked;
+      if (locked) {
+        $('section-id').value = unit.section || '';
+        if (!$('title').value.trim() || !titleTouched) {
+          $('title').value = unit.title || '';
+          titleTouched = true;
+          lastAutoTitle = '';
+        }
+      }
+      $('submit').textContent = submitLabel();
+    }
+
+    // 重新采集时不显示「加入已有主题」,避免把本次结果误追加到另一个单元
+    function syncTargetField() {
+      const inRecollect = !!recollectId;
+      $('field-target-topic').classList.toggle('hidden', inRecollect);
+      if (inRecollect) {
+        $('target-topic').value = '';
+        $('section-id').disabled = false;
+      }
     }
 
     // 标题字段随采集方式变化:批量必填,其余可选
@@ -424,6 +506,7 @@
     document.querySelectorAll('input[name="merge_mode"]').forEach(radio => {
       radio.addEventListener('change', () => { $('submit').textContent = submitLabel(); });
     });
+    $('target-topic').addEventListener('change', syncTargetTopic);
 
     // 用相对路径调用接口,兼容站点部署在子目录下(根路径下也正常)
     const API_COLLECT = 'api/collect';
@@ -521,6 +604,9 @@
       $('btn-offline').textContent = '下线不显示';
       $('field-advanced').open = false;
       $('field-merge-mode').classList.add('hidden');
+      $('section-id').disabled = false;
+      $('target-topic').value = '';
+      syncTargetField();
       const appendRadio = document.querySelector('input[name="merge_mode"][value="append"]');
       if (appendRadio) appendRadio.checked = true;
       hideRecall();
@@ -575,6 +661,9 @@
       recollectId = unitId;
       recollectEnabled = unit.enabled !== false;
       $('slug').value = unitId;
+      syncTargetField();
+      $('section-id').disabled = false;
+      $('section-id').value = unit.section || '';
       $('form-title').textContent = '重新采集 · ' + (unit.title || unitId);
       $('btn-title-only').hidden = false;
       $('btn-offline').hidden = false;
@@ -745,8 +834,12 @@
     function loadTopics() {
       apiFetch(API_TOPICS, { cache: 'no-store' }).then(readJSON).then(d => {
         if (!d.ok) { $('topics').innerHTML = '<div class="tip">' + esc(d.error || '索引不可用') + '</div>'; return; }
+        sectionsCache = d.sections || [];
         unitCache = d.topics || [];
+        renderSectionOptions();
+        renderTargetOptions();
         renderUnitPage();
+        syncTargetTopic();
       }).catch(err => { $('topics').innerHTML = '<div class="tip">加载失败: ' + esc(err.message) + '</div>'; });
     }
 
@@ -1006,16 +1099,20 @@
         statusBox.textContent = '请至少选择一个采集渠道';
         return;
       }
+      const targetId = recollectId ? '' : ($('target-topic').value || '').trim();
+      const targetTitle = targetId ? ((selectedTargetUnit() || {}).title || targetId) : '';
       const payload = {
         mode: mode,
         keyword: keyword,
         title: $('title').value.trim(),
-        unit_id: $('slug').value.trim(),
+        // 新建时若选了已有主题,本次结果追加到该主题;重新采集仍用 slug
+        unit_id: recollectId ? $('slug').value.trim() : targetId,
+        section: $('section-id').value.trim(),
         up: $('up').value.trim(),
         pages: parseInt($('pages').value) || 30,
         channels: channels,
         dry_run: $('dry_run').checked,
-        merge_mode: mergeMode(),
+        merge_mode: targetId ? 'append' : mergeMode(),
         // 手工补录:公众号/小红书抓取被风控时,至少填标题即可建单元
         manual_title: $('manual_title').value.trim(),
         manual_author: $('manual_author').value.trim(),
@@ -1065,7 +1162,9 @@
               : '预览完成,未写入文件')
             : (payload.merge_mode === 'remove'
               ? '已移除 ' + (d.removed || 0) + ' 条,剩余 ' + (d.total || 0) + ' 条'
-              : '完成!新增 ' + d.added + ' / 更新 ' + d.updated + ' / 合计 ' + d.total + ' 期');
+              : (targetId
+                ? '已追加到「' + targetTitle + '」:新增 ' + d.added + ' / 更新 ' + d.updated + ' / 合计 ' + d.total + ' 条'
+                : '完成!新增 ' + d.added + ' / 更新 ' + d.updated + ' / 合计 ' + d.total + ' 期'));
           $('r-added').textContent = d.added;
           $('r-updated').textContent = d.updated;
           $('r-kept').textContent = d.kept;

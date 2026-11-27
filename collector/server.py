@@ -285,7 +285,12 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 return
             index = generate.load_index()
             site_ed = generate.load_site_config().get("editorial") or {}
-            self._json({"ok": True, "topics": [
+            try:
+                sections_payload = generate.build_sections_payload(index)
+            except Exception:
+                sections_payload = []
+            section_titles = {s.get("id"): s.get("title", "") for s in sections_payload}
+            self._json({"ok": True, "sections": sections_payload, "topics": [
                 {
                     "id": t.get("id"),
                     "title": t.get("title"),
@@ -297,6 +302,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     "author": (t.get("source") or {}).get("name", ""),
                     "platform": generate.platform_label((t.get("source") or {}).get("platform")),
                     "keyword": t.get("keyword", ""),
+                    "section": t.get("section", ""),
+                    "section_title": section_titles.get(t.get("section", ""), ""),
                     "created": t.get("created", ""),
                     "updated": t.get("updated", ""),
                     "last_at": t.get("last_at", ""),
@@ -336,6 +343,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     "type": data.get("type", "series"),
                     "platform": generate.platform_label((data.get("source") or {}).get("platform")),
                     "count": len(data.get("videos") or []),
+                    "section": data.get("section") or "",
                     "page": unit_page(data or meta),
                     # 老单元没有采集记录时,至少能用当初的关键词/链接回填
                     "keyword": data.get("keyword") or meta.get("keyword", ""),
@@ -523,6 +531,11 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
         keyword = (payload.get("keyword") or "").strip()
         mode = (payload.get("mode") or "keyword").strip()
+        # 归属板块:可留空(未分类);非空时必须存在于 sections.yml
+        section = (payload.get("section") or "").strip() or None
+        if section and section not in generate.section_ids():
+            self._json({"ok": False, "error": "板块不存在: %s" % section}, 400)
+            return
         # 采集方式:append(默认,追加保留旧条目)| replace(覆盖,只保留本次结果)
         # | remove(按填写的链接从已有单元移除条目,仅链接类采集可用)
         merge_mode = (payload.get("merge_mode") or "append").strip()
@@ -599,7 +612,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     slogan=(payload.get("slogan") or "").strip() or None,
                     dry_run=bool(payload.get("dry_run")),
                     log=log,
-                    intake=intake, replace=replace,
+                    intake=intake, replace=replace, section=section,
                 )
             elif mode == "url":
                 result = generate.collect_by_url(
@@ -610,7 +623,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     dry_run=bool(payload.get("dry_run")),
                     manual=manual,
                     log=log,
-                    intake=intake, replace=replace,
+                    intake=intake, replace=replace, section=section,
                 )
             else:
                 result = generate.collect_topic(
@@ -623,7 +636,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     dry_run=bool(payload.get("dry_run")),
                     topic_channels=payload.get("channels"),
                     log=log,
-                    intake=intake, replace=replace,
+                    intake=intake, replace=replace, section=section,
                 )
         except Exception as exc:
             self._json({"ok": False, "error": "采集失败: %s" % exc, "logs": logs}, 500)

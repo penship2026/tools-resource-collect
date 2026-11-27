@@ -746,3 +746,11 @@ Chrome 无头截图三页面全部正常:首页卡片标签独立行两行截断
 - `cli.py` 新增 `generate --kind layout|theme --request ... --mock --out ... --no-cache --attempts 2`；默认写 `drafts/<key>/candidate-N/` 的 `spec.json`、`<key>.css`、`<key>.registry.json`，并在根目录写 `run.json`。
 - 新增 `tests/test_generate_ai.py` 9 例：mock 双类型各 3 候选、主题 lint、缓存命中、非法 JSON 重试、schema 失败重试、候选同质拒绝、合成样例边界、环境变量门槛、CLI 冒烟。
 - 验收：A2 新增 9 例全过；mock 版式 3 候选 CSS 约 3.2–3.3KB、主题 3 候选约 0.97KB 且 lint 全过；全量 Python 119 例中 A2 全绿，唯一失败为本机未提交采集数据 `topic-35bc9a90` 缺 `section` 的既有数据自检，与 A2 代码无关；Node 版式 34、主题 12、视图 21、`layout_lint` 全过。
+
+## 三十一、采集页板块与追加主题(2026-11-27)
+
+- 采集页新增「归属板块(可选)」下拉,数据来自 `/api/topics` 新增的 `sections` 字段;留空时单元不出现在任何板块导航,只在「全部」里保留,`--verify` 按「未分类」放行。
+- 新增「加入已有主题(可选)」下拉:选中后本次采集的 `unit_id` 指向该主题,强制 `merge_mode=append`,标题与板块沿用该主题;结果按 `item_key()` 的链接唯一键去重,不新建单元。
+- `section` 已贯通 `/api/collect` 与 `collect_by_url / collect_batch / collect_topic`;批量或单链接追加到既有 series 时保留 series 类型,不会因为只采到一条而被降成 single。
+- 重新采集态隐藏「加入已有主题」,回填原单元板块;退出重新采集/重置时恢复新建态。
+- 实测:8765 旧进程已重启;`/api/topics` 返回 7 板块、13 单元及 `section/section_title`;预览追加 `topic-35bc9a90` 返回 `type=series`、`unit_id` 正确、`added`/`updated` 正常。全量 Python 132 例、`--verify`、`docs_check`、`layout_lint` 通过。

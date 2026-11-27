@@ -276,7 +276,7 @@ Unicode NFKC；英文小写；全角转半角；去多余空白与常见标点�
   deploy -> deploy-pages
 ```
 
-artifact 白名单：`index.html`、`series.html`、`list.html`、`single.html`、`assets/**`、`CNAME`、`.nojekyll`。
+artifact 白名单：`index.html`、`series.html`、`list.html`、`single.html`、`mine-io.html`、`assets/**`、`CNAME`、`.nojekyll`。
 
 排除：`collector/**`、`docs/**`、`tests/**`、`scripts/**`、`.github/**`、`backups/**`、`README.md`、`topics.yml`、`sections.yml`。
 

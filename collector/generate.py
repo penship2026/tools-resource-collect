@@ -107,9 +107,14 @@ def _resolve_dir(env_name, default_rel):
 
 DATA_DIR = _resolve_dir("VIDEO_DATA_DIR", os.path.join("assets", "data"))
 INDEX_JS = os.path.join(DATA_DIR, "index.js")
+SECTIONS_JS = os.path.join(DATA_DIR, "sections.js")
 # 板块与主题注册表放在项目根,随仓库公开;采集端只读。
 SECTIONS_FILE = os.path.join(ROOT, "sections.yml")
 TOPICS_FILE = os.path.join(ROOT, "topics.yml")
+# 站点外观与编辑推荐(公开配置,设置页维护);site.js 是它的前端产物
+SITE_FILE = os.path.join(ROOT, "site.yml")
+SITE_JS = os.path.join(ASSETS, "site.js")
+LAYOUT_KEYS = ("standard", "news", "magazine")
 # 每次采集是独立单元,数据单独存一个文件,便于局部更新与单独关闭显示
 COLLECTIONS_DIR = os.path.join(DATA_DIR, "collections")
 # 覆盖索引前的自动快照目录(仅本地保留,已在 .gitignore 中排除)
@@ -530,6 +535,210 @@ def index_status():
         return {"ok": False, "count": 0, "reason": str(exc)}
 
 
+SITE_PIN_RE = re.compile(r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$")
+SITE_FIELDS = ("pin", "pin_at", "hero_image")
+
+
+def _site_scalar(raw):
+    """site.yml 只用少量标量:布尔/引号字符串/普通字符串"""
+    value = _strip_yaml_comment(str(raw or "")).strip()
+    if value.lower() == "true":
+        return True
+    if value.lower() == "false":
+        return False
+    if len(value) >= 2 and value[0] == value[-1] and value[0] in ("'", '"'):
+        return value[1:-1]
+    return value
+
+
+def load_site_config(path=None):
+    """读取 site.yml;缺失返回安全默认(不抛错,保证老部署可用)。"""
+    path = path or SITE_FILE
+    config = {"version": 1, "default_layout": "standard", "editorial": {}}
+    if not os.path.exists(path):
+        return config
+    in_site = in_editorial = False
+    unit = ""
+    with open(path, encoding="utf-8") as fh:
+        for line in fh:
+            if not line.strip() or line.lstrip().startswith("#"):
+                continue
+            indent = len(line) - len(line.lstrip(" "))
+            content = line.strip()
+            if ":" not in content:
+                continue
+            key, raw = content.split(":", 1)
+            key = key.strip()
+            if indent == 0:
+                in_site = key == "site"
+                in_editorial = key == "editorial"
+                unit = ""
+                if key == "version":
+                    config["version"] = int(_site_scalar(raw) or 1)
+                continue
+            if in_site and key == "default_layout":
+                config["default_layout"] = str(_site_scalar(raw) or "standard")
+            elif in_editorial:
+                if indent <= 2:
+                    unit = key
+                    config["editorial"].setdefault(unit, {})
+                elif unit and key in SITE_FIELDS:
+                    config["editorial"].setdefault(unit, {})[key] = _site_scalar(raw)
+    return config
+
+
+def _valid_hero_url(value):
+    if not value:
+        return True
+    if len(value) > 500:
+        return False
+    try:
+        parsed = urllib.parse.urlparse(value)
+    except ValueError:
+        return False
+    if parsed.scheme == "https" and parsed.netloc:
+        return True
+    return parsed.scheme == "http" and parsed.hostname in ("127.0.0.1", "localhost")
+
+
+def normalize_site_config(raw, unit_ids=None):
+    """校验 site.yml 配置,返回只含已知字段的干净结构;不合法抛 ValueError。"""
+    if not isinstance(raw, dict):
+        raise ValueError("site 配置必须是对象")
+    layout = str(raw.get("default_layout") or "standard").strip()
+    if layout not in LAYOUT_KEYS:
+        raise ValueError("default_layout 必须是 %s 之一" % " / ".join(LAYOUT_KEYS))
+    editorial = raw.get("editorial") or {}
+    if not isinstance(editorial, dict):
+        raise ValueError("editorial 必须是对象")
+    valid_ids = set(unit_ids) if unit_ids is not None else None
+    clean = {}
+    for uid, item in editorial.items():
+        uid = str(uid or "").strip()
+        if not uid:
+            raise ValueError("editorial 存在空 id")
+        if valid_ids is not None and uid not in valid_ids:
+            raise ValueError("置顶/大图指向的单元不存在:%s" % uid)
+        if not isinstance(item, dict):
+            raise ValueError("editorial.%s 必须是对象" % uid)
+        pin = item.get("pin", False)
+        if not isinstance(pin, bool):
+            raise ValueError("editorial.%s.pin 必须是布尔值" % uid)
+        pin_at = str(item.get("pin_at") or "").strip()
+        if pin:
+            if not SITE_PIN_RE.match(pin_at):
+                raise ValueError("editorial.%s.pin_at 必须形如 yyyy-mm-dd hh:mm" % uid)
+        else:
+            pin_at = ""
+        hero = str(item.get("hero_image") or "").strip()
+        if hero and not _valid_hero_url(hero):
+            raise ValueError("editorial.%s.hero_image 只允许 https:// 或本机 http://127.0.0.1" % uid)
+        entry = {}
+        if pin:
+            entry["pin"] = True
+            entry["pin_at"] = pin_at
+        if hero:
+            entry["hero_image"] = hero
+        if entry:
+            clean[uid] = entry
+    return {"version": 1, "default_layout": layout,
+            "editorial": dict(sorted(clean.items()))}
+
+
+def build_site_payload(config):
+    """site.js 的纯数据部分,供写入与 --verify 比对。"""
+    return {"default_layout": config.get("default_layout", "standard"),
+            "editorial": config.get("editorial") or {}}
+
+
+def dump_site_yaml(config):
+    lines = ["version: 1", "", "site:", "  default_layout: %s" % config["default_layout"], ""]
+    editorial = config.get("editorial") or {}
+    if not editorial:
+        lines.append("editorial: {}")
+    else:
+        lines.append("editorial:")
+    for uid, item in sorted(editorial.items()):
+        lines.append("  %s:" % uid)
+        if item.get("pin"):
+            lines.append("    pin: true")
+            lines.append('    pin_at: "%s"' % item["pin_at"])
+        if item.get("hero_image"):
+            lines.append('    hero_image: "%s"' % item["hero_image"])
+    return "\n".join(lines).rstrip() + "\n"
+
+
+def write_site_js(config):
+    """写 assets/site.js;调用方需持有写锁或单独调用。"""
+    payload = build_site_payload(config)
+    lines = [
+        "// 站点外观与编辑推荐,由 generate.py 从 site.yml 生成",
+        "// 页面用 window.SITE_CONFIG / window.EDITORIAL 读取;修改请改 site.yml",
+        "window.SITE_CONFIG = %s;" % json.dumps({"default_layout": payload["default_layout"]}, ensure_ascii=False),
+        "window.EDITORIAL = %s;" % json.dumps(payload["editorial"], ensure_ascii=False, indent=2),
+        'window.SITE_CONFIG_UPDATED = %s;' % json.dumps(datetime.date.today().isoformat()),
+    ]
+    write_text_atomic(SITE_JS, "\n".join(lines) + "\n", snapshot=True)
+    return payload
+
+
+def read_site_js():
+    if not os.path.exists(SITE_JS):
+        return None
+    with open(SITE_JS, encoding="utf-8") as fh:
+        text = fh.read()
+    cfg = re.search(r"window\.SITE_CONFIG\s*=\s*(\{.*?\});", text, re.S)
+    ed = re.search(r"window\.EDITORIAL\s*=\s*(\{.*?\});", text, re.S)
+    if not cfg or not ed:
+        return None
+    try:
+        return {"default_layout": json.loads(cfg.group(1)).get("default_layout", "standard"),
+                "editorial": json.loads(ed.group(1))}
+    except ValueError:
+        return None
+
+
+@locked_write
+def save_site_patch(patch):
+    """设置页/采集页保存默认版式、置顶、画册大图;校验后原子写 yml + js。"""
+    if not isinstance(patch, dict):
+        raise ValueError("请求体必须是对象")
+    config = load_site_config()
+    ids = {str(t.get("id")) for t in load_index() if t.get("id")}
+    editorial = dict(config.get("editorial") or {})
+    if "default_layout" in patch:
+        config["default_layout"] = str(patch.get("default_layout") or "").strip()
+    unit_id = str(patch.get("id") or "").strip()
+    if unit_id:
+        if unit_id not in ids:
+            raise ValueError("单元不存在:%s" % unit_id)
+        entry = dict(editorial.get(unit_id) or {})
+        if "pin" in patch:
+            if not isinstance(patch["pin"], bool):
+                raise ValueError("pin 必须是布尔值")
+            if patch["pin"]:
+                entry["pin"] = True
+                entry["pin_at"] = str(patch.get("pin_at") or datetime.datetime.now().strftime("%Y-%m-%d %H:%M"))
+            else:
+                entry.pop("pin", None)
+                entry.pop("pin_at", None)
+        if "hero_image" in patch:
+            hero = str(patch.get("hero_image") or "").strip()
+            if hero:
+                entry["hero_image"] = hero
+            else:
+                entry.pop("hero_image", None)
+        if entry:
+            editorial[unit_id] = entry
+        else:
+            editorial.pop(unit_id, None)
+        config["editorial"] = editorial
+    clean = normalize_site_config(config, ids)
+    write_text_atomic(SITE_FILE, dump_site_yaml(clean), snapshot=True)
+    write_site_js(clean)
+    return clean
+
+
 DATE_RE = re.compile(r"^\d{4}[.\-]\d{2}[.\-]\d{2}$")
 # 主题注册表(D32/D40):与 assets/theme.js 的 THEMES 保持一致。单元级 theme 只做提示,不启用渲染分支。
 THEME_NAMES = ("default", "dark", "tech", "campus", "classical", "anime")
@@ -568,7 +777,23 @@ def verify_data(log=print):
         log("  ✗ 索引不可用: %s" % st["reason"])
         return {"ok": False, "problems": problems + ["索引不可用: %s" % st["reason"]], "units": 0}
     items = load_index()
+    # 板块注册表必须与索引计数一致,防止页面导航显示旧数量
+    if sections:
+        expected = build_sections_payload(items)
+        actual = read_sections_js()
+        if actual is None:
+            problems.append("板块注册表: assets/data/sections.js 缺失或无法解析")
+        elif actual != expected:
+            problems.append("板块注册表: sections.js 与 sections.yml/索引不一致(请重新生成)")
     ids = [t.get("id") for t in items if t.get("id")]
+    # 站点配置:仅当 site.js 存在时比对,避免测试用临时数据目录误判
+    if os.path.exists(SITE_JS):
+        try:
+            site = normalize_site_config(load_site_config())
+            if read_site_js() != build_site_payload(site):
+                problems.append("站点配置: site.js 与 site.yml 不一致(请在设置页保存或重新生成)")
+        except ValueError as exc:
+            problems.append("站点配置: %s" % exc)
     units = 0
     for t in items:
         uid = t.get("id") or ""
@@ -758,6 +983,53 @@ def unit_sort_key(item):
     return (stamp, str(item.get("created") or "").strip())
 
 
+def build_sections_payload(items):
+    """板块注册表 + 索引计数(D66):导航只需要这一份,不再从单元数据反推。"""
+    counts = {}
+    for item in items:
+        sid = str(item.get("section") or "").strip()
+        if sid:
+            counts[sid] = counts.get(sid, 0) + 1
+    payload = []
+    for section in load_sections_yaml():
+        payload.append({
+            "id": section["id"],
+            "title": section["title"],
+            "description": section["description"],
+            "order": section["order"],
+            "enabled": section["enabled"],
+            "count": counts.get(section["id"], 0),
+        })
+    payload.sort(key=lambda x: (x["order"], x["id"]))
+    return payload
+
+
+def write_sections_file(items):
+    """写 assets/data/sections.js(调用方已持有写锁,这里不再加装饰器)"""
+    payload = build_sections_payload(items)
+    lines = [
+        "// 板块注册表,由 generate.py 自动生成",
+        "// 页面用 window.SECTIONS 读取;修改板块请改 sections.yml,不要手改本文件",
+        "window.SECTIONS = %s;" % json.dumps(payload, ensure_ascii=False, indent=2),
+    ]
+    write_text_atomic(SECTIONS_JS, "\n".join(lines) + "\n", snapshot=True)
+    return payload
+
+
+def read_sections_js():
+    """读回 sections.js 的数组,供 --verify 比对;文件缺失/损坏返回 None。"""
+    if not os.path.exists(SECTIONS_JS):
+        return None
+    text = open(SECTIONS_JS, encoding="utf-8").read()
+    m = re.search(r"window\.SECTIONS\s*=\s*(\[.*\]);", text, re.S)
+    if not m:
+        return None
+    try:
+        return json.loads(m.group(1))
+    except ValueError:
+        return None
+
+
 @locked_write
 def write_index(items, updated):
     """重写采集单元索引文件(按采集时间降序,新采集的排最前)"""
@@ -774,6 +1046,8 @@ def write_index(items, updated):
     ]
     # 索引是首页的唯一入口,覆盖前留快照,写入走原子替换
     write_text_atomic(INDEX_JS, "\n".join(lines) + "\n", snapshot=True)
+    # 板块注册表与索引同批更新,避免导航计数与索引脱节
+    write_sections_file(items)
 
 
 @locked_write
@@ -1978,6 +2252,146 @@ def collect_batch(text, title=None, slug=None, slogan=None, dry_run=False,
         log("失败 %d 条(已跳过,不影响成功项)" % len(failed))
     log("采集索引: %s (共 %d 个单元,本次%s)" % (
         display_path(INDEX_JS), len(index), "更新" if is_update else "新建"))
+    return result
+
+
+def _link_match_keys(text):
+    """把一条链接/分享文案拆成用于匹配既有条目的稳定键。
+
+    只做本地解析,不请求网络;支持 B站 BV/视频页、公众号文章、小红书笔记和普通原文地址。
+    """
+    keys = set()
+    urls = channels.extract_urls(text or "")
+    if not urls and (text or "").strip():
+        urls = [(text or "").strip()]
+    for raw in urls:
+        raw = (raw or "").strip()
+        if not raw:
+            continue
+        bv = re.search(r"(BV[0-9A-Za-z]{10})", raw)
+        if bv:
+            keys.add("b:" + bv.group(1).upper())
+        m = re.search(r"https?://[^\s\"'<>，。、；]+", raw)
+        if not m:
+            continue
+        url = m.group(0)
+        try:
+            parsed = urllib.parse.urlparse(url)
+        except ValueError:
+            continue
+        host = (parsed.hostname or "").lower()
+        path = urllib.parse.unquote(parsed.path or "").rstrip("/")
+        # 公众号文章短链末段 / 小红书笔记 ID:换域名、带查询参数也能命中
+        wx = re.search(r"/s/([A-Za-z0-9_-]{6,})", path)
+        if wx and ("weixin" in host or "qq.com" in host):
+            keys.add("w:" + wx.group(1).lower())
+        xhs = re.findall(r"([0-9a-fA-F]{24})", path)
+        if xhs and "xiaohongshu" in host:
+            keys.add("x:" + xhs[-1].lower())
+        keys.add("u:%s%s" % (host, path))
+    return keys
+
+
+def _video_match_keys(video):
+    """从已存条目里提取与 _link_match_keys 对应的键。"""
+    keys = set()
+    for value in ((video or {}).get("url"), (video or {}).get("key"), (video or {}).get("bv")):
+        value = str(value or "").strip()
+        if not value:
+            continue
+        if ":" in value and value.split(":", 1)[0] in ("bilibili", "wechat", "xhs"):
+            value = value.split(":", 1)[1]
+        if re.fullmatch(r"BV[0-9A-Za-z]{10}", value, re.I):
+            keys.add("b:" + value.upper())
+        elif re.fullmatch(r"[0-9a-fA-F]{24}", value) and "xiaohongshu" not in value:
+            keys.add("x:" + value.lower())
+        else:
+            keys.update(_link_match_keys(value))
+    return keys
+
+
+@serialized_collect
+def remove_links(text, unit_id, mode="url", dry_run=False, log=print):
+    """从已有采集单元移除指定链接对应的条目。
+
+    仅支持按链接 / 批量链接;按主题采集没有明确的单条链接可移除,直接拒绝。
+    只做本地匹配与写文件,不重新抓取内容,也不改写单元原有 intake(下次回填仍是原采集信息)。
+    """
+    result = {
+        "ok": False, "error": None, "removed": 0, "total": 0, "kept": 0,
+        "unit_id": unit_id or "", "links": 0, "unmatched": [], "removed_titles": [],
+        "data_file": "", "page_file": "", "dry_run": bool(dry_run),
+    }
+    if mode not in ("url", "batch"):
+        result["error"] = "按主题采集不支持移除链接,请切换到按链接或批量链接"
+        return result
+    if not valid_unit_id(unit_id or ""):
+        result["error"] = "单元 id 不合法"
+        return result
+    data = load_collection_data(unit_id)
+    if data is None:
+        result["error"] = "未找到采集单元: %s" % unit_id
+        return result
+    tokens = channels.extract_urls(text or "")
+    if not tokens and mode == "url" and (text or "").strip():
+        tokens = [(text or "").strip()]
+    if not tokens:
+        result["error"] = "请填写要移除的链接"
+        return result
+    result["links"] = len(tokens)
+    videos = list(data.get("videos") or [])
+    remove_idx, unmatched = set(), []
+    for token in tokens:
+        keys = _link_match_keys(token)
+        hit = False
+        for idx, video in enumerate(videos):
+            if keys & _video_match_keys(video):
+                remove_idx.add(idx)
+                hit = True
+        if not hit:
+            unmatched.append(token)
+    result["unmatched"] = unmatched
+    result["removed"] = len(remove_idx)
+    result["total"] = len(videos) - len(remove_idx)
+    result["kept"] = result["total"]
+    if not remove_idx:
+        result["error"] = "没有匹配到可移除的条目,请核对链接是否属于该单元"
+        return result
+    removed = [videos[i] for i in sorted(remove_idx)]
+    result["removed_titles"] = [v.get("title", "") for v in removed]
+    for video in removed:
+        log("  - 移除: %s" % (video.get("title") or video.get("url") or "未命名条目"))
+    if unmatched:
+        log("有 %d 条链接未匹配,已跳过:%s" % (len(unmatched), " / ".join(unmatched[:3])))
+    if dry_run:
+        log("[dry-run] 未写文件")
+        result["ok"] = True
+        return result
+
+    remaining = [v for i, v in enumerate(videos) if i not in remove_idx]
+    data["videos"] = remaining
+    data["count"] = len(remaining)
+    data["latest"] = (remaining[0].get("date", "") if remaining else "")
+    if remaining and (data.get("source") or {}).get("url"):
+        data["source"]["url"] = remaining[0].get("url", "") or data["source"]["url"]
+    plats = list(dict.fromkeys([v.get("platform") for v in remaining if v.get("platform")]))
+    if plats:
+        data["platforms"] = plats
+    runs = list(data.get("runs") or [])
+    runs.insert(0, {
+        "at": now_stamp(), "mode": "remove", "mode_label": "移除链接",
+        "input_count": len(tokens), "title": data.get("title", ""),
+        "added": 0, "updated": 0, "kept": len(remaining), "total": len(remaining),
+        "removed": len(remove_idx),
+    })
+    data["runs"] = runs[:20]
+    data["updated"] = datetime.date.today().isoformat()
+    write_collection_file(data)
+    rebuild_index()
+    page_path = "%s.html?id=%s" % ("series" if data.get("type") == "series" else "single", unit_id)
+    result.update(ok=True, data_file="assets/data/collections/%s.js" % unit_id,
+                  page_file=page_path)
+    log("已从单元 %s 移除 %d 条,剩余 %d 条" % (unit_id, len(remove_idx), len(remaining)))
     return result
 
 

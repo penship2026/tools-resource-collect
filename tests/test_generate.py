@@ -52,6 +52,40 @@ class GenerateDataTest(unittest.TestCase):
             item.setdefault("section", "tools")
         generate.write_index(items, "2026-11-26")
 
+    def test_site_config_validate_and_roundtrip(self):
+        cfg = generate.normalize_site_config({
+            "default_layout": "magazine",
+            "editorial": {"u1": {"pin": True, "pin_at": "2026-11-27 10:00",
+                                 "hero_image": "https://example.com/a.jpg"}}
+        }, {"u1"})
+        self.assertEqual(cfg["default_layout"], "magazine")
+        self.assertTrue(cfg["editorial"]["u1"]["pin"])
+        path = os.path.join(TMP, "site.yml")
+        with open(path, "w", encoding="utf-8") as fh:
+            fh.write(generate.dump_site_yaml(cfg))
+        self.assertEqual(generate.load_site_config(path), cfg)
+        self.assertEqual(generate.build_site_payload(cfg), {
+            "default_layout": "magazine", "editorial": cfg["editorial"]})
+        empty = generate.normalize_site_config({"default_layout": "standard", "editorial": {}})
+        with open(path, "w", encoding="utf-8") as fh:
+            fh.write(generate.dump_site_yaml(empty))
+        self.assertEqual(generate.load_site_config(path), empty)
+
+    def test_site_config_rejects_bad_values(self):
+        for raw in (
+            {"default_layout": "unknown"},
+            {"default_layout": "standard", "editorial": {"nope": {"pin": True, "pin_at": "2026-11-27 10:00"}}},
+            {"default_layout": "standard", "editorial": {"u1": {"pin": True, "pin_at": "2026-11-27"}}},
+            {"default_layout": "standard", "editorial": {"u1": {"hero_image": "javascript:alert(1)"}}},
+            {"default_layout": "standard", "editorial": {"u1": {"pin": "yes", "pin_at": "2026-11-27 10:00"}}},
+        ):
+            with self.assertRaises(ValueError):
+                generate.normalize_site_config(raw, {"u1"})
+
+    def test_site_config_allows_loopback_http(self):
+        cfg = generate.normalize_site_config({"editorial": {"u1": {"hero_image": "http://127.0.0.1:8000/a.jpg"}}}, {"u1"})
+        self.assertEqual(cfg["editorial"]["u1"]["hero_image"], "http://127.0.0.1:8000/a.jpg")
+
     def test_server_unit_page_routes(self):
         import server
         self.assertEqual(server.unit_page({"id": "a", "type": "single"}), "single.html?id=a")
@@ -268,6 +302,47 @@ class GenerateDataTest(unittest.TestCase):
         for bad in ("../x", "a/b", "a.js", "", "x" * 81):
             self.assertFalse(generate.valid_unit_id(bad))
         self.assertIsNone(generate.load_collection_data("../index"))
+
+    def test_remove_links_from_existing_unit(self):
+        """按链接重新采集时可把输入链接当作移除项;记录移除但不改原 intake"""
+        data = {
+            "id": "rmtest", "type": "series", "title": "待整理合集", "section": "tools",
+            "count": 2, "videos": [video(0), video(1)],
+            "intake": {"mode": "batch", "input": "旧输入", "at": "2026-11-20 10:00"},
+            "runs": [{"at": "2026-11-20 10:00", "mode": "batch", "total": 2}],
+        }
+        with open(os.path.join(generate.COLLECTIONS_DIR, "rmtest.js"), "w", encoding="utf-8") as fh:
+            fh.write("window.COLLECTION_DATA[\"rmtest\"] = %s;\n" % json.dumps(data, ensure_ascii=False))
+        generate.rebuild_index()
+        res = generate.remove_links(
+            "https://www.bilibili.com/video/BV1test0000/?share=1", "rmtest", mode="url")
+        self.assertTrue(res["ok"], res)
+        self.assertEqual(res["removed"], 1)
+        self.assertEqual(res["total"], 1)
+        got = generate.load_collection_data("rmtest")
+        self.assertEqual([v["key"] for v in got["videos"]], ["k1"])
+        self.assertEqual(got["intake"], data["intake"])
+        self.assertEqual(got["runs"][0]["mode"], "remove")
+        self.assertEqual(got["runs"][0]["removed"], 1)
+
+    def test_remove_links_batch_and_rejects_keyword(self):
+        data = {
+            "id": "rmtest2", "type": "series", "title": "待整理合集二", "section": "tools",
+            "count": 2, "videos": [video(0), video(1)],
+        }
+        with open(os.path.join(generate.COLLECTIONS_DIR, "rmtest2.js"), "w", encoding="utf-8") as fh:
+            fh.write("window.COLLECTION_DATA[\"rmtest2\"] = %s;\n" % json.dumps(data, ensure_ascii=False))
+        generate.rebuild_index()
+        res = generate.remove_links(
+            "https://www.bilibili.com/video/BV1test0000/\nhttps://www.bilibili.com/video/BV1test0001/",
+            "rmtest2", mode="batch")
+        self.assertTrue(res["ok"], res)
+        self.assertEqual(res["removed"], 2)
+        self.assertEqual(res["total"], 0)
+        self.assertEqual(generate.load_collection_data("rmtest2")["videos"], [])
+        bad = generate.remove_links("任意关键词", "rmtest2", mode="keyword")
+        self.assertFalse(bad["ok"])
+        self.assertIn("按主题采集不支持", bad["error"])
 
     def test_slugify_reuse_for_batch_rerun(self):
         uid = generate.slugify("bilibili:BV1|wechat:abc", None, set())

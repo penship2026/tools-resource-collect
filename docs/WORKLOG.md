@@ -569,3 +569,137 @@ Chrome 无头截图三页面全部正常:首页卡片标签独立行两行截断
 - 区域标题使用 sticky 吸顶；滚动浏览长列表时标题、数量与新增按钮保持可见。
 - 说明页同步新增按钮位置与吸顶行为。
 - Python 69 例通过；内联 JS `node --check` 通过。
+
+## 十三、页面模板一期 M1：组件归一与样式分层(2026-11-27)
+
+### 11:00–12:30 M1a 布局 token 与 10 处冲突合并
+- `assets/style.css` 新增 17 个 `--layout-*` 默认值：容器宽/边距、头部高、hero、facts、栅格、卡片、封面比例、双栏、搜索框等。
+- 合并首页与子页 10 处同名组件冲突：主题卡栅格 290、卡内 18px、封面 16:9、视频网格 272、视频信息 14/16/16、facts 32/24、筛选输入 10/14、角标左下 10、播放键 hover、页脚 30/0/44。
+- 首页 `<style>` 整块删除，筛选、chip、主题卡、类型角标、标签行等组件上收到 `style.css`。
+- 详情页接入 `--layout-detail-cols` / `--layout-article-max` / `--layout-xhs-cols`。
+- 四页与公共样式重复选择器降为 0；1280 与 500 宽截图逐页比对，无结构位移；顺带修掉首页 500 宽横向溢出。
+- Python 69 例、Node 12 例、`--verify`、`docs_check` 全部通过。
+
+### 12:30–13:30 M1b 页面样式外置(D76)
+- 新增 `assets/pages/series.css`、`list.css`、`single.css`，按页引用；4 个页面 `<style>` 块清零。
+- 公众号/小红书渠道色改为 `--plat-wechat` / `--plat-xhs` + `color-mix` 软色，深色主题自动适配；观看按钮阴影改用 `--shadow` / `--shadow-hover`。
+- 新增 `scripts/layout_lint.py`：无内联块、引用顺序、17 个 token、页级样式无渠道硬编码。
+- 公众号模板截图复核：绿色渠道按钮、软底标签、阅读版式正常；首页/子页/列表/详情与 M1a 截图一致。
+
+### 13:30–15:00 M2 版式层与页脚切换(D65/D68/D77)
+- 新增 `assets/templates.js`：standard/news/magazine 三套注册，能力声明 nav/lead/bands/sidebar/toc；默认 standard。
+- 新增 `assets/layout.js`：`?layout=` 预览 > `jiye.layout` > `SITE_CONFIG.default_layout` > 注册表默认；预览不落盘，手动切换写存储并清掉 URL 预览参数。
+- 版式 CSS 追加在 head 末尾；文件 404/缺失时自动回退 standard，并写 `data-layout-fallback` 供排查。
+- 新增 `assets/layouts/standard.css`（空基线，保证加载目标稳定）；页脚主题切换下方新增「版式」三项：简洁 / 门户 / 画册。
+- 版式层只接 4 个公开页（D77），采集页与设置页不接。
+- 新增 `tests/test_layout.js` 11 个逻辑用例（vm + 假 DOM）；Python 71 例通过；`?layout=news` 截图与默认页面一致，切换器高亮简洁。
+- 顺带修正一期详设的「5 页接入」表述为 4 个公开页。
+
+## 十四、页面模板一期 M3：门户版式与板块导航(2026-11-27)
+
+- `generate.py` 新增 `sections.js` 生成与 `--verify` 比对：板块数、计数、主题归属与索引一致才通过。
+- `Render.sectionNav / lead / sectionBand / breadcrumb`：门户结构由版式能力声明驱动，简洁版式不显示导航/头条/分节。
+- 首页新增 `assets/pages/index.css`：板块导航吸顶横滑、头条 1 主 + 3 副、分节标题与紧凑空占位、860/600 两档断点。
+- 新增 `assets/layouts/news.css`：1180 宽栏、40px hero、品牌色顶线分节；只调布局与密度，不动组件与主题色。
+- `?section=<id>` 生效：hero、统计口径（收录主题/收录内容）、`document.title`、`meta description`、返回链接同步；非法/停用显示「该栏目暂未开放」。
+- 板块 chips 在门户导航下隐藏；切换版式触发重渲染，结构能力即时生效。
+- 修复首页漏引 `assets/data/sections.js` 导致导航与分节为空；非法板块不再重复渲染两处空态。
+- `layout_lint.py` 将首页纳入页面层检查；新增 3 个视图用例（导航排序/头条 1+3/分节空态）。
+- 验证：Python 71 例、Node 视图 15 例、版式逻辑 11 例、`--verify`、`docs_check`、`layout_lint` 全通过；1280 门户/板块页与 500 窄屏截图复核。
+
+## 十五、页面模板一期 M4：画册版式与编辑推荐(2026-11-27)
+
+- 新增 `assets/layouts/magazine.css`：960 宽栏、居中刊头、双线目录、章节编号、3:2 大图 + 两次条、空章压缩；画册首页不排空章正文，只在目录留入口（D79）。
+- 新增 `site.yml` / `assets/site.js`：`load_site_config`、`normalize_site_config`、`save_site_patch`、`dump_site_yaml`；默认版式枚举、`pin/pin_at`、`hero_image` 校验；URL 只允许 https 与本机回环 http；写入共用写锁。
+- 四页在 `templates.js` 前加载 `site.js`，`layout.js` 的 `SITE_CONFIG.default_layout` 生效；`?layout` 与本机 `jiye.layout` 仍优先。
+- 设置页新增「站点外观」默认版式三选一；采集页单元卡片新增置顶、画册大图展开区（URL + 3:2 预览 + 用封面清除）。
+- 服务端新增 `GET /api/site`、`PUT /api/site`、`POST /api/site`；`/api/topics` 带回 `pin/hero_image`；站点写接口沿用 CSRF/Origin 校验。
+- 首页置顶排序按 `pin_at` 倒序，接口清单顺序不变；置顶角标、画册大图三级回退（hero_image → cover → 隐藏）。
+- 修复 `site.js` 误写到 `assets/data/` 导致页面读不到；已改为 `assets/site.js` 并在 `--verify` 中比对。
+- 验证：Python 74 例、Node 视图 17 例、版式逻辑 11 例、`--verify`、`docs_check`、`layout_lint` 通过；临时置顶 + 大图截图验证后已恢复为空配置。
+
+## 十六、页面模板一期 M5：自检、CI 与验收(2026-11-27)
+
+- `layout_lint.py` 新增注册表/CSS 对齐、`site.yml`/`site.js` 存在、页面脚本顺序、首页加载 `sections.js`、页级 CSS 硬编码颜色拦截。
+- CI 增加 `node tests/test_render.js`、`node tests/test_layout.js`、`layout_lint.py`，`py_compile` 覆盖 `scripts/`。
+- README 更新为四公开页 + 两工具页、外置页面样式、版式表、`?section`、`site.yml` 编辑配置与「新增版式三步」。
+- 补 T9：`sections.js` 缺失时按索引 `section` 聚合导航；实截验证仍可用。
+- T10：临时注入 `#123456`，自检退出码 1；恢复后通过。
+- T6：Chrome CDP 实测 390/768/1280 × 6 组页面，`scrollWidth == innerWidth`，18 组全通过。
+- T4/T5/T14：CDP 自动化验证查询预览不落存储、手动切换保留、主题/版式互不影响、默认版式只影响新会话。
+- T1–T15 结果与证据归档 `docs/ACCEPTANCE-TEMPLATES-P1-20261127.md`。
+
+## 十七、页面模板一期 M6：验收整改(2026-11-27)
+
+- 子页面补板块面包屑：`Render.breadcrumb(section,title,tail)` + `Render.sectionMeta(topic)`；`series/list/single` 加载 `assets/data/sections.js`，实测三级（列表页四级）。
+- 门户 `sidebar` 能力统一关闭：注册表 `news.sidebar=false`，窄侧栏明确由头条区 1 主 3 副的副卡承担；README/设计/决策 D80 同步，避免无消费方的能力声明。
+- 无障碍：四页新增「跳到主要内容」与 `#main-content`；`.section-tab` 最小高 44px；首页新增视觉隐藏 `h1`「集页」，hero 改 `h2`（子页保留页面主题 `h1`）。
+- 规格对齐：设计内容宽改为 news 1180 / magazine 960；头条断点按设计 ≤1080 下移；`--layout-band-cols` 接入门户分节，`--layout-lead-cols` 接入头条主栏。
+- 补测试：breadcrumb/sectionMeta、站点默认版式优先级、skip link/main、首页标题层级、导航 44px。
+- 验证：Python 78 例、Node 视图 19 例、版式 15 例、`layout_lint`、`docs_check` 通过；CDP 实测三子页包屑、Tab 聚焦、44px、18 组宽度无溢出；1280 首页/门户/子页截图复核。
+
+## 十八、我的页板块导航修复(2026-11-27)
+
+- 问题：`?view=mine` 下板块导航链接只有 `?section=`，点后丢视图参数回公开首页。
+- 修复：`Render.sectionNav` 支持 `view` 选项，我的视图生成 `index.html?view=mine[&section=id]`；公开链接保持原样。
+- 我的页按板块过滤收藏：新增 `mineSection` / `mineScoped` / `unitSection`，优先读快照 `section`，旧收藏回退索引；导航计数改为本地收藏数。
+- 空态与统计：无收藏板块显示「该板块还没有收藏。」，有收藏时显示「该板块 N / 共 M 条收藏」。
+- 验证：CDP 造 AI/K12 两条收藏，切换后均停留在我的页并各显示 1 条，工具与效率显示空态；Python 79、视图 20、版式 15、`layout_lint`、`docs_check` 通过。
+
+## 十九、我的页入口收口与专属导入导出页(2026-11-27)
+
+- 移除我的页顶部导出/导入/设置按钮和合并/替换单选项,我的面板只留标题、统计、筛选与收藏卡。
+- 新增 `mine-io.html` + `assets/pages/mine-io.css`:导出 JSON、导入 JSON、合并/替换、导入前备份、状态反馈;数据只在 localStorage,不访问服务器。
+- 新增 `#mine-footer` 独立页脚:仅「导入导出 / 设置 / 回到公开页」;公开页脚改名 `#public-footer`,采集入口只留在公开页脚。
+- 我的视图收起公开首页的 lead/bands/toc/all-title,避免公开内容残留在个人面板背后。
+- 主题/版式切换器注入改为 `.site-footer:not(.mine-footer)`,我的页脚不出现这两组切换。
+- 验证:CDP 实测我的页无顶部入口、独立页脚无采集入口、设置可打开;`mine-io.html` 当前收藏数正确,模拟导入后 2→3;Python 81、视图 20、版式 15、`layout_lint`、`docs_check` 通过。
+
+## 二十、我的卡片同构与详情视图延续(2026-11-27)
+
+- 我的收藏卡改为复用 `Render.topicCard`，网格切到 `.topic-grid`；封面、平台徽标、右上角「合集/单条」、标语、标签、条数与日期与公开首页同构，右下角星标在我的页即取消收藏。
+- 下线旧的 `.fav-card` 系列样式与 `.fav-del` 删除逻辑，只保留 `.fav-btn`、`.fav-detail`；避免两套卡片实现漂移。
+- `Render.detailHref` / `Render.episodes` 增加 `view` 选项；`Render.breadcrumb` 在我的视图输出「我的收藏」，板块链接为 `index.html?view=mine&section=<id>`。
+- `series.html` / `list.html` / `single.html` 读取 `view=mine`：品牌入口与返回链接回我的收藏；合集单条卡、全量列表入口、上下集链接均透传 `&view=mine`；我的收藏卡进入详情固定带该参数，公开保持原样。
+- 验证：CDP 从我的页进入 SpringAI 合集，面包屑为「我的收藏 / AI 与智能工具 / SpringAI」，点单条后上下集仍带 `view=mine`，点板块层回到 `index.html?view=mine&section=ai` 且我的面板不丢；公开详情仍为「全部主题」。Python 83、视图 21、版式 15、`layout_lint`、`docs_check`、`--verify` 通过。
+
+## 二十一、筛选条吸顶与默认收缩(2026-11-27)
+
+- 主站与「我的」首页 `.filter-bar` 改为吸顶，层级低于站点头与板块导航；偏移按站点头 + 导航实际高度动态写入 `--layout-filter-top`，简洁版式与窄屏导航不吸顶时自动只算站点头。
+- 吸顶后默认收成一行「筛选条件 / 展开」，点开才显示完整分组；展开后文案变「收起」，吸顶期间保持展开，离开吸顶自动复位。
+- 画册版式筛选条补不透明底色，避免滚动内容穿透；400/600 窄屏沿用同一结构。
+- 验证：CDP 简洁主站 61px、门户/我的 122px 吸顶；筛选条由 270/217/164px 收至 50px；展开/收起与回顶复位正常；1280 截图复核。Python 84、视图 21、版式 15、`layout_lint`、`docs_check`、`--verify` 通过。
+
+## 二十二、导入导出页发布白名单修复(2026-11-27)
+
+- 现象:本地访问 `mine-io.html` 返回「未对外开放的路径」;Pages 发布产物也未包含该页。
+- 修复:`collector/server.py` 的 `STATIC_EXACT` 加入 `/mine-io.html`,404 提示同步;`.github/workflows/pages.yml` 的 artifact 清单加入 `mine-io.html`;GITHUB-PAGES/DEPLOY/README 页面清单同步。
+- 验证:本地 18087 端口实测 `/mine-io.html` 200、`/collector/settings.html` 仍 200;Python 85、视图 21、版式 15、`layout_lint`、`docs_check`、`--verify` 通过。线上需等 Pages 重新部署。
+
+## 二十三、重新采集支持移除当前链接(2026-11-27)
+
+- 采集方式增加「移除当前链接」(`merge_mode=remove`),只在按链接/批量链接显示;切到按主题采集自动回到追加。
+- 前端提交前二次确认,成功后显示「已移除 N 条,剩余 M 条」;预览模式只计算不写文件。
+- 后端新增 `generate.remove_links()`:按 B站 BV / 公众号短链末段 / 小红书笔记 ID / 原文地址本地匹配,只删除对应条目,不重新抓取,不改原 intake,另记一条 `runs`。
+- 验证:单链接、批量、主题拒绝用例通过;临时数据目录 `POST /api/collect` 实测 `removed=1,total=1`,数据文件 `count/latest` 同步。
+
+## 二十四、主站页脚与采集单元体验收口(2026-11-27)
+
+- 主站 `#public-footer` 收为一行版权说明,删除「采集入口」链接与「导出备份 / 导入恢复」提示;个人页脚入口不变。
+- 采集单元默认每页 10 → 5;新增本地搜索栏(标题 / ID / 作者 / 平台 / 关键词 / 页面),多词 AND 匹配,过滤后回第 1 页并重算分页;清除按钮与「匹配 N / 共 M」计数同步。
+- 已采集单元操作按钮从右侧竖排改为信息底部横排换行;说明文字改为三段粗体导语,统一 `--fs-xs` / 1.85 行距与顶部虚线分隔。
+- 验证:Python 91 例;Node 版式 27、视图 21;CDP 1280 截图复核 5 条分页、搜索「前端」1/6、页脚仅版权。
+
+## 二十五、我的页专属版式设置(2026-11-27)
+
+- 我的页设置面板新增「我的版式」:跟随公开 / 简洁 / 门户 / 画册,选项由版式注册表动态生成。
+- 新增本机键 `jiye.mine.layout.v1`,只在 `?view=mine` 生效;优先级 `?layout` 预览 > 我的版式 > `jiye.layout` > 站点默认;「跟随公开版式」删除本键,公开页不读取。
+- 保存时清掉 `?layout` 预览参数;版式切换后复用 `jiye:layout` 事件重渲染我的内容。
+- 验证:Node 版式 27 例全过;CDP 写入 magazine 后刷新 `data-layout=magazine`、CSS 为 `magazine.css`,设置下拉显示「画册」;Python 91 例。
+
+## 二十六、顶部统计条统一与版式适配(2026-11-27)
+
+- 首页与合集/列表子页统一使用 `facts-hero`:顶部细线、竖向分隔,数字与日期分字号;日期字段加 `fact-date`,时间跨度不再挤成正文小字。
+- 共用样式放 `assets/style.css`,新增 `--layout-facts-pad` 控制列间距;宽度按内容收缩,保底 540px,避免四项统计在窄容器里掉行。
+- 版式适配:简洁 1px 线左对齐;门户 2px 品牌色线、620px 基线;画册居中、540px 基线;≤600px 取消分隔并换行,数字/日期降为 20/16px。
+- 验证:Python 92 例、Node 版式 27、视图 21;CDP 无缓存复核首页三版式、合集三版式与列表页统计条。

@@ -107,7 +107,7 @@
   }
 
   function renderSwitch() {
-    var footer = document.querySelector('.site-footer .wrap');
+    var footer = document.querySelector('.site-footer:not(.mine-footer) .wrap');
     if (!footer || footer.querySelector('.theme-switch')) return;
     var wrap = document.createElement('div');
     wrap.className = 'theme-switch';

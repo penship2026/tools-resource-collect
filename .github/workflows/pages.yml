@@ -27,7 +27,7 @@ jobs:
       - name: 生成展示站 artifact
         run: |
           mkdir -p _site/assets
-          cp index.html series.html list.html single.html _site/
+          cp index.html series.html list.html single.html mine-io.html _site/
           cp -R assets/. _site/assets/
           cp CNAME _site/CNAME
           touch _site/.nojekyll

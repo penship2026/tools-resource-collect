@@ -42,6 +42,17 @@ ok('topicCard 结构/徽标/标签/转义', () => {
   assert(html.includes('mini-tag'));
 });
 
+ok('topicCard 右上角类型标记与站外跳转', () => {
+  const series = R.topicCard(topic, { href: 'series.html?id=daily-website' });
+  assert(series.includes('<span class="type-tag">合集</span>'));
+  assert(!series.includes('target='), '站内链接不得新开窗口');
+  const single = R.topicCard(Object.assign({}, topic, { type: 'single', count: 1 }), {
+    href: 'https://example.com/x', target: '_blank'
+  });
+  assert(single.includes('<span class="type-tag single">单条</span>'));
+  assert(single.includes('target="_blank" rel="noopener noreferrer"'));
+});
+
 ok('videoCard 列表形态(平台标签 + 摘要 + 作者)', () => {
   const html = R.videoCard(video, {
     href: 'single.html?id=daily-website&k=BV1JUs86EESY',
@@ -96,6 +107,9 @@ ok('episodes:上/下一集、序号、当前标记、路由编码', () => {
   // 第一条没有上一集
   const first = R.episodes(list[0], list, '合集名', 'daily-website');
   assert(first.includes('ep-btn prev disabled'));
+  // 从「我的收藏」进入详情时,上下集链接也要保留 view=mine
+  const mine = R.episodes(list[1], list, '合集名', 'daily-website', { view: 'mine' });
+  assert(mine.includes('&view=mine'));
 });
 
 ok('topicCard 支持整卡收藏按钮', () => {
@@ -144,6 +158,107 @@ ok('episodes 单条时不渲染导航', () => {
 ok('detailHref 只生成站内路由', () => {
   assert.strictEqual(R.detailHref('u1', { key: 'k 1' }), 'single.html?id=u1&k=k%201');
   assert.strictEqual(R.detailHref('u1', {}), 'single.html?id=u1');
+  assert.strictEqual(R.detailHref('u1', { key: 'k 1' }, { view: 'mine' }), 'single.html?id=u1&k=k%201&view=mine');
+});
+
+ok('sectionNav 只列启用板块并按 order 排序', () => {
+  const sections = [
+    { id: 'b', title: '后<b>面', count: 2, order: 2, enabled: true },
+    { id: 'x', title: '停用', count: 3, order: 0, enabled: false },
+    { id: 'a', title: '前<em>面', count: 1, order: 1, enabled: true }
+  ];
+  const html = R.sectionNav(sections, 'a');
+  assert(html.includes('href="index.html?section=a"'));
+  assert(html.indexOf('a') < html.indexOf('b'));
+  assert(!html.includes('section=x'));
+  assert(html.includes('后&lt;b&gt;面'));
+  assert(html.includes(' aria-current="page"'));
+  assert(html.includes('1</span>'));
+});
+
+ok('sectionNav 保留我的视图参数', () => {
+  const sections = [
+    { id: 'a', title: 'A', order: 1, enabled: true, count: 1 },
+    { id: 'b', title: 'B', order: 2, enabled: true, count: 2 }
+  ];
+  const html = R.sectionNav(sections, 'a', { view: 'mine' });
+  assert(html.includes('href="index.html?view=mine"'));
+  assert(html.includes('href="index.html?view=mine&amp;section=a"') ||
+    html.includes('href="index.html?view=mine&section=a"'));
+  assert(html.includes('aria-current="page"'));
+  assert(html.includes('href="index.html?view=mine&amp;section=b"') ||
+    html.includes('href="index.html?view=mine&section=b"'));
+});
+
+ok('lead 渲染 1 主 + 3 副且标题转义', () => {
+  const items = [
+    topic,
+    { ...topic, id: 's2', title: '副一<b>', type: 'single' },
+    { ...topic, id: 's3', title: '副二', cover: '' },
+    { ...topic, id: 's4', title: '副三' },
+    { ...topic, id: 's5', title: '不应出现' }
+  ];
+  const html = R.lead(items, { href: (t) => 'series.html?id=' + t.id, plat: () => 'B站' });
+  assert((html.match(/class="lead-mini"/g) || []).length === 3);
+  assert(!html.includes('不应出现'));
+  assert(html.includes('副一&lt;b&gt;'));
+});
+
+ok('sectionBand 空板块占位且查看全部走稳定 id', () => {
+  const html = R.sectionBand({ id: 'k12', title: '中小学', description: '说明', count: 0 },
+    [], { href: (t) => t.id }, 3);
+  assert(html.includes('id="band-k12"'));
+  assert(html.includes('index.html?section=k12'));
+  assert(html.includes('03'));
+  assert(html.includes('本板块还没有内容'));
+});
+
+ok('topicCard 置顶角标', () => {
+  const html = R.topicCard(topic, { href: '#', pin: true });
+  assert(html.includes('class="pin-badge"'));
+  assert(!R.topicCard(topic, { href: '#' }).includes('pin-badge'));
+});
+
+ok('画册章节:hero_image 优先、空章节占位、目录锚点', () => {
+  const sec = { id: 'k12', title: '中小学', description: '说明', count: 4, enabled: true };
+  const html = R.magazineChapter(sec, [topic, { ...topic, id: 'b' }], {
+    href: (t) => 'series.html?id=' + t.id,
+    hero: () => 'https://example.com/hero.jpg',
+    pin: () => true
+  }, 3);
+  assert(html.includes('id="band-k12"'));
+  assert(html.includes('第 03 章'));
+  assert(html.includes('https://example.com/hero.jpg'));
+  assert(html.includes('data-cover="https://i0.hdslb.com/x.jpg"'));
+  assert(html.includes('class="pin-badge"'));
+  assert(html.includes('03.2'));
+  const empty = R.magazineChapter(sec, [], {}, 3);
+  assert(empty.includes('本章还没有内容'));
+  assert(empty.includes('is-empty'));
+  const toc = R.magazineToc([sec], [], {});
+  assert(toc.includes('href="#band-k12"'));
+});
+
+ok('breadcrumb 含板块层与尾级', () => {
+  const html = R.breadcrumb({ id: 'k12', title: '中小学教育' }, '跟着动画学古文', '全部内容');
+  assert(html.includes('href="index.html?section=k12"'));
+  assert(html.includes('中小学教育'));
+  assert(html.includes('跟着动画学古文'));
+  assert(html.includes('全部内容'));
+  assert.strictEqual((html.match(/<span>\/<\/span>/g) || []).length, 3);
+  const mine = R.breadcrumb({ id: 'k12', title: '中小学教育' }, '跟着动画学古文', null, { view: 'mine' });
+  assert(mine.includes('href="index.html?view=mine"'));
+  assert(mine.includes('我的收藏'));
+  assert(mine.includes('href="index.html?view=mine&section=k12"'));
+});
+
+ok('sectionMeta 优先 sections.js,缺失回退索引', () => {
+  global.SECTIONS = [{ id: 'k12', title: '中小学教育' }];
+  assert.deepStrictEqual(R.sectionMeta({ section: 'k12', section_title: '旧名' }),
+    { id: 'k12', title: '中小学教育' });
+  global.SECTIONS = [];
+  assert.deepStrictEqual(R.sectionMeta({ section: 'k12' }), { id: 'k12', title: 'k12' });
+  assert.strictEqual(R.sectionMeta({}), null);
 });
 
 ok('fmtDate 兼容 ISO 与点号', () => {

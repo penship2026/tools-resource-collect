@@ -14,6 +14,10 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 
 
 class OriginTest(unittest.TestCase):
+    def test_mine_io_is_public_static_page(self):
+        """个人站导入导出页必须进本地静态白名单,否则会返回「未对外开放的路径」."""
+        self.assertIn("/mine-io.html", server.Handler.STATIC_EXACT)
+
     def test_local_hosts_allowed(self):
         for host in ("127.0.0.1", "localhost", "::1"):
             self.assertTrue(server.origin_host_allowed(host))

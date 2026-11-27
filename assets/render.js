@@ -57,9 +57,12 @@
   }
 
   // 站内详情路由:只走站内页面,不直接跳源平台
-  function detailHref(unitId, v) {
+  function detailHref(unitId, v, opts) {
+    opts = opts || {};
     var k = itemKey(v);
-    return 'single.html?id=' + encodeURIComponent(unitId || '') + (k ? '&k=' + encodeURIComponent(k) : '');
+    return 'single.html?id=' + encodeURIComponent(unitId || '') +
+      (k ? '&k=' + encodeURIComponent(k) : '') +
+      (opts.view === 'mine' ? '&view=mine' : '');
   }
 
   /* ---------------- 一、首页主题卡片 ---------------- */
@@ -70,8 +73,7 @@
     var type = t.type || 'series';
     var cover = t.cover
       ? '<img src="' + esc(t.cover) + '" alt="' + esc(t.title) + '" loading="lazy" referrerpolicy="no-referrer">'
-      : '<div class="topic-ph" style="width:100%;height:100%;display:grid;place-items:center;background:linear-gradient(135deg,#1e3a5f,#2d7ff9);color:#fff;font-size:42px">' +
-        esc((t.title || '内').charAt(0)) + '</div>';
+      : '<div class="topic-ph">' + esc((t.title || '内').charAt(0)) + '</div>';
     var platName = opts.platName || (t.source && t.source.platform) || 'B站';
     var badge = '<span class="badge" style="background:' + platColor(platName) + '">' + esc(platLabel(platName)) + '</span>';
     var typeTag = type === 'single'
@@ -81,8 +83,10 @@
       return '<span class="mini-tag">' + esc(x) + '</span>';
     }).join('');
     var latest = t.latest || opts.updated || '';
-    return '<a class="topic-card" href="' + esc(opts.href || '#') + '">' +
-      '<div class="topic-cover">' + cover + typeTag + badge + (opts.starHtml || '') + '</div>' +
+    var pin = opts.pin ? '<span class="pin-badge">置顶</span>' : '';
+    return '<a class="topic-card" href="' + esc(opts.href || '#') + '"' +
+      (opts.target ? ' target="' + esc(opts.target) + '" rel="noopener noreferrer"' : '') + '>' +
+      '<div class="topic-cover">' + cover + typeTag + pin + badge + (opts.starHtml || '') + '</div>' +
       '<div class="topic-body"><h3>' + esc(t.title) + '</h3>' +
       '<p class="slogan">' + esc(t.slogan || '') + '</p>' +
       (tags ? '<div class="tag-line">' + tags + '</div>' : '') +
@@ -115,7 +119,173 @@
       '</span><span>' + metaRight + '</span></div></div></a>';
   }
 
-  /* ---------------- 三、详情页模板 ---------------- */
+  /* ---------------- 三、板块导航 / 门户区块(M3) ---------------- */
+
+  function enabledSections(sections) {
+    return (sections || []).filter(function (s) { return s && s.enabled !== false; })
+      .slice().sort(function (a, b) { return (a.order || 0) - (b.order || 0); });
+  }
+
+  // 板块一级导航:全部 + 启用板块;少于 2 个板块时整条不渲染(D66)
+  function sectionNav(sections, activeId, opts) {
+    opts = opts || {};
+    var list = enabledSections(sections);
+    if (list.length < 2) return '';
+    var active = activeId || 'all';
+    var view = opts.view ? 'view=' + encodeURIComponent(opts.view) : '';
+    function href(id) {
+      var q = [];
+      if (view) q.push(view);
+      if (id && id !== 'all') q.push('section=' + encodeURIComponent(id));
+      return 'index.html' + (q.length ? '?' + q.join('&') : '');
+    }
+    var html = '<div class="wrap nav-scroll">';
+    html += '<a class="section-tab' + (active === 'all' ? ' active' : '') + '" href="' + href('all') + '"' +
+      (active === 'all' ? ' aria-current="page"' : '') + '>全部</a>';
+    list.forEach(function (s) {
+      html += '<a class="section-tab' + (active === s.id ? ' active' : '') +
+        '" href="' + href(s.id) + '"' +
+        (active === s.id ? ' aria-current="page"' : '') + '>' + esc(s.title) +
+        '<span class="tab-count">' + esc(s.count || 0) + '</span></a>';
+    });
+    return html + '</div>';
+  }
+
+  // 门户头条:主位 1 + 副位 2;opts 提供 href/平台/标签/收藏按钮
+  function lead(items, opts) {
+    opts = opts || {};
+    var list = (items || []).slice(0, 4);
+    if (!list.length) {
+      return '<div class="empty">还没有内容,去采集入口新增第一集 →</div>';
+    }
+    var cardOpts = function (t) {
+      return {
+        href: opts.href ? opts.href(t) : '#',
+        updated: opts.updated || '',
+        platName: opts.plat ? opts.plat(t) : '',
+        tags: opts.tags ? opts.tags(t) : [],
+        starHtml: opts.star ? opts.star(t) : '',
+        pin: opts.pin ? opts.pin(t) : false
+      };
+    };
+    var main = topicCard(list[0], cardOpts(list[0]));
+    var side = list.slice(1).map(function (t) {
+      var cover = t.cover
+        ? '<img src="' + esc(t.cover) + '" alt="" loading="lazy" referrerpolicy="no-referrer">'
+        : '<span class="lead-mini-ph">' + esc((t.title || '内').charAt(0)) + '</span>';
+      return '<a class="lead-mini" href="' + esc(opts.href ? opts.href(t) : '#') + '">' +
+        '<div class="lead-mini-cover">' + cover + '</div>' +
+        '<div class="lead-mini-body"><h3>' + esc(t.title) + '</h3>' +
+        '<span>' + esc((t.type || 'series') === 'single' ? '单条精选' : (t.count || 0) + ' 条内容') +
+        ' · ' + esc(t.latest || opts.updated || '') + '</span></div></a>';
+    }).join('');
+    return '<div class="lead-main">' + main + '</div>' +
+      '<div class="lead-side">' + (side || '<div class="empty">暂无副头条</div>') + '</div>';
+  }
+
+  // 板块分节:标题 + 说明 + 计数 + 查看全部;最多 6 张,空板块保留一行占位
+  function magazineChapter(section, items, opts, index) {
+    var list = (items || []).slice(0, 3);
+    var no = (index || 1) < 10 ? '0' + (index || 1) : String(index || 1);
+    var head = '<div class="mag-chapter-head"><span class="mag-no">第 ' + no + ' 章</span>' +
+      '<h2>' + esc(section.title) + '</h2>' +
+      '<p>' + esc(section.description || '') + '</p>' +
+      '<a href="index.html?section=' + encodeURIComponent(section.id) + '">本章全部 →</a></div>';
+    if (!list.length) {
+      return '<section class="mag-chapter is-empty" id="band-' + esc(section.id) + '">' + head +
+        '<div class="mag-empty">本章还没有内容,采集后会出现在这里</div></section>';
+    }
+    var main = list[0];
+    var img = opts.hero ? opts.hero(main) : (main.cover || '');
+    var cover = img
+      ? '<img src="' + esc(img) + '" alt="' + esc(main.title) + '" loading="lazy" referrerpolicy="no-referrer"' +
+        ' data-cover="' + esc(main.cover || '') + '">'
+      : '<span class="mag-cover-ph">' + esc((main.title || '内').charAt(0)) + '</span>';
+    var pin = opts.pin && opts.pin(main) ? '<span class="pin-badge">置顶</span>' : '';
+    var hero = '<a class="mag-hero" href="' + esc(opts.href ? opts.href(main) : '#') + '">' +
+      '<figure class="mag-cover">' + cover + pin + '</figure>' +
+      '<div class="mag-hero-body"><h3>' + esc(main.title) + '</h3>' +
+      '<p>' + esc(main.slogan || '') + '</p>' +
+      '<span>' + esc((main.type || 'series') === 'single' ? '单条精选' : (main.count || 0) + ' 条内容') +
+      ' · ' + esc(main.latest || opts.updated || '') + '</span></div></a>';
+    var rows = list.slice(1).map(function (t, i) {
+      return '<a class="mag-row" href="' + esc(opts.href ? opts.href(t) : '#') + '">' +
+        '<span class="mag-index">' + no + '.' + (i + 2) + '</span>' +
+        '<span class="mag-row-title">' + esc(t.title) + '</span>' +
+        '<span class="mag-row-meta">' + esc((t.type || 'series') === 'single' ? '单条' : (t.count || 0) + ' 条') + '</span></a>';
+    }).join('');
+    return '<section class="mag-chapter" id="band-' + esc(section.id) + '">' + head + hero +
+      (rows ? '<div class="mag-rows">' + rows + '</div>' : '') + '</section>';
+  }
+
+  function magazineToc(sections, items, opts) {
+    opts = opts || {};
+    var list = (sections || []).filter(function (s) { return s.enabled !== false; });
+    if (!list.length) return '';
+    var links = list.map(function (s, i) {
+      var no = (i + 1) < 10 ? '0' + (i + 1) : String(i + 1);
+      return '<a href="#band-' + esc(s.id) + '"><span>' + no + '</span>' + esc(s.title) +
+        '<b>' + esc(s.count || 0) + '</b></a>';
+    }).join('');
+    return '<nav class="mag-toc" aria-label="本刊目录"><span class="mag-toc-title">目录</span>' + links + '</nav>';
+  }
+
+  function sectionBand(section, items, opts, index) {
+    opts = opts || {};
+    if (opts.magazine) return magazineChapter(section, items, opts, index);
+    var list = (items || []).slice(0, 6);
+    var no = (index || 1) < 10 ? '0' + (index || 1) : String(index || 1);
+    var head = '<div class="band-head">' +
+      '<div class="band-title"><span class="band-no">' + no + '</span>' +
+      '<h2>' + esc(section.title) + '</h2>' +
+      '<span class="band-count">' + esc(section.count || 0) + ' 个主题</span></div>' +
+      '<div class="band-desc">' + esc(section.description || '') + '</div>' +
+      '<a class="band-more" href="index.html?section=' + encodeURIComponent(section.id) + '">查看全部 →</a>' +
+      '</div>';
+    if (!list.length) {
+      return '<section class="section-band" id="band-' + esc(section.id) + '">' + head +
+        '<div class="band-empty">本板块还没有内容,采集后会出现在这里</div></section>';
+    }
+    var cards = list.map(function (t) {
+      return topicCard(t, {
+        href: opts.href ? opts.href(t) : '#',
+        updated: opts.updated || '',
+        platName: opts.plat ? opts.plat(t) : '',
+        tags: opts.tags ? opts.tags(t) : [],
+        starHtml: opts.star ? opts.star(t) : '',
+        pin: opts.pin ? opts.pin(t) : false
+      });
+    }).join('');
+    return '<section class="section-band" id="band-' + esc(section.id) + '">' + head +
+      '<div class="band-grid">' + cards + '</div></section>';
+  }
+
+  // 详情页面包屑:全部主题 / 板块 / 主题(D66 一级导航的落点)
+  function sectionMeta(topic) {
+    if (!topic || !topic.section) return null;
+    var hit = ((global.SECTIONS) || []).filter(function (s) { return s.id === topic.section; })[0];
+    return { id: topic.section, title: (hit && hit.title) || topic.section_title || topic.section };
+  }
+
+  // 内页面包屑:全部主题 / 板块 / 主题 [/ 尾级];板块名优先读 sections.js,缺失时用索引字段
+  function breadcrumb(section, title, tail, opts) {
+    opts = opts || {};
+    var mine = opts.view === 'mine';
+    var home = 'index.html' + (mine ? '?view=mine' : '');
+    var html = '<a href="' + home + '">' + (mine ? '我的收藏' : '全部主题') + '</a>';
+    if (section && section.id) {
+      var sectionHref = mine
+        ? 'index.html?view=mine&section=' + encodeURIComponent(section.id)
+        : 'index.html?section=' + encodeURIComponent(section.id);
+      html += '<span>/</span><a href="' + sectionHref + '">' +
+        esc(section.title) + '</a>';
+    }
+    html += '<span>/</span><span>' + esc(title || '') + '</span>';
+    if (tail) html += '<span>/</span><span>' + esc(tail) + '</span>';
+    return html;
+  }
+
+  /* ---------------- 四、详情页模板 ---------------- */
 
   function row(label, value) {
     return '<div class="detail-row"><span class="label">' + label + '</span><span class="value">' + value + '</span></div>';
@@ -326,7 +496,8 @@
     return out;
   }
 
-  function episodes(cur, list, unitTitle, unitId) {
+  function episodes(cur, list, unitTitle, unitId, opts) {
+    opts = opts || {};
     if (!list || list.length < 2) return '';
     var i = list.indexOf(cur);
     var allVideo = list.every(function (x) { return (x.kind || 'video') === 'video'; });
@@ -335,7 +506,8 @@
     function href(item, idx) {
       var k = itemKey(item);
       return 'single.html?id=' + encodeURIComponent(unitId || '') +
-        (k ? '&k=' + encodeURIComponent(k) : '&i=' + idx);
+        (k ? '&k=' + encodeURIComponent(k) : '&i=' + idx) +
+        (opts.view === 'mine' ? '&view=mine' : '');
     }
 
     var prev = i > 0 ? list[i - 1] : null;
@@ -386,6 +558,13 @@
     detailHref: detailHref,
     topicCard: topicCard,
     videoCard: videoCard,
+    sectionNav: sectionNav,
+    lead: lead,
+    sectionBand: sectionBand,
+    sectionMeta: sectionMeta,
+    magazineChapter: magazineChapter,
+    magazineToc: magazineToc,
+    breadcrumb: breadcrumb,
     detail: detail,
     episodes: episodes,
     parts: parts,

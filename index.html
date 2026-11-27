@@ -6,96 +6,21 @@
   <title>集页 · 主题内容清单</title>
   <meta name="description" content="一集一页,把值得收藏的内容收成清单。按主题汇总视频与图文,持续更新">
   <link rel="stylesheet" href="assets/style.css">
+  <link rel="stylesheet" href="assets/pages/index.css">
   <!-- 主题:阻塞脚本在 <head> 里同步注入主题 CSS,避免首屏闪一下 -->
   <script src="assets/theme.js"></script>
-  <noscript><link rel="stylesheet" href="assets/themes/default.css"></noscript>
-  <style>
-    /* ===== 首页专属布局样式(单独维护本页时只改这里) ===== */
-    .facts { display: flex; gap: 40px; margin-top: 24px; }
-    .fact b { display: block; font-size: 26px; font-weight: 600; }
-    .fact span { font-size: 12px; color: var(--text-mute); }
-
-    /* 筛选区分组:类型 / 平台 / 标签各占一行,行间用虚线分隔;搜索单独一行 */
-    .filter-bar {
-      display: flex; flex-direction: column; gap: 0; margin-bottom: 18px;
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: var(--radius); padding: 2px 16px; box-shadow: var(--shadow);
-    }
-    .filter-group {
-      display: flex; align-items: flex-start; gap: 12px; padding: 9px 0;
-      border-top: 1px dashed var(--border);
-    }
-    .filter-group:first-child { border-top: 0; }
-    .filter-label {
-      flex: 0 0 44px; font-size: 12px; letter-spacing: .08em; color: var(--text-mute);
-      line-height: 30px; white-space: nowrap;
-    }
-    .filter-opts { flex: 1 1 auto; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-    .search-group .filter-opts { justify-content: flex-end; }
-    .search-input {
-      width: 320px; max-width: 100%; height: 34px; padding: 0 14px 0 34px;
-      border: 1px solid var(--border); border-radius: var(--radius-pill);
-      background: var(--bg) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238a94a3' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.6-3.6'/%3E%3C/svg%3E") no-repeat 12px center / 15px 15px;
-      font: inherit; font-size: 13px; color: var(--text); outline: none;
-      transition: border-color .15s, box-shadow .15s, background-color .15s;
-    }
-    .search-input::placeholder { color: var(--text-mute); }
-    .search-input:focus { border-color: var(--brand); background-color: var(--surface); box-shadow: 0 0 0 3px var(--brand-soft); }
-    @media (max-width: 600px) {
-      .filter-bar { padding: 2px 12px; }
-      .filter-group { gap: 8px; padding: 8px 0; }
-      .filter-label { flex-basis: 34px; line-height: 28px; }
-      .search-group .filter-opts { justify-content: stretch; }
-      .search-input { width: 100%; }
-    }
-    .chip {
-      border: 1px solid var(--border); background: var(--surface); color: var(--text-sub);
-      border-radius: var(--radius-pill); padding: 7px 15px; font-size: var(--fs-sm);
-      cursor: pointer; transition: color .15s, border-color .15s, background .15s;
-    }
-    .chip:hover { color: var(--brand); border-color: var(--brand); }
-    .chip.active { background: var(--brand); color: #fff; border-color: var(--brand); }
-
-    .topic-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 18px; }
-    .topic-card {
-      display: block; background: var(--surface); border: 1px solid var(--border);
-      border-radius: var(--radius); overflow: hidden; text-decoration: none;
-      color: var(--text); box-shadow: var(--shadow); transition: transform .15s ease;
-    }
-    .topic-card:hover { transform: translateY(-3px); }
-    .topic-cover { position: relative; aspect-ratio: 16 / 9; background: var(--bg); overflow: hidden; }
-    .topic-cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
-    .topic-cover .badge {
-      /* 显式覆盖公共样式(style.css)的 top:14px 与圆角,否则 top+bottom 同时生效会把徽标拉成竖条 */
-      position: absolute; left: 10px; bottom: 10px; top: auto;
-      background: rgba(0,0,0,.72); color: #fff;
-      font-size: 11px; padding: 4px 10px; border-radius: var(--radius-pill);
-      white-space: nowrap; backdrop-filter: none; letter-spacing: .2px;
-    }
-    .topic-cover .type-tag {
-      position: absolute; right: 10px; top: 10px; font-size: 11px; padding: 4px 9px;
-      border-radius: var(--radius-pill); color: #fff; background: var(--brand);
-      letter-spacing: .2px; box-shadow: 0 2px 6px rgba(0,0,0,.18);
-    }
-    .topic-cover .type-tag.single { background: #7a5cd6; }
-    .topic-body { padding: 16px 18px 18px; }
-    .topic-body h3 { font-size: 16px; font-weight: 600; margin: 0 0 6px; letter-spacing: -.2px; }
-    .topic-body .slogan { font-size: 12px; color: var(--text-sub); margin: 0 0 12px; line-height: 1.5; }
-    .topic-body .foot { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-mute); }
-    .topic-body .count { color: var(--brand); }
-    /* 标签独立成行:超出两行自动截断 */
-    .topic-body .tag-line {
-      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
-      overflow: hidden; margin: 0 0 10px; line-height: 1.9;
-    }
-    .mini-tag {
-      display: inline-block; margin-right: 4px; padding: 1px 6px; font-size: 10px;
-      border: 1px solid var(--border); border-radius: 8px; color: var(--text-mute);
-      max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: middle;
-    }
-  </style>
+  <script src="assets/site.js"></script>
+  <script src="assets/templates.js"></script>
+  <script src="assets/layout.js"></script>
+  <noscript>
+    <link rel="stylesheet" href="assets/themes/default.css">
+    <link rel="stylesheet" href="assets/layouts/standard.css">
+  </noscript>
 </head>
-<body>
+<body class="page-index">
+  <a class="skip-link" href="#main-content">跳到主要内容</a>
+  <h1 class="sr-only">集页</h1>
+
   <header class="site-header">
     <div class="wrap">
       <div class="brand">
@@ -112,23 +37,34 @@
     </div>
   </header>
 
-  <main class="wrap">
-    <section class="hero">
-      <h1>每个值得收藏的宝藏主题<br>都有一页完整清单</h1>
-      <p class="sub">按主题收录各平台的视频与图文(公众号、小红书等),点开卡片即可看原片或原文。<br>清单由采集程序自动整理,持续更新。</p>
-      <div class="facts">
-        <div class="fact"><b id="stat-topics">0</b><span>主题系列</span></div>
-        <div class="fact"><b id="stat-platforms">0</b><span>来源渠道</span></div>
-        <div class="fact"><b id="stat-updated">—</b><span>最近更新</span></div>
+  <nav class="section-nav" id="section-nav" aria-label="板块导航" hidden></nav>
+
+  <main class="wrap" id="main-content">
+    <section class="hero" id="hero">
+      <h2 id="hero-title">每个值得收藏的宝藏主题<br>都有一页完整清单</h2>
+      <p class="sub" id="hero-sub">按主题收录各平台的视频与图文(公众号、小红书等),点开卡片即可看原片或原文。<br>清单由采集程序自动整理,持续更新。</p>
+      <p class="section-back" id="section-back" hidden><a href="index.html">← 全部主题</a></p>
+      <div class="facts facts-hero">
+        <div class="fact"><b id="stat-topics">0</b><span id="stat-topics-label">主题系列</span></div>
+        <div class="fact"><b id="stat-platforms">0</b><span id="stat-platforms-label">来源渠道</span></div>
+        <div class="fact fact-date"><b id="stat-updated">—</b><span>最近更新</span></div>
       </div>
     </section>
 
-    <div class="section-title">
-      <h2>全部主题</h2>
-      <span class="hint">点击卡片进入合集 / 单条内容</span>
+    <!-- 版式结构容器:由 templates.js 的能力声明决定显示;标准版式下全部隐藏 -->
+    <section class="lead" id="lead" hidden></section>
+    <div class="mag-toc-wrap" id="magazine-toc" hidden></div>
+
+    <div class="section-title" id="all-title">
+      <h2 id="all-title-text">全部主题</h2>
+      <span class="hint" id="all-title-hint">点击卡片进入合集 / 单条内容</span>
     </div>
 
     <div class="filter-bar" id="filter-bar">
+      <button type="button" class="filter-collapse" aria-expanded="false">
+        <span class="filter-collapse-title">筛选条件</span>
+        <span class="filter-collapse-hint">展开</span>
+      </button>
       <div class="filter-group">
         <span class="filter-label">类型</span>
         <div class="filter-opts">
@@ -158,6 +94,8 @@
     </div>
 
     <div class="topic-grid" id="topic-grid"></div>
+    <div id="section-bands"></div>
+    <div class="section-empty" id="section-empty" hidden></div>
 
     <!-- 个人收藏视图(?view=mine):数据只在本机 localStorage,不上传、不采集 -->
     <section class="mine-panel" id="mine-panel" hidden>
@@ -170,12 +108,6 @@
           </h2>
           <p class="mine-hero-sub" id="mine-sub">只保存在这台设备的收藏,不上传、不同步。</p>
           <small id="mine-stat" class="mine-hero-stat"></small>
-        </div>
-        <div class="mine-tools">
-          <button type="button" id="mine-export" class="mine-btn">导出备份</button>
-          <button type="button" id="mine-import" class="mine-btn">导入</button>
-          <button type="button" id="mine-settings" class="mine-btn" aria-expanded="false" aria-controls="mine-settings-panel">设置</button>
-          <input type="file" id="mine-file" accept=".json,application/json" hidden>
         </div>
       </div>
       <!-- 我的页设置:收藏页名称 + 只对本页生效的主题 -->
@@ -202,6 +134,13 @@
           <button type="button" id="mine-set-sub-reset" class="mine-set-link">恢复默认</button>
         </div>
         <div class="mine-set-row">
+          <label for="mine-set-layout">我的版式</label>
+          <select id="mine-set-layout">
+            <option value="inherit">跟随公开版式</option>
+          </select>
+          <small>只影响「我的」页,公开页仍用页脚版式</small>
+        </div>
+        <div class="mine-set-row">
           <label for="mine-set-theme">我的主题</label>
           <select id="mine-set-theme">
             <option value="inherit">跟随公开主题</option>
@@ -216,6 +155,10 @@
       </div>
       <!-- 我的页筛选:与公开首页同一套 .filter-bar 布局(类型 + 标签 + 搜索) -->
       <div class="filter-bar" id="mine-filter-bar">
+        <button type="button" class="filter-collapse" aria-expanded="false">
+          <span class="filter-collapse-title">筛选条件</span>
+          <span class="filter-collapse-hint">展开</span>
+        </button>
         <div class="filter-group">
           <span class="filter-label">类型</span>
           <div class="filter-opts">
@@ -235,23 +178,29 @@
           </div>
         </div>
       </div>
-      <div class="mine-mode">
-        <label><input type="radio" name="mine-mode" value="merge" checked> 合并(保留较新)</label>
-        <label><input type="radio" name="mine-mode" value="replace"> 替换(覆盖当前,慎用)</label>
-      </div>
       <div id="mine-body"></div>
     </section>
   </main>
 
-  <footer class="site-footer">
+  <footer class="site-footer" id="public-footer">
     <div class="wrap">
       <div>内容来自各平台公开内容,版权归原作者所有,本站仅做链接聚合与导航。</div>
-      <div>页面为固定模板,采集只更新数据;新增主题请在 <a href="collect.html">采集入口</a> 操作 →</div>
-      <div>个人收藏只存在本机浏览器,可随时<a href="index.html?view=mine">导出备份或导入恢复</a>。</div>
+    </div>
+  </footer>
+
+  <footer class="site-footer mine-footer" id="mine-footer" hidden>
+    <div class="wrap mine-footer-inner">
+      <div class="mine-footer-copy">我的收藏只保存在这台设备,不上传、不同步。</div>
+      <nav class="mine-footer-links" aria-label="我的页导航">
+        <a href="mine-io.html">导入导出</a>
+        <button type="button" id="mine-settings" class="mine-footer-link" aria-expanded="false" aria-controls="mine-settings-panel">设置</button>
+        <a href="index.html">回到公开页</a>
+      </nav>
     </div>
   </footer>
 
   <script src="assets/data/index.js"></script>
+  <script src="assets/data/sections.js"></script>
   <script src="assets/data-loader.js"></script>
   <script src="assets/render.js"></script>
   <script src="assets/personal.js"></script>
@@ -265,6 +214,82 @@
     var currentTag = '';
     var keyword = '';
 
+    // ===== 板块导航与 ?section 路由(D66/D67) =====
+    // sections.js 缺失时的兜底:按索引里的 section 聚合,导航仍可用(T9)
+    var SECTION_TITLES = {
+      'infant-care': '婴幼儿养护', preschool: '学前教育', k12: '中小学教育',
+      ai: 'AI 与智能工具', tech: '科技前沿', tools: '工具与效率', humanities: '人文与通识'
+    };
+    var SECTION_LIST = (window.SECTIONS || []);
+    if (!SECTION_LIST.length && all.length) {
+      var fallback = {};
+      all.forEach(function (t) {
+        var id = t.section || '';
+        if (!id) return;
+        fallback[id] = (fallback[id] || 0) + 1;
+      });
+      SECTION_LIST = Object.keys(fallback).map(function (id, i) {
+        return {
+          id: id,
+          title: SECTION_TITLES[id] || id,
+          description: '',
+          order: i,
+          enabled: true,
+          count: fallback[id]
+        };
+      });
+    }
+    var EDITORIAL = window.EDITORIAL || {};
+    var routeParam = '';
+    var mineView = false;
+    try {
+      var pageParams = new URLSearchParams(location.search);
+      routeParam = pageParams.get('section') || '';
+      mineView = pageParams.get('view') === 'mine';
+    } catch (e) {}
+    var routeSection = routeParam && routeParam !== 'all'
+      ? SECTION_LIST.filter(function (s) { return s.id === routeParam; })[0] || null
+      : null;
+    var routeInvalid = !!routeParam && routeParam !== 'all' && (!routeSection || routeSection.enabled === false);
+    if (routeSection && routeSection.enabled !== false) {
+      currentSection = routeSection.id;
+    }
+    function editorialOf(t) {
+      return (t && EDITORIAL[t.id]) || {};
+    }
+    function pinOf(t) {
+      return !!editorialOf(t).pin;
+    }
+    function heroOf(t) {
+      return editorialOf(t).hero_image || (t && t.cover) || '';
+    }
+    // 置顶只影响展示顺序:先按 pin_at 倒序,再保持索引原有 last_at 顺序
+    function displayOrder(list) {
+      return list.map(function (t, i) { return { t: t, i: i, ed: editorialOf(t) }; })
+        .sort(function (a, b) {
+          var ap = !!a.ed.pin, bp = !!b.ed.pin;
+          if (ap !== bp) return ap ? -1 : 1;
+          if (ap && bp) {
+            var ac = String(a.ed.pin_at || ''), bc = String(b.ed.pin_at || '');
+            if (ac !== bc) return ac < bc ? 1 : -1;
+          }
+          return a.i - b.i;
+        })
+        .map(function (x) { return x.t; });
+    }
+    function layoutKey() {
+      return document.documentElement.getAttribute('data-layout') || 'standard';
+    }
+    function cap(name) {
+      var reg = window.TEMPLATES;
+      var item = reg && reg.list && reg.list[layoutKey()];
+      return !!(item && item[name]);
+    }
+    function sectionItems() {
+      if (!routeSection || routeSection.enabled === false) return all;
+      return all.filter(function (t) { return t.section === routeSection.id; });
+    }
+
     // 多平台合集同时出现在它包含的每个渠道筛选下
     function platformsOf(t) {
       var list = Array.isArray(t.platforms) && t.platforms.length
@@ -277,10 +302,7 @@
       return Array.isArray(t.tags) ? t.tags : [];
     }
 
-    document.getElementById('stat-topics').textContent = all.length;
     var updated = (window.SITE && window.SITE.updated) || '';
-    // 站点日期统一 yyyy.mm.dd 格式
-    document.getElementById('stat-updated').textContent = updated.replace(/-/g, '.');
 
     // 来源渠道统计与动态筛选:当前仅一个渠道时不显示筛选,新增渠道后自动出现
     var platforms = [];
@@ -289,7 +311,57 @@
         if (platforms.indexOf(p) < 0) platforms.push(p);
       });
     });
-    document.getElementById('stat-platforms').textContent = platforms.length;
+    var BASE_TITLE = document.title;
+    var BASE_DESC = (document.querySelector('meta[name=description]') || {}).content || '';
+
+    // hero 随 ?section 切换:板块标题/说明/计数;非法板块给明确提示,不静默回首页
+    function renderHero() {
+      var h1 = document.getElementById('hero-title');
+      var sub = document.getElementById('hero-sub');
+      var back = document.getElementById('section-back');
+      var topicsLabel = document.getElementById('stat-topics-label');
+      var itemsLabel = document.getElementById('stat-platforms-label');
+      var topics = all.length;
+      var items = platforms.length;
+      var title = '每个值得收藏的宝藏主题<br>都有一页完整清单';
+      var desc = '按主题收录各平台的视频与图文(公众号、小红书等),点开卡片即可看原片或原文。<br>清单由采集程序自动整理,持续更新。';
+      var backHidden = true;
+      var tLabel = '主题系列';
+      var iLabel = '来源渠道';
+      var metaTitle = BASE_TITLE;
+      var metaDesc = BASE_DESC;
+
+      if (routeInvalid) {
+        title = '该栏目暂未开放';
+        desc = '板块不存在或已停用,可能已更名。回到全部主题继续浏览。';
+        topics = 0; items = 0; backHidden = false;
+        tLabel = '收录主题'; iLabel = '收录内容';
+        metaTitle = '栏目未开放 · 集页';
+        metaDesc = '该板块不存在或已停用。';
+      } else if (routeSection) {
+        var scoped = sectionItems();
+        topics = scoped.length;
+        items = scoped.reduce(function (n, t) { return n + (t.count || 0); }, 0);
+        title = esc(routeSection.title);
+        desc = esc(routeSection.description || '') + '<br>' + topics + ' 个主题 · ' + items + ' 条内容';
+        backHidden = false;
+        tLabel = '收录主题'; iLabel = '收录内容';
+        metaTitle = routeSection.title + ' · 集页';
+        metaDesc = routeSection.description || routeSection.title;
+      }
+
+      h1.innerHTML = title;
+      sub.innerHTML = desc;
+      back.hidden = backHidden;
+      topicsLabel.textContent = tLabel;
+      itemsLabel.textContent = iLabel;
+      document.getElementById('stat-topics').textContent = topics;
+      document.getElementById('stat-platforms').textContent = items;
+      document.getElementById('stat-updated').textContent = updated.replace(/-/g, '.') || '—';
+      document.title = metaTitle;
+      var meta = document.querySelector('meta[name=description]');
+      if (meta) meta.setAttribute('content', metaDesc);
+    }
 
     // 板块筛选：索引里带 section / section_title 时自动出现；人文等停用板块不展示
     (function () {
@@ -379,8 +451,88 @@
       return (type === 'single' ? 'single.html?id=' : 'series.html?id=') + encodeURIComponent(t.id || '');
     }
 
-    function render() {
-      var list = all.filter(function (t) {
+    var leadBox = document.getElementById('lead');
+    var bandsBox = document.getElementById('section-bands');
+    var emptyBox = document.getElementById('section-empty');
+    var filterBar = document.getElementById('filter-bar');
+    var mineFilterBar = document.getElementById('mine-filter-bar');
+    var allTitle = document.getElementById('all-title');
+    var sectionNavBox = document.getElementById('section-nav');
+    var tocBox = document.getElementById('magazine-toc');
+
+    // 筛选条吸顶偏移:站点头高度 + 板块导航实际高度(简洁版式/窄屏导航不吸顶时为 0)
+    function syncFilterSticky() {
+      var header = document.querySelector('.site-header');
+      var navOn = sectionNavBox && !sectionNavBox.hidden &&
+        window.getComputedStyle(sectionNavBox).position === 'sticky';
+      var top = (header ? header.offsetHeight : 0) +
+        (navOn ? sectionNavBox.offsetHeight : 0);
+      document.documentElement.style.setProperty('--layout-filter-top', Math.round(top) + 'px');
+    }
+
+    // 吸顶时默认收成一行「筛选条件」,需要时再展开;离开吸顶自动恢复完整筛选
+    var filterExpanded = false;
+    var filterWasStuck = false;
+    function activeFilterBar() {
+      return (mineView ? mineFilterBar : filterBar);
+    }
+    function updateFilterStickyState() {
+      var bar = activeFilterBar();
+      if (!bar || bar.hidden || bar.offsetParent === null || !bar.getBoundingClientRect().height) return;
+      var top = parseFloat(window.getComputedStyle(document.documentElement)
+        .getPropertyValue('--layout-filter-top')) || 0;
+      var stuck = bar.getBoundingClientRect().top <= top + 1;
+      if (stuck && !filterWasStuck) filterExpanded = false;
+      if (!stuck) filterExpanded = false;
+      filterWasStuck = stuck;
+      bar.classList.toggle('is-stuck', stuck);
+      bar.classList.toggle('is-collapsed', stuck && !filterExpanded);
+      var btn = bar.querySelector('.filter-collapse');
+      if (btn) {
+        btn.setAttribute('aria-expanded', stuck && filterExpanded ? 'true' : 'false');
+        var hint = btn.querySelector('.filter-collapse-hint');
+        if (hint) hint.textContent = stuck && filterExpanded ? '收起' : '展开';
+      }
+    }
+
+    function mineSectionList() {
+      var counts = {};
+      var items = window.Personal ? Personal.list() : [];
+      items.forEach(function (it) {
+        var sec = it.section;
+        if (!sec) {
+          var unit = all.filter(function (t) { return t.id === it.unit; })[0];
+          sec = unit && unit.section;
+        }
+        if (sec) counts[sec] = (counts[sec] || 0) + 1;
+      });
+      return SECTION_LIST.map(function (s) {
+        var copy = {};
+        Object.keys(s).forEach(function (k) { copy[k] = s[k]; });
+        copy.count = counts[s.id] || 0;
+        return copy;
+      });
+    }
+
+    function renderSectionNav() {
+      if (!sectionNavBox) return;
+      var list = mineView ? mineSectionList() : SECTION_LIST;
+      var on = cap('nav') && list.length >= 2;
+      sectionNavBox.hidden = !on;
+      var activeSection = mineView
+        ? ((routeSection && routeSection.enabled !== false) ? routeSection.id : 'all')
+        : (routeInvalid ? '__none' : (routeSection ? routeSection.id : 'all'));
+      sectionNavBox.innerHTML = on
+        ? Render.sectionNav(list, activeSection, mineView ? { view: 'mine' } : null)
+        : '';
+    }
+
+    function starOf(t) {
+      return window.Personal ? Personal.seriesButton(t) : '';
+    }
+
+    function filtered(base) {
+      var picked = base.filter(function (t) {
         if (currentFilter !== 'all' && (t.type || 'series') !== currentFilter) return false;
         if (currentSection !== 'all' && t.section !== currentSection) return false;
         if (currentPlatform !== 'all' && platformsOf(t).indexOf(currentPlatform) < 0) return false;
@@ -391,16 +543,102 @@
         }
         return true;
       });
-      grid.innerHTML = list.length ? list.map(function (t) {
-        return Render.topicCard(t, {
-          href: cardHref(t),
+      return displayOrder(picked);
+    }
+
+    function render() {
+      var hasFilter = currentFilter !== 'all' || currentPlatform !== 'all' || !!currentTag || !!keyword;
+      var base = routeInvalid ? [] : sectionItems();
+      var list = filtered(base);
+      var newsFull = !routeSection && !routeInvalid && cap('bands');
+      var showBands = newsFull && !hasFilter;
+      var showGrid = !showBands;
+
+      renderHero();
+      renderSectionNav();
+      syncFilterSticky();
+      updateFilterStickyState();
+      document.body.classList.toggle('is-section-view', !!routeSection || routeInvalid);
+
+      allTitle.hidden = !!routeSection || routeInvalid || showBands;
+      document.getElementById('all-title-text').textContent = hasFilter ? '筛选结果' : '全部主题';
+      document.getElementById('all-title-hint').textContent = hasFilter
+        ? '共 ' + list.length + ' 个匹配主题'
+        : '点击卡片进入合集 / 单条内容';
+
+      filterBar.hidden = routeInvalid;
+      var sectionGroup = document.getElementById('section-group');
+      if (sectionGroup) sectionGroup.hidden = cap('nav') || !!routeSection || routeInvalid;
+
+      grid.hidden = !showGrid || routeInvalid;
+      if (showGrid && !routeInvalid) {
+        grid.innerHTML = list.length ? list.map(function (t) {
+          return Render.topicCard(t, {
+            href: cardHref(t),
+            updated: updated,
+            platName: platformOf(t),
+            tags: tagsOf(t),
+            starHtml: starOf(t),
+            pin: pinOf(t)
+          });
+        }).join('') : '<div class="empty">没有匹配的主题</div>';
+      } else {
+        grid.innerHTML = '';
+      }
+
+
+      if (showBands) {
+        var ordered = SECTION_LIST.filter(function (s) { return s.enabled !== false; })
+          .slice().sort(function (a, b) { return (a.order || 0) - (b.order || 0); });
+        var enabled = ordered;
+        // 画册首页只保留有内容的章节;空章节仍在目录与板块视图占位
+        if (layoutKey() === 'magazine') {
+          enabled = ordered.filter(function (sec) {
+            return all.some(function (t) { return t.section === sec.id; });
+          });
+        }
+        bandsBox.innerHTML = enabled.map(function (sec) {
+          var chapterNo = ordered.indexOf(sec) + 1;
+          return Render.sectionBand(sec, displayOrder(all.filter(function (t) { return t.section === sec.id; })), {
+            href: cardHref,
+            updated: updated,
+            plat: platformOf,
+            tags: tagsOf,
+            star: starOf,
+            pin: pinOf,
+            hero: heroOf,
+            magazine: layoutKey() === 'magazine'
+          }, chapterNo);
+        }).join('');
+      } else {
+        bandsBox.innerHTML = '';
+      }
+
+      var leadOn = cap('lead') && !routeSection && !routeInvalid && !hasFilter;
+      leadBox.hidden = !leadOn;
+      if (leadOn) {
+        leadBox.innerHTML = Render.lead(displayOrder(all), {
+          href: cardHref,
           updated: updated,
-          platName: platformOf(t),
-          tags: tagsOf(t),
-          // 合集/单条主题卡片也可整卡收藏,key 固定 __series 与条目级收藏区分
-          starHtml: window.Personal ? Personal.seriesButton(t) : ''
+          plat: platformOf,
+          tags: tagsOf,
+          star: starOf,
+          pin: pinOf
         });
-      }).join('') : '<div class="empty">没有匹配的主题</div>';
+      } else {
+        leadBox.innerHTML = '';
+      }
+
+      var tocOn = cap('toc') && !routeSection && !routeInvalid && !hasFilter;
+      tocBox.hidden = !tocOn;
+      tocBox.innerHTML = tocOn ? Render.magazineToc(SECTION_LIST, all, {}) : '';
+
+      if (routeInvalid) {
+        emptyBox.hidden = false;
+        emptyBox.innerHTML = '<div class="empty">该栏目暂未开放。<a href="index.html">返回全部主题 →</a></div>';
+      } else {
+        emptyBox.hidden = true;
+      }
     }
 
     // 只处理类型筛选;平台/标签 chip 有各自的处理器,不能被这里接管
@@ -416,7 +654,43 @@
       keyword = e.target.value.trim().toLowerCase();
       render();
     });
+    // 画册大图坏链:先退回封面,再失败就隐藏图片,不留破图图标
+    bandsBox.addEventListener('error', function (e) {
+      var img = e.target;
+      if (!img || img.tagName !== 'IMG') return;
+      var cover = img.getAttribute('data-cover') || '';
+      if (!img.getAttribute('data-fallback') && cover) {
+        img.setAttribute('data-fallback', '1');
+        img.src = cover;
+        return;
+      }
+      img.hidden = true;
+    }, true);
+
+    // 版式切换后结构能力变化(导航/头条/分节),需要重渲染一次
+    document.addEventListener('jiye:layout', render);
+    var resizeRaf = 0;
+    window.addEventListener('resize', function () {
+      if (resizeRaf) window.cancelAnimationFrame(resizeRaf);
+      resizeRaf = window.requestAnimationFrame(function () {
+        syncFilterSticky();
+        updateFilterStickyState();
+      });
+    });
+    window.addEventListener('scroll', updateFilterStickyState, { passive: true });
+    [filterBar, mineFilterBar].forEach(function (bar) {
+      if (!bar) return;
+      var btn = bar.querySelector('.filter-collapse');
+      if (!btn) return;
+      btn.addEventListener('click', function () {
+        filterExpanded = !filterExpanded;
+        updateFilterStickyState();
+      });
+    });
+    document.addEventListener('jiye:layout-fallback', render);
     render();
+    // 等我的面板/导航挂载后的下一帧再核对一次吸顶状态,覆盖恢复滚动位置与初始深链
+    window.requestAnimationFrame(updateFilterStickyState);
   </script>
 </body>
 </html>

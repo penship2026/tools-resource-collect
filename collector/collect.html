@@ -83,7 +83,17 @@
     .topic-type.single { background: #f0ebfa; color: #7a5cd6; }
     .toggle-btn { font-size: 11px; padding: 4px 9px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); color: var(--text-sub); cursor: pointer; white-space: nowrap; }
     .toggle-btn.off { color: #c0392b; }
-    .topic-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
+    .toggle-btn.pin-on { color: var(--brand); border-color: var(--brand); background: #eef3fb; }
+    .topic-actions { display: flex; flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: flex-start; gap: 6px; margin-top: 10px; }
+    .unit-row { border-bottom: 1px solid var(--border); }
+    .unit-row .topic-item { display: block; border-bottom: none; }
+    .hero-editor { padding: 0 0 14px; }
+    .hero-editor label { display: block; font-size: 11px; color: var(--text-mute); margin-bottom: 6px; }
+    .hero-editor .hero-line { display: flex; gap: 6px; flex-wrap: wrap; }
+    .hero-editor input { flex: 1 1 320px; min-width: 0; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 7px 9px; color: var(--text); font-size: 12px; }
+    .hero-editor .toggle-btn { flex: 0 0 auto; }
+    .hero-editor img { display: block; width: 210px; max-width: 100%; aspect-ratio: 3 / 2; object-fit: cover; border-radius: 8px; margin-top: 8px; background: var(--bg); }
+    .hero-editor img[hidden] { display: none; }
     .unit-pager {
       display: flex; align-items: center; justify-content: space-between; gap: 12px;
       margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border);
@@ -96,6 +106,20 @@
     }
     .unit-pager button:hover:not(:disabled) { border-color: var(--brand); color: var(--brand); }
     .unit-pager button:disabled { opacity: .45; cursor: default; }
+    .unit-search { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 10px 0 6px; }
+    .unit-search input {
+      flex: 1 1 240px; min-width: 0; padding: 7px 10px; font-size: 12px;
+      color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: 8px; outline: none;
+    }
+    .unit-search input:focus { border-color: var(--brand); }
+    .unit-search-count { font-size: 12px; color: var(--text-mute); }
+    .unit-note {
+      margin-top: 18px; padding-top: 14px; border-top: 1px dashed var(--border);
+      color: var(--text-mute); font-size: var(--fs-xs); line-height: 1.85;
+    }
+    .unit-note p { margin: 0 0 6px; }
+    .unit-note p:last-child { margin-bottom: 0; }
+    .unit-note b { color: var(--text-sub); font-weight: 600; }
     .status { font-size: 13px; margin-top: 12px; min-height: 20px; }
     .status.err { color: #c0392b; }
     .status.ok { color: #1d9e75; }
@@ -193,8 +217,9 @@
             <div class="channel-picks">
               <label class="pick"><input type="radio" name="merge_mode" value="append" checked> 追加(保留已有条目)</label>
               <label class="pick"><input type="radio" name="merge_mode" value="replace"> 覆盖(只保留本次结果)</label>
+              <label class="pick" id="merge-remove-pick"><input type="radio" name="merge_mode" value="remove"> 移除当前链接</label>
             </div>
-            <div class="tip">覆盖会丢弃该单元里本次未采集到的旧条目,建议先点「预览模式」确认,或先导出备份。</div>
+            <div class="tip">覆盖会丢弃该单元里本次未采集到的旧条目,建议先点「预览模式」确认,或先导出备份。移除只对「按链接 / 批量链接」可用:输入框里填的链接会被当作要移除的条目,不会重新抓取,也不支持按主题采集。</div>
           </div>
           <!-- 必填项:按当前模式只显示对应的一个输入框 -->
           <div class="field hidden" id="field-keyword">
@@ -288,12 +313,17 @@
 
       <div class="panel">
         <h2>已有采集单元</h2>
+        <div class="unit-search">
+          <input type="search" id="unit-search" placeholder="搜索标题、ID、作者、平台或关键词…" autocomplete="off">
+          <button type="button" class="toggle-btn" id="unit-search-clear" hidden>清除</button>
+          <span class="unit-search-count" id="unit-search-count"></span>
+        </div>
         <div id="topics"><div class="tip">加载中…</div></div>
-        <p class="tip" style="margin-top:18px">
-          点「重新采集」只会把上次填写的采集信息带回左侧表单(并默认展开全部可选设置),确认后再执行,不会自动采集;
-          需要时也可以只改显示标题,或直接「下线不显示」(数据保留,可随时重新上线)。
-          采集是独立单元,可单独开启/关闭首页显示(关闭后数据保留,只是不展示);按内容唯一键去重(B站=BV 号,公众号=原文地址,小红书=笔记 ID)。
-        </p>
+        <div class="unit-note">
+          <p><b>重新采集</b>只回填上次的采集信息(并展开可选设置),确认后才会执行,不会自动采集;也可以只改显示标题,或「下线不显示」。</p>
+          <p><b>显示开关</b>每个单元独立控制首页展示;关闭后数据保留,只是不展示,可随时重新上线。</p>
+          <p><b>去重规则</b>按内容唯一键:B站=BV 号,公众号=原文地址,小红书=笔记 ID。</p>
+        </div>
       </div>
     </div>
   </main>
@@ -326,8 +356,13 @@
     let lastAutoTitle = '';     // 上一次自动生成的默认标题,切方式时据此判断是否可以清掉
     let recollectId = '';       // 非空 = 正在重新采集该单元;为空 = 新建采集
     let recollectEnabled = true; // 该单元当前是否在首页显示(重新采集态用于「下线 / 重新上线」)
+    let siteCsrf = '';           // 站点外观写入需要 CSRF,token 由 GET /api/site 下发
 
+    function mergeMode() {
+      return (document.querySelector('input[name="merge_mode"]:checked') || {}).value || 'append';
+    }
     function submitLabel() {
+      if (recollectId && mergeMode() === 'remove') return '确认移除链接';
       if (recollectId) return '确认重新采集';
       if (mode === 'batch') return '开始批量采集';
       return mode === 'url' ? '采集这条内容' : '开始采集';
@@ -362,6 +397,12 @@
       $('field-channels').classList.toggle('hidden', !isKeyword);
       $('field-url').classList.toggle('hidden', m !== 'url');
       $('field-batch').classList.toggle('hidden', m !== 'batch');
+      // 移除只对链接类采集有意义;主题采集不提供该选项
+      const canRemove = m === 'url' || m === 'batch';
+      $('merge-remove-pick').classList.toggle('hidden', !canRemove);
+      if (!canRemove && mergeMode() === 'remove') {
+        document.querySelector('input[name="merge_mode"][value="append"]').checked = true;
+      }
       $('field-up').classList.toggle('hidden', !isKeyword);
       $('field-pages').classList.toggle('hidden', !isKeyword);
       $('field-manual').classList.toggle('hidden', isKeyword);
@@ -380,11 +421,15 @@
     $('tab-keyword').addEventListener('click', () => setMode('keyword'));
     $('tab-url').addEventListener('click', () => setMode('url'));
     $('tab-batch').addEventListener('click', () => setMode('batch'));
+    document.querySelectorAll('input[name="merge_mode"]').forEach(radio => {
+      radio.addEventListener('change', () => { $('submit').textContent = submitLabel(); });
+    });
 
     // 用相对路径调用接口,兼容站点部署在子目录下(根路径下也正常)
     const API_COLLECT = 'api/collect';
     const API_TOPICS  = 'api/topics';
     const API_TOGGLE  = 'api/toggle';
+    const API_SITE    = 'api/site';
     const API_INTAKE  = 'api/intake';
     const API_TITLE   = 'api/title';
 
@@ -416,7 +461,7 @@
       [/mp\.weixin\.qq\.com|weixin\.qq\.com/i, '公众号'],
       [/xiaohongshu\.com|xhslink\.com/i, '小红书'],
     ];
-    const MODE_NAMES = { url: '按链接采集', batch: '批量链接采集', keyword: '按主题采集' };
+    const MODE_NAMES = { url: '按链接采集', batch: '批量链接采集', keyword: '按主题采集', remove: '移除链接' };
     const CHANNEL_NAMES = { bilibili: 'B站', wechat: '公众号', xhs: '小红书' };
     function modeName(m) { return MODE_NAMES[m] || m || '未知方式'; }
     // 按主题采集的多选渠道:顺序固定为 B站 / 公众号 / 小红书,便于回填和展示
@@ -503,6 +548,7 @@
         const label = r.mode_label || MODE_NAMES[r.mode] || r.mode;
         if (label) bits.push(label);
         if (r.input_count) bits.push(r.input_count + ' 条输入');
+        if (r.removed) bits.push('移除 ' + (r.removed || 0));
         if (r.added || r.updated) bits.push('新增 ' + (r.added || 0) + ' / 更新 ' + (r.updated || 0));
         return '<li><span>' + bits.join(' · ') + '</span><span class="run-at">' + fmtStamp(r.at) + '</span></li>';
       }).join('');
@@ -690,10 +736,11 @@
       return true;
     }
 
-    // 已有采集单元:默认每页 10 条,避免单元多了把页面撑得过长
-    const UNIT_PAGE_SIZE = 10;
+    // 已有采集单元:默认每页 5 条,避免单元多了把页面撑得过长
+    const UNIT_PAGE_SIZE = 5;
     let unitCache = [];
     let unitPage = 1;
+    let unitQuery = '';
 
     function loadTopics() {
       apiFetch(API_TOPICS, { cache: 'no-store' }).then(readJSON).then(d => {
@@ -703,13 +750,88 @@
       }).catch(err => { $('topics').innerHTML = '<div class="tip">加载失败: ' + esc(err.message) + '</div>'; });
     }
 
+    // 搜索栏:本地过滤已加载的单元,不重新请求接口
+    (function () {
+      const input = $('unit-search');
+      const clearBtn = $('unit-search-clear');
+      if (!input) return;
+      let timer = 0;
+      function applyQuery() {
+        unitQuery = input.value || '';
+        unitPage = 1;
+        renderUnitPage();
+      }
+      input.addEventListener('input', () => {
+        clearTimeout(timer);
+        timer = setTimeout(applyQuery, 150);
+      });
+      input.addEventListener('keydown', e => {
+        if (e.key === 'Enter') { e.preventDefault(); clearTimeout(timer); applyQuery(); }
+      });
+      if (clearBtn) {
+        clearBtn.addEventListener('click', () => {
+          input.value = '';
+          clearTimeout(timer);
+          applyQuery();
+          input.focus();
+        });
+      }
+    })();
+
+    // 站点配置只取 CSRF token 与置顶/大图字段;/api/topics 已带回每个单元的值
+    function loadSiteMeta() {
+      apiFetch(API_SITE, { cache: 'no-store' }).then(readJSON).then(d => {
+        if (d && d.ok) siteCsrf = d.csrf_token || '';
+      }).catch(() => {});
+    }
+
+    async function saveSitePatch(patch, okText) {
+      const resp = await apiFetch(API_SITE, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': siteCsrf },
+        body: JSON.stringify(patch)
+      });
+      const r = await readJSON(resp);
+      if (!r.ok) throw new Error((r.error && r.error.message) || r.error || '保存失败');
+      statusBox.className = 'status ok';
+      statusBox.textContent = okText;
+      return r.site;
+    }
+
+    function unitMatches(t, terms) {
+      const hay = [t.title, t.id, t.author, t.platform, t.keyword, t.page]
+        .filter(Boolean).join(' ').toLowerCase();
+      return terms.every(term => hay.indexOf(term) !== -1);
+    }
+
+    function visibleUnits() {
+      const q = unitQuery.trim().toLowerCase();
+      if (!q) return unitCache;
+      const terms = q.split(/\s+/).filter(Boolean);
+      return unitCache.filter(t => unitMatches(t, terms));
+    }
+
     function renderUnitPage() {
       const box = $('topics');
-      if (!unitCache.length) { box.innerHTML = '<div class="tip">暂无采集单元</div>'; return; }
-      const pages = Math.ceil(unitCache.length / UNIT_PAGE_SIZE);
+      const countEl = $('unit-search-count');
+      const clearBtn = $('unit-search-clear');
+      if (clearBtn) clearBtn.hidden = !unitQuery.trim();
+      if (!unitCache.length) {
+        if (countEl) countEl.textContent = '';
+        box.innerHTML = '<div class="tip">暂无采集单元</div>';
+        return;
+      }
+      const list = visibleUnits();
+      const filtered = !!unitQuery.trim();
+      if (countEl) countEl.textContent = filtered ? `匹配 ${list.length} / 共 ${unitCache.length} 个` : `共 ${unitCache.length} 个`;
+      if (!list.length) {
+        box.innerHTML = '<div class="tip">没有匹配的采集单元,试试其他关键词</div>';
+        return;
+      }
+      const pages = Math.ceil(list.length / UNIT_PAGE_SIZE);
       unitPage = Math.min(Math.max(unitPage, 1), pages);
       const start = (unitPage - 1) * UNIT_PAGE_SIZE;
-      const rows = unitCache.slice(start, start + UNIT_PAGE_SIZE);
+      const rows = list.slice(start, start + UNIT_PAGE_SIZE);
 
       box.innerHTML = rows.map(t => {
         const type = t.type || 'series';
@@ -720,7 +842,9 @@
         const last = t.last_at
           ? `<small title="${esc(t.last_mode_label || '')}">上次采集 ${esc(fmtStamp(t.last_at))}</small>`
           : '';
+        const hero = t.hero_image || '';
         return `
+        <div class="unit-row">
         <div class="topic-item ${enabled ? '' : 'off'}">
           <div>
             ${typeTag}<a href="${esc(safePage(t.page))}" target="_blank">${esc(t.title)}</a>
@@ -731,15 +855,27 @@
             <button class="toggle-btn ${enabled ? '' : 'off'}" data-id="${esc(t.id)}" data-enabled="${enabled}">
               ${enabled ? '显示中' : '已关闭'}
             </button>
+            <button class="toggle-btn ${t.pin ? 'pin-on' : ''}" data-pin-id="${esc(t.id)}">${t.pin ? '取消置顶' : '置顶'}</button>
+            <button class="toggle-btn" data-hero-id="${esc(t.id)}">画册大图${hero ? ' ✓' : ''}</button>
             <button class="toggle-btn" data-fill-id="${esc(t.id)}">重新采集</button>
           </div>
+        </div>
+        <div class="hero-editor" data-hero-editor="${esc(t.id)}" hidden>
+          <label>画册大图 URL(只在画册版式生效;留空则用封面)</label>
+          <div class="hero-line">
+            <input type="text" data-hero-input value="${esc(hero)}" placeholder="https://… 3:2 横图效果最好" autocomplete="off">
+            <button class="toggle-btn" data-hero-save="${esc(t.id)}">保存</button>
+            <button class="toggle-btn" data-hero-clear="${esc(t.id)}">用封面</button>
+          </div>
+          <img data-hero-preview alt="" ${hero ? '' : 'hidden'} src="${esc(hero)}">
+        </div>
         </div>`;
       }).join('');
 
       if (pages > 1) {
         box.innerHTML += `
         <div class="unit-pager">
-          <span>第 ${unitPage} / ${pages} 页 · 共 ${unitCache.length} 个单元</span>
+          <span>第 ${unitPage} / ${pages} 页 · ${filtered ? `匹配 ${list.length} / 共 ${unitCache.length}` : `共 ${unitCache.length}`} 个单元</span>
           <div class="pager-btns">
             <button type="button" data-page="prev" ${unitPage <= 1 ? 'disabled' : ''}>上一页</button>
             <button type="button" data-page="next" ${unitPage >= pages ? 'disabled' : ''}>下一页</button>
@@ -780,6 +916,80 @@
           } finally { btn.disabled = false; }
         });
       });
+      // 人工置顶:只写 site.yml,不改索引顺序
+      box.querySelectorAll('[data-pin-id]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const id = btn.getAttribute('data-pin-id');
+          const item = unitCache.find(x => x.id === id);
+          const next = !(item && item.pin);
+          btn.disabled = true;
+          try {
+            await saveSitePatch({ id: id, pin: next }, '「' + (item ? item.title : id) + '」已' + (next ? '置顶' : '取消置顶'));
+            if (item) item.pin = next;
+            renderUnitPage();
+          } catch (err) {
+            statusBox.className = 'status err';
+            statusBox.textContent = '置顶失败: ' + err.message;
+            btn.disabled = false;
+          }
+        });
+      });
+
+      // 画册大图:展开单元下方编辑区,保存/清除都走 /api/site
+      box.querySelectorAll('[data-hero-id]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = btn.getAttribute('data-hero-id');
+          const editor = box.querySelector('[data-hero-editor="' + id + '"]');
+          if (!editor) return;
+          editor.hidden = !editor.hidden;
+          const input = editor.querySelector('[data-hero-input]');
+          const preview = editor.querySelector('[data-hero-preview]');
+          const show = () => {
+            const v = input.value.trim();
+            preview.hidden = !v;
+            if (v) preview.src = v;
+          };
+          input.oninput = show;
+          show();
+          if (!editor.hidden) input.focus();
+        });
+      });
+      box.querySelectorAll('[data-hero-save]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const id = btn.getAttribute('data-hero-save');
+          const editor = box.querySelector('[data-hero-editor="' + id + '"]');
+          const input = editor ? editor.querySelector('[data-hero-input]') : null;
+          if (!input) return;
+          btn.disabled = true;
+          try {
+            await saveSitePatch({ id: id, hero_image: input.value.trim() }, input.value.trim() ? '画册大图已保存' : '已改为使用封面');
+            const item = unitCache.find(x => x.id === id);
+            if (item) item.hero_image = input.value.trim();
+            renderUnitPage();
+          } catch (err) {
+            statusBox.className = 'status err';
+            statusBox.textContent = '保存大图失败: ' + err.message;
+            btn.disabled = false;
+          }
+        });
+      });
+      box.querySelectorAll('[data-hero-clear]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const id = btn.getAttribute('data-hero-clear');
+          btn.disabled = true;
+          try {
+            await saveSitePatch({ id: id, hero_image: '' }, '已改为使用封面');
+            const item = unitCache.find(x => x.id === id);
+            if (item) item.hero_image = '';
+            renderUnitPage();
+          } catch (err) {
+            statusBox.className = 'status err';
+            statusBox.textContent = '清除大图失败: ' + err.message;
+            btn.disabled = false;
+          }
+        });
+      });
+
       // 「重新采集」:带出上次采集信息并切到重新采集状态,不自动采集,等用户确认
       box.querySelectorAll('[data-fill-id]').forEach(btn => {
         btn.addEventListener('click', () => fillFromUnit(btn.getAttribute('data-fill-id')));
@@ -805,7 +1015,7 @@
         pages: parseInt($('pages').value) || 30,
         channels: channels,
         dry_run: $('dry_run').checked,
-        merge_mode: (document.querySelector('input[name="merge_mode"]:checked') || {}).value || 'append',
+        merge_mode: mergeMode(),
         // 手工补录:公众号/小红书抓取被风控时,至少填标题即可建单元
         manual_title: $('manual_title').value.trim(),
         manual_author: $('manual_author').value.trim(),
@@ -817,12 +1027,25 @@
           !confirm('确认覆盖采集?该单元里本次未采集到的旧条目会被删除。')) {
         return;
       }
+      if (payload.merge_mode === 'remove' && !payload.dry_run) {
+        if (mode === 'keyword') {
+          statusBox.className = 'status err';
+          statusBox.textContent = '按主题采集不支持移除链接,请切换到按链接或批量链接';
+          return;
+        }
+        const n = linksIn(keyword).length || 1;
+        if (!confirm('确认从当前单元移除这 ' + n + ' 条链接?\n\n只移除与输入链接匹配的条目,不会重新抓取内容。')) {
+          return;
+        }
+      }
       $('submit').disabled = true;
       $('submit').textContent = '采集中…';
       statusBox.className = 'status';
-      statusBox.textContent = mode === 'keyword'
-        ? '正在搜索 B站,请稍候(约需十几秒)…'
-        : '正在解析链接内容,请稍候…';
+      statusBox.textContent = payload.merge_mode === 'remove'
+        ? '正在从当前单元移除链接…'
+        : (mode === 'keyword'
+          ? '正在搜索 B站,请稍候(约需十几秒)…'
+          : '正在解析链接内容,请稍候…');
       logBox.textContent = '';
       reportBox.classList.remove('show');
 
@@ -837,8 +1060,12 @@
         if (d.ok) {
           statusBox.className = 'status ok';
           statusBox.textContent = d.dry_run
-            ? '预览完成,未写入文件'
-            : '完成!新增 ' + d.added + ' / 更新 ' + d.updated + ' / 合计 ' + d.total + ' 期';
+            ? (payload.merge_mode === 'remove'
+              ? '预览完成:将移除 ' + (d.removed || 0) + ' 条,剩余 ' + (d.total || 0) + ' 条(未写入文件)'
+              : '预览完成,未写入文件')
+            : (payload.merge_mode === 'remove'
+              ? '已移除 ' + (d.removed || 0) + ' 条,剩余 ' + (d.total || 0) + ' 条'
+              : '完成!新增 ' + d.added + ' / 更新 ' + d.updated + ' / 合计 ' + d.total + ' 期');
           $('r-added').textContent = d.added;
           $('r-updated').textContent = d.updated;
           $('r-kept').textContent = d.kept;
@@ -852,6 +1079,10 @@
         } else {
           statusBox.className = 'status err';
           statusBox.textContent = '失败: ' + (d.error || '未知错误');
+          // 旧版服务不认识 remove:直接提示重启,避免误以为链接或单元有问题
+          if (payload.merge_mode === 'remove' && (d.error || '').indexOf('不支持的采集方式') >= 0) {
+            statusBox.textContent = '失败: 当前采集服务还是旧版,未加载「移除链接」。请重启 collector/server.py 后刷新页面再试。';
+          }
           // 抓取失败多半是风控,自动展开可选设置方便手工补录
           $('field-advanced').open = true;
         }
@@ -878,6 +1109,7 @@
 
     setMode('url'); // 初始态与默认模式保持一致
     checkBackend();
+    loadSiteMeta();
     loadTopics();
   </script>
 </body>

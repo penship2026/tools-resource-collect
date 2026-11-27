@@ -140,6 +140,7 @@
       unit: String(it.unit || ''),
       key: String(it.key || ''),
       unitTitle: String(it.unitTitle || ''),
+      section: String(it.section || ''),
       title: String(it.title || ''),
       url: isHttp(it.url) ? String(it.url) : '',
       cover: isHttp(it.cover) ? String(it.cover) : '',
@@ -259,13 +260,15 @@
 
   /* ---------- 渲染辅助 ---------- */
 
-  function starButton(it) {
+  function starButton(it, opts) {
     var s = snapshot(it);
-    return '<button class="fav-btn" type="button" title="收藏到「我的」"' +
+    var title = opts && opts.remove ? '取消收藏' : '收藏到「我的」';
+    return '<button class="fav-btn" type="button" title="' + title + '"' +
       ' data-unit="' + esc(s.unit) + '" data-key="' + esc(s.key) + '"' +
       ' data-title="' + esc(s.title) + '" data-url="' + esc(s.url) + '"' +
       ' data-cover="' + esc(s.cover) + '" data-date="' + esc(s.date) + '"' +
       ' data-author="' + esc(s.author) + '" data-kind="' + esc(s.kind) + '"' +
+      ' data-section="' + esc(s.section) + '"' +
       ' data-unit-title="' + esc(s.unitTitle) + '">' + (has(s.unit, s.key) ? '★' : '☆') + '</button>';
   }
 
@@ -296,6 +299,7 @@
       date: el.getAttribute('data-date'),
       author: el.getAttribute('data-author'),
       kind: el.getAttribute('data-kind'),
+      section: el.getAttribute('data-section'),
       unitTitle: el.getAttribute('data-unit-title')
     });
   }
@@ -365,35 +369,46 @@
   function snapshotCard(it, opts) {
     var enabledMap = (opts && opts.units) || {};
     var offline = enabledMap[it.unit] === false;
-    // 单元已下线/被关闭时,站内详情页取不到数据,退回原链接
     var isSeries = it.kind === 'series';
+    var meta = unitMeta(it.unit) || {};
+    // 卡片结构复用公开首页的 topicCard:封面、右上角合集/单条、标签、条数与日期完全同构
+    var topic = {
+      id: it.unit,
+      title: it.title,
+      type: isSeries ? 'series' : 'single',
+      count: meta.count || (isSeries ? 0 : 1),
+      cover: it.cover,
+      latest: it.date || meta.latest || '',
+      slogan: meta.slogan || '',
+      source: meta.source || {}
+    };
     var href = (offline && it.url)
       ? it.url
       : (isSeries
-        ? 'series.html?id=' + encodeURIComponent(it.unit)
-        : 'single.html?id=' + encodeURIComponent(it.unit) + '&k=' + encodeURIComponent(it.key));
-    var target = (offline && it.url) ? ' target="_blank" rel="noopener noreferrer"' : '';
-    var cover = it.cover
-      ? '<img src="' + esc(it.cover) + '" alt="' + esc(it.title) + '" loading="lazy" referrerpolicy="no-referrer">'
-      : '<div class="fav-ph">' + esc((it.title || '内').charAt(0)) + '</div>';
-    return '<div class="fav-card">' +
-      '<a class="fav-thumb" href="' + esc(href) + '"' + target + '>' + cover + '</a>' +
-      '<div class="fav-body"><a class="fav-title" href="' + esc(href) + '"' + target + '>' + esc(it.title) + '</a>' +
-      '<div class="fav-meta"><span>' + esc(it.unitTitle || it.unit) + '</span>' +
-      (isSeries ? '<span class="fav-kind">合集</span>' : '') +
-      (it.date ? '<span>' + esc(it.date) + '</span>' : '') +
-      (offline ? '<span class="fav-off">单元已下线 · 快照</span>' : '') + '</div>' +
-      (it.note ? '<p class="fav-note">' + esc(it.note) + '</p>' : '') +
-      '<div class="fav-act">' +
-      (it.url ? '<a href="' + esc(it.url) + '" target="_blank" rel="noopener noreferrer">原链接 ↗</a>' : '') +
-      '<button type="button" class="fav-del" data-unit="' + esc(it.unit) + '" data-key="' + esc(it.key) + '">取消收藏</button>' +
-      '</div></div></div>';
+        ? 'series.html?id=' + encodeURIComponent(it.unit) + '&view=mine'
+        : 'single.html?id=' + encodeURIComponent(it.unit) + '&k=' + encodeURIComponent(it.key) + '&view=mine');
+    return Render.topicCard(topic, {
+      href: href,
+      target: (offline && it.url) ? '_blank' : '',
+      updated: topic.latest,
+      platName: Render.platKey((meta.source && meta.source.platform) || 'bilibili'),
+      tags: unitTags(it.unit),
+      starHtml: starButton(it, { remove: true })
+    });
   }
 
   /* ---------- 我的页筛选(与公开首页同一套布局) ---------- */
   var mineFilter = 'all';
   var mineTag = '';
   var mineKeyword = '';
+  var mineSection = (function () {
+    var raw = '';
+    try { raw = new URLSearchParams(location.search).get('section') || ''; } catch (e) {}
+    if (!raw || raw === 'all') return 'all';
+    var list = global.SECTIONS || [];
+    if (!list.length) return raw;
+    return list.filter(function (s) { return s.id === raw && s.enabled !== false; }).length ? raw : 'all';
+  })();
 
   function unitMeta(id) {
     var idx = (global.COLLECTION_INDEX || global.TOPIC_INDEX || []);
@@ -411,6 +426,17 @@
   function unitType(id) {
     var meta = unitMeta(id);
     return (meta && meta.type) || 'series';
+  }
+
+  function unitSection(id) {
+    var meta = unitMeta(id);
+    return (meta && meta.section) || '';
+  }
+
+  // 板块导航只切换本机收藏的板块子集,不离开 ?view=mine
+  function mineScoped(items) {
+    if (mineSection === 'all') return items;
+    return items.filter(function (it) { return (it.section || unitSection(it.unit)) === mineSection; });
   }
 
   function filterMine(items) {
@@ -493,15 +519,23 @@
     var items = list();
     var allCount = items.length;
     var units = unitsEnabledMap();
-    renderMineTags(items);
-    var shown = filterMine(items);
+    var scoped = mineScoped(items);
+    renderMineTags(scoped);
+    var shown = filterMine(scoped);
+    var emptyText = allCount
+      ? (mineSection !== 'all'
+        ? (scoped.length ? '该板块没有匹配的收藏,试试换个标签或清空搜索。' : '该板块还没有收藏。')
+        : '没有匹配的收藏,试试换个标签或清空搜索。')
+      : '还没有收藏。到合集页点条目右上角的 ☆ 即可收藏。';
     body.innerHTML = shown.length
-      ? '<div class="fav-grid">' + shown.map(function (it) { return snapshotCard(it, { units: units }); }).join('') + '</div>'
-      : '<div class="empty">' + (allCount ? '没有匹配的收藏,试试换个标签或清空搜索。' : '还没有收藏。到合集页点条目右上角的 ☆ 即可收藏。') + '</div>';
+      ? '<div class="topic-grid">' + shown.map(function (it) { return snapshotCard(it, { units: units }); }).join('') + '</div>'
+      : '<div class="empty">' + emptyText + '</div>';
     var stat = panel.querySelector('#mine-stat');
     if (stat) {
       stat.textContent = allCount
-        ? (shown.length === allCount ? '共 ' + allCount + ' 条收藏' : '筛选出 ' + shown.length + ' / ' + allCount + ' 条收藏') +
+        ? (mineSection !== 'all'
+          ? '该板块 ' + shown.length + ' / 共 ' + allCount + ' 条收藏'
+          : (shown.length === allCount ? '共 ' + allCount + ' 条收藏' : '筛选出 ' + shown.length + ' / ' + allCount + ' 条收藏')) +
           (allCount >= LIMIT ? ' · 已达软上限' : '')
         : '';
     }
@@ -518,8 +552,17 @@
     if (grid) grid.hidden = true;
     var sectionTitle = document.querySelector('.section-title');
     if (sectionTitle) sectionTitle.hidden = true;
+    // 我的视图只保留板块导航与个人面板,公开首页的头条/分节/目录/全部标题全部收起
+    ['lead', 'section-bands', 'magazine-toc', 'section-empty', 'all-title'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) el.hidden = true;
+    });
     var hero = document.querySelector('.hero');
     if (hero) hero.hidden = true;
+    var publicFooter = document.getElementById('public-footer');
+    if (publicFooter) publicFooter.hidden = true;
+    var mineFooter = document.getElementById('mine-footer');
+    if (mineFooter) mineFooter.hidden = false;
     panel.hidden = false;
     // 个人数据不上搜索引擎;静态页无法按参数改 meta,这里补一个(并写入 robots 头)
     if (!document.querySelector('meta[name="robots"]')) {
@@ -568,7 +611,7 @@
 
     // 设置面板:收藏页名称 + 我的页专属主题(不跟公开主题共用)
     (function () {
-      var btn = panel.querySelector('#mine-settings');
+      var btn = document.getElementById('mine-settings');
       var box = panel.querySelector('#mine-settings-panel');
       var titleInput = panel.querySelector('#mine-set-title');
       var publicInput = panel.querySelector('#mine-set-public');
@@ -578,18 +621,28 @@
       var subInput = panel.querySelector('#mine-set-sub');
       var subReset = panel.querySelector('#mine-set-sub-reset');
       var themeSel = panel.querySelector('#mine-set-theme');
+      var layoutSel = panel.querySelector('#mine-set-layout');
       var saveBtn = panel.querySelector('#mine-set-save');
       var cancelBtn = panel.querySelector('#mine-set-cancel');
       var resetBtn = panel.querySelector('#mine-set-title-reset');
-      if (!btn || !box || !titleInput || !themeSel) return;
+      if (!btn || !box || !titleInput || !themeSel || !layoutSel) return;
 
       var theme = global.JiyeTheme;
+      var layout = global.JiyeLayout;
       if (theme && theme.THEMES) {
         Object.keys(theme.THEMES).forEach(function (key) {
           var op = document.createElement('option');
           op.value = key;
           op.textContent = theme.THEMES[key].label;
           themeSel.appendChild(op);
+        });
+      }
+      if (layout && layout.list) {
+        layout.list().forEach(function (item) {
+          var op = document.createElement('option');
+          op.value = item.key;
+          op.textContent = item.label;
+          layoutSel.appendChild(op);
         });
       }
 
@@ -609,12 +662,14 @@
           subInput.placeholder = DEFAULT_SUB;
         }
         themeSel.value = theme && theme.mineChoice ? theme.mineChoice() : 'inherit';
+        layoutSel.value = layout && layout.mineChoice ? layout.mineChoice() : 'inherit';
       }
 
       function open() {
         fill();
         box.hidden = false;
         btn.setAttribute('aria-expanded', 'true');
+        if (box.scrollIntoView) box.scrollIntoView({ behavior: 'smooth', block: 'center' });
         titleInput.focus();
         titleInput.select();
       }
@@ -662,40 +717,13 @@
         if (subEl) subEl.textContent = mineSubtitle();
         document.title = docTitle();
         if (theme && theme.setMineChoice) theme.setMineChoice(themeSel.value);
+        if (layout && layout.setMineChoice) layout.setMineChoice(layoutSel.value);
         close();
       });
       box.addEventListener('keydown', function (e) {
         if (e.key === 'Escape') { e.preventDefault(); close(); }
       });
     })();
-
-    panel.querySelector('#mine-export').addEventListener('click', function () {
-      if (!count()) { alert('还没有收藏可导出'); return; }
-      exportJson();
-    });
-    panel.querySelector('#mine-import').addEventListener('click', function () {
-      panel.querySelector('#mine-file').click();
-    });
-    panel.querySelector('#mine-file').addEventListener('change', function (e) {
-      var file = e.target.files && e.target.files[0];
-      e.target.value = '';
-      if (!file) return;
-      var mode = panel.querySelector('input[name="mine-mode"]:checked');
-      importFile(file, mode ? mode.value : 'merge').then(function (r) {
-        renderMineContent();
-        updateSwitchCount();
-        alert('导入完成:文件内 ' + r.added + ' 条,当前共 ' + r.total + ' 条');
-      }).catch(function (err) {
-        alert('导入失败(未写入任何数据):' + err.message);
-      });
-    });
-    panel.addEventListener('click', function (e) {
-      var btn = e.target.closest && e.target.closest('.fav-del');
-      if (!btn) return;
-      remove(btn.getAttribute('data-unit'), btn.getAttribute('data-key'));
-      renderMineContent();
-      updateSwitchCount();
-    });
 
     mountMineFilter(panel);
     renderMineContent();

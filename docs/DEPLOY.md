@@ -2,7 +2,7 @@
 
 本项目由两部分组成：
 
-- **五个静态页面 + 数据**：`index.html`（首页）、`series.html`（子集合页）、`list.html`（全部内容页）、`single.html`（站内详情页）、`collector/collect.html`（采集页），加样式与 `assets/data/`。页面是固定模板，浏览器直接打开即可；采集只写数据，不生成、不修改任何页面。
+- **静态页面 + 数据**：`index.html`（首页）、`series.html`（子集合页）、`list.html`（全部内容页）、`single.html`（站内详情页）、`mine-io.html`（我的导入导出页）、`collector/collect.html`（采集页），加样式与 `assets/data/`。页面是固定模板，浏览器直接打开即可；采集只写数据，不生成、不修改任何页面。
 - **采集程序**：`collector/generate.py`（命令行，纯规则采集）与 `collector/server.py`（本机采集台，提供表单与 `/api/*`）。
 
 ## 部署形态：先选 A 还是 B（2026-11-26 起）
@@ -138,7 +138,7 @@ sudo nginx -t && sudo systemctl reload nginx
 ├── Dockerfile
 ├── docker-compose.yml
 ├── README.md
-├── index.html / series.html / single.html   # 三个固定展示页
+├── index.html / series.html / list.html / single.html / mine-io.html   # 固定展示页与我的导入导出页
 ├── assets/      # 含 data/ 与 data/collections/
 ├── collector/   # 采集管理代码
 │   ├── server.py
@@ -274,7 +274,7 @@ docker compose ps              # 查看状态
 ### 架构与数据边界
 
 - **采集端**：`server.py`（采集专用模式）+ `generate.py` + `collect.html`，提供 `/api/*` 和采集页；只写数据，不碰页面。
-- **展示端**：`index.html` / `series.html` / `single.html` 三个固定页面 + `assets/`，由任意静态 Web 服务器托管（Nginx / 群晖 Web Station / 飞牛静态站点）。页面是固定模板，样式各自独立维护。
+- **展示端**：`index.html` / `series.html` / `list.html` / `single.html` / `mine-io.html` 固定页面 + `assets/`，由任意静态 Web 服务器托管（Nginx / 群晖 Web Station / 飞牛静态站点）。页面是固定模板，样式各自独立维护。
 - **共享数据目录**（唯一耦合点）：`assets/data/index.js`（索引 + 显示开关）与 `assets/data/collections/*.js`（各采集单元）。采集端写入，展示端读取。
 
 ### 1. 启动采集端（专用模式）

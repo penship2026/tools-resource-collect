@@ -28,6 +28,7 @@
 """
 
 import argparse
+import datetime
 import hmac
 import http.server
 import ipaddress
@@ -124,7 +125,7 @@ def _job_update(job_id, *, state=None, progress=None, log=None, result=None):
 class Handler(http.server.SimpleHTTPRequestHandler):
     # 静态托管白名单:只放行展示页与 assets,其余(源码/文档/备份/.git)一律 404
     STATIC_EXACT = {
-        "/", "/index.html", "/series.html", "/list.html", "/single.html",
+        "/", "/index.html", "/series.html", "/list.html", "/single.html", "/mine-io.html",
         "/collector/collect.html", "/collect.html",
         "/collector/settings.html", "/settings.html",
         "/collector/settings-guide.html", "/settings-guide.html",
@@ -230,6 +231,15 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 info["collections_dir"] = generate.COLLECTIONS_DIR
             self._json(info)
             return
+        if path.endswith("/api/site"):
+            try:
+                cfg = generate.normalize_site_config(generate.load_site_config())
+            except ValueError as exc:
+                self._json({"ok": False, "error": {"code": "VALIDATION_ERROR", "message": str(exc)}}, 400)
+                return
+            self._json({"ok": True, "site": cfg, "csrf_token": CSRF_TOKEN,
+                        "updated": datetime.date.today().isoformat()})
+            return
         if path.endswith("/api/settings"):
             try:
                 data = settings_store.public_settings()
@@ -274,6 +284,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 }, 500)
                 return
             index = generate.load_index()
+            site_ed = generate.load_site_config().get("editorial") or {}
             self._json({"ok": True, "topics": [
                 {
                     "id": t.get("id"),
@@ -291,6 +302,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     "last_at": t.get("last_at", ""),
                     "last_mode": t.get("last_mode", ""),
                     "last_mode_label": t.get("last_mode_label", ""),
+                    "pin": bool((site_ed.get(str(t.get("id")) or "") or {}).get("pin")),
+                    "hero_image": (site_ed.get(str(t.get("id")) or "") or {}).get("hero_image", ""),
                 } for t in index
             ]})
             return
@@ -351,7 +364,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             self._json({
                 "ok": False,
                 "error": "未对外开放的路径",
-                "hint": "静态托管只放行 5 个页面与 assets/;采集接口需本机启动或带 token",
+                "hint": "静态托管只放行展示页、我的导入导出页与 assets/;采集接口需本机启动或带 token",
             }, 404)
             return
         return super().do_GET()
@@ -360,7 +373,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         path = urllib.parse.urlparse(self.path).path
         section_prefix = "/api/settings/sections/"
         topic_prefix = "/api/settings/topics/"
-        if not (path.endswith("/api/settings") or path.startswith(section_prefix) or path.startswith(topic_prefix)):
+        if not (path.endswith("/api/settings") or path.endswith("/api/site") or
+                path.startswith(section_prefix) or path.startswith(topic_prefix)):
             self._json({"ok": False, "error": {"code": "NOT_FOUND", "message": "未知接口"}}, 404)
             return
         if not self._csrf_ok():
@@ -368,7 +382,9 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             return
         try:
             payload = self._read_json()
-            if path.startswith(section_prefix):
+            if path.endswith("/api/site"):
+                result = {"ok": True, "site": generate.save_site_patch(payload)}
+            elif path.startswith(section_prefix):
                 section_id = urllib.parse.unquote(path[len(section_prefix):]).strip("/")
                 if not section_id:
                     raise ValueError("缺少板块 id")
@@ -402,6 +418,17 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             self._json({"ok": False, "error": "请求参数错误: %s" % exc}, 400)
             return
 
+        if path.endswith("/api/site"):
+            if not self._csrf_ok():
+                self._json({"ok": False, "error": {"code": "CSRF_FAILED", "message": "CSRF token 或 Origin 校验失败"}}, 403)
+                return
+            try:
+                site = generate.save_site_patch(payload)
+            except ValueError as exc:
+                self._json({"ok": False, "error": {"code": "VALIDATION_ERROR", "message": str(exc)}}, 400)
+                return
+            self._json({"ok": True, "site": site})
+            return
         # 开启/关闭某采集单元的显示
         if path.endswith("/api/scheduler/toggle"):
             if not self._csrf_ok():
@@ -497,8 +524,9 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         keyword = (payload.get("keyword") or "").strip()
         mode = (payload.get("mode") or "keyword").strip()
         # 采集方式:append(默认,追加保留旧条目)| replace(覆盖,只保留本次结果)
+        # | remove(按填写的链接从已有单元移除条目,仅链接类采集可用)
         merge_mode = (payload.get("merge_mode") or "append").strip()
-        if merge_mode not in ("append", "replace"):
+        if merge_mode not in ("append", "replace", "remove"):
             self._json({"ok": False, "error": "不支持的采集方式: %s" % merge_mode}, 400)
             return
         # 覆盖只对已有单元有意义;新建时强制按追加处理,避免误传参数造成空结果
@@ -513,6 +541,23 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 hint = "主题关键词不能为空"
             self._json({"ok": False, "error": hint}, 400)
             return
+        # 移除链接:只按填写的链接做本地匹配,不重新抓取内容;主题采集没有单条链接可移除
+        if merge_mode == "remove":
+            if mode == "keyword":
+                self._json({"ok": False, "error": "按主题采集不支持移除链接,请切换到按链接或批量链接"}, 400)
+                return
+            if not unit_id_raw:
+                self._json({"ok": False, "error": "移除链接必须指定要操作的采集单元"}, 400)
+                return
+            logs = []
+            result = generate.remove_links(
+                text=keyword, unit_id=unit_id_raw, mode=mode,
+                dry_run=bool(payload.get("dry_run")), log=lambda m: logs.append(str(m)),
+            )
+            result["logs"] = logs
+            self._json(result, 200 if result.get("ok") else 400)
+            return
+
         # 批量采集的显示标题是必填项(前端已有默认值,这里再兜一层)
         if mode == "batch" and not (payload.get("title") or "").strip():
             self._json({"ok": False, "error": "请填写显示标题(批量采集必填,可用自动生成的默认值)"}, 400)

@@ -1,0 +1,42 @@
+/* 集页 · 门户版式(news)
+ * 只调布局与信息密度:更宽栏、紧凑头条、板块分节;不动组件外观与主题色。
+ */
+html[data-layout="news"] {
+  --layout-wrap: 1180px;
+  --layout-hero-pad: 46px 0 26px;
+  --layout-facts-gap: 40px;
+  --layout-facts-pad: 20px;
+  --layout-section-gap: 44px;
+  --layout-grid-min: 280px;
+  --layout-cover-ratio: 16 / 10;
+}
+
+html[data-layout="news"] .hero h1, .page-index .hero h2 { font-size: 40px; letter-spacing: -1px; }
+html[data-layout="news"] .band-grid { grid-template-columns: repeat(var(--layout-band-cols), minmax(0, 1fr)); }
+@media (max-width: 720px) { html[data-layout="news"] .band-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 420px) { html[data-layout="news"] .band-grid { grid-template-columns: minmax(0, 1fr); } }
+html[data-layout="news"] .hero .sub { max-width: 760px; }
+html[data-layout="news"] .hero .facts { margin-top: 18px; }
+html[data-layout="news"] .facts-hero {
+  border-top: 2px solid var(--brand); padding-top: 16px; width: 620px; max-width: 100%;
+}
+html[data-layout="news"] .hero .fact b { font-size: 20px; }
+html[data-layout="news"] .facts-hero .fact b { font-size: 26px; }
+html[data-layout="news"] .facts-hero .fact-date b { font-size: 20px; }
+
+/* 版面标题让位给分节;筛选条去掉重复的板块 chips 后保持一行 */
+html[data-layout="news"] .filter-bar { margin-top: 4px; }
+
+/* 分节标题:品牌色顶线 + 编号,编辑感更强 */
+html[data-layout="news"] .section-band { border-top: 2px solid var(--brand); padding-top: 16px; }
+html[data-layout="news"] .band-title h2 { font-size: 22px; }
+html[data-layout="news"] .band-no { font-size: 11px; letter-spacing: .14em; }
+html[data-layout="news"] .band-grid .topic-card { border-radius: var(--radius); }
+
+/* 头条主位加一层浅底,和下方分节区分 */
+html[data-layout="news"] .lead-main .topic-card { border-color: var(--brand-soft); }
+html[data-layout="news"] .lead-mini { box-shadow: none; background: var(--bg-soft); }
+
+@media (max-width: 860px) {
+  html[data-layout="news"] .hero h1, .page-index .hero h2 { font-size: 30px; }
+}

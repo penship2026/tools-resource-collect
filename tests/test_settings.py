@@ -103,6 +103,7 @@ class PagesArtifactTest(unittest.TestCase):
         self.assertIn("rm -rf _site/collector", text)
         self.assertIn("_site/topics.yml", text)
         self.assertIn("cp -R assets/. _site/assets/", text)
+        self.assertIn("mine-io.html", text)
 
 
 if __name__ == "__main__":

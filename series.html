@@ -5,84 +5,40 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>系列合集 · 集页</title>
   <link rel="stylesheet" href="assets/style.css">
+  <link rel="stylesheet" href="assets/pages/series.css">
   <!-- 主题:阻塞脚本在 <head> 里同步注入主题 CSS,避免首屏闪一下 -->
   <script src="assets/theme.js"></script>
-  <noscript><link rel="stylesheet" href="assets/themes/default.css"></noscript>
-  <style>
-    /* ===== 子集合页专属布局样式(单独维护本页时只改这里) ===== */
-    .crumb { font-size: 13px; color: var(--text-mute); margin: 18px 0; }
-    .crumb a { color: var(--brand); text-decoration: none; }
-    .crumb span { margin: 0 8px; }
-
-    .hero { padding-top: 8px; }
-    .hero h1 { font-size: clamp(24px, 3.4vw, 30px); font-weight: 650; letter-spacing: -.4px; margin: 0 0 8px; }
-    .hero .sub { color: var(--text-sub); margin: 0 0 20px; }
-    .facts { display: flex; gap: 36px; margin: 0 0 14px; }
-    .fact b { display: block; font-size: 22px; font-weight: 600; }
-    .fact span { font-size: 12px; color: var(--text-mute); }
-
-    .topic-meta-row { display: flex; gap: 10px; font-size: 13px; line-height: 1.6; margin: 6px 0; }
-    .topic-meta-row .label { color: var(--text-mute); flex: 0 0 40px; }
-    .topic-meta-row .value { color: var(--text-sub); }
-
-    .toolbar { display: flex; gap: 14px; align-items: center; margin: 18px 0; }
-    .toolbar input {
-      flex: 1; max-width: 420px; background: var(--surface); border: 1px solid var(--border);
-      border-radius: var(--radius-sm); padding: 10px 12px; color: var(--text); font-size: 14px; outline: none;
-    }
-    .toolbar .stat { font-size: 12px; color: var(--text-mute); }
-
-    .author-section { margin: 22px 0; }
-    .author-heading { font-size: 15px; font-weight: 600; margin: 0 0 12px; }
-    .author-heading span { font-size: 11px; color: var(--text-mute); font-weight: 400; margin-left: 8px; }
-    .video-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(256px, 1fr)); gap: var(--gap-card); }
-    .video-card {
-      display: block; background: var(--surface); border: 1px solid var(--border);
-      border-radius: var(--radius); overflow: hidden; text-decoration: none; color: var(--text);
-    }
-    .video-thumb { position: relative; aspect-ratio: 16 / 9; background: var(--bg); overflow: hidden; }
-    .video-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
-    .video-thumb .play {
-      position: absolute; inset: 0; display: grid; place-items: center;
-      color: #fff; font-size: 30px; opacity: .9;
-    }
-    .video-info { padding: 12px 14px 14px; }
-    .video-info h3 { font-size: 14px; font-weight: 500; line-height: 1.45; margin: 0 0 8px; }
-    .video-info .desc { font-size: 12px; color: var(--text-sub); margin: 0 0 8px; line-height: 1.5; }
-    .video-info .meta { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-mute); }
-    .empty { padding: 40px 0; text-align: center; color: var(--text-mute); }
-    /* 列表截断提示:只展示最近 N 条,其余进全量列表页 */
-    .more-bar {
-      display: flex; align-items: center; justify-content: space-between; gap: 14px;
-      margin: 4px 0 48px; padding: 14px 18px;
-      background: var(--surface); border: 1px dashed var(--border); border-radius: var(--radius-sm);
-      font-size: 13px; color: var(--text-sub); flex-wrap: wrap;
-    }
-    .more-bar a { color: var(--brand); font-weight: 500; }
-    .more-bar a:hover { text-decoration: underline; }
-  </style>
+  <script src="assets/site.js"></script>
+  <script src="assets/templates.js"></script>
+  <script src="assets/layout.js"></script>
+  <noscript>
+    <link rel="stylesheet" href="assets/themes/default.css">
+    <link rel="stylesheet" href="assets/layouts/standard.css">
+  </noscript>
 </head>
 <body>
+  <a class="skip-link" href="#main-content">跳到主要内容</a>
+
   <header class="site-header">
     <div class="wrap">
       <div class="brand">
-        <a href="index.html"><span class="brand-mark">◈</span><span>集页</span></a>
+        <a id="brand-link" href="index.html"><span class="brand-mark">◈</span><span>集页</span></a>
       </div>
       <div class="header-meta">系列合集</div>
     </div>
   </header>
 
-  <main class="wrap" data-default-id="">
-    <div class="crumb"><a href="index.html">全部主题</a><span>/</span><span id="crumb-title">—</span></div>
+  <main class="wrap" id="main-content" data-default-id="">
+    <div class="crumb" id="crumb"></div>
 
     <section class="hero">
       <h1 id="topic-title">—</h1>
       <p class="sub" id="topic-slogan">—</p>
-      <div class="facts">
+      <div class="facts facts-hero">
         <div class="fact"><b id="stat-count">0</b><span>收录条数</span></div>
-        <div class="fact"><b id="stat-latest">—</b><span>最新发布</span></div>
-        <div class="fact"><b id="stat-collected">—</b><span>最近采集</span></div>
-        <div class="fact"><b id="stat-span">—</b><span>时间跨度</span></div>
+        <div class="fact fact-date"><b id="stat-latest">—</b><span>最新发布</span></div>
+        <div class="fact fact-date"><b id="stat-collected">—</b><span>最近采集</span></div>
+        <div class="fact fact-date"><b id="stat-span">—</b><span>时间跨度</span></div>
       </div>
       <div class="topic-meta" id="topic-meta"></div>
     </section>
@@ -104,16 +60,26 @@
   <footer class="site-footer">
     <div class="wrap">
       <div>内容来自各平台公开投稿或发布,版权归原作者所有;点击卡片将跳转至原平台查看。</div>
-      <div><a href="index.html">← 返回全部主题</a></div>
+      <div><a id="back-link" href="index.html">← 返回全部主题</a></div>
     </div>
   </footer>
 
+  <script src="assets/data/sections.js"></script>
   <script src="assets/data-loader.js"></script>
   <script src="assets/render.js"></script>
   <script src="assets/personal.js"></script>
   <script>
     var esc = window.escHtml;  // 统一转义:assets/data-loader.js 提供
     var id = CollectionLoader.currentId();
+    // 从「我的收藏」进入详情时保留 view=mine,面包屑和返回链接才能回到我的页
+    var view = new URLSearchParams(location.search).get('view') === 'mine' ? 'mine' : '';
+    function homeHref() { return 'index.html' + (view === 'mine' ? '?view=mine' : ''); }
+    (function mountViewLinks() {
+      document.getElementById('brand-link').href = homeHref();
+      var back = document.getElementById('back-link');
+      back.href = homeHref();
+      if (view === 'mine') back.textContent = '← 返回我的收藏';
+    })();
     var grid = document.getElementById('video-grid');
     var moreBar = document.getElementById('more-bar');
     var vids = [];
@@ -135,16 +101,16 @@
 
     if (!id) {
       document.querySelector('main').innerHTML =
-        '<div class="empty">未指定合集。请从 <a href="index.html">首页</a> 选择一个主题。</div>';
+        '<div class="empty">未指定合集。请从 <a href="' + homeHref() + '">' + (view === 'mine' ? '我的收藏' : '首页') + '</a> 选择一个主题。</div>';
     } else {
       CollectionLoader.load(id, function (topic, err) {
         if (err || !topic) {
           document.querySelector('main').innerHTML =
-            '<div class="empty">未找到该合集数据(' + esc(err || '') + ')。请从 <a href="index.html">首页</a> 选择。</div>';
+            '<div class="empty">未找到该合集数据(' + esc(err || '') + ')。请从 <a href="' + homeHref() + '">' + (view === 'mine' ? '我的收藏' : '首页') + '</a> 选择。</div>';
           return;
         }
         document.title = topic.title + ' · 系列合集 · 集页';
-        document.getElementById('crumb-title').textContent = topic.title;
+        document.getElementById('crumb').innerHTML = Render.breadcrumb(Render.sectionMeta(topic), topic.title, null, { view: view });
         document.getElementById('topic-title').textContent = topic.title;
         document.getElementById('topic-slogan').textContent = topic.slogan || '';
         if (topic.source && topic.source.url) {
@@ -183,7 +149,7 @@
     // 卡片跳站内详情页(不直接跳源平台);源链接在详情页里提供
     // 路由统一由 assets/render.js 提供(D21)
     function detailHref(v) {
-      return Render.detailHref(id, v);
+      return Render.detailHref(id, v, { view: view });
     }
 
     function cardHtml(v) {
@@ -238,7 +204,8 @@
 
       // 超出上限时给出全量入口(带上当前搜索词,搜索也不丢)
       var q = document.getElementById('search').value.trim();
-      var href = 'list.html?id=' + encodeURIComponent(id) + (q ? '&q=' + encodeURIComponent(q) : '');
+      var href = 'list.html?id=' + encodeURIComponent(id) + (q ? '&q=' + encodeURIComponent(q) : '') +
+        (view === 'mine' ? '&view=mine' : '');
       if (list.length > PAGE_LIMIT) {
         moreBar.innerHTML = '<span>已显示最近 ' + PAGE_LIMIT + ' 条,共 ' + list.length + ' 条</span>' +
           '<a href="' + href + '">查看全部内容(可筛选、可分页) →</a>';

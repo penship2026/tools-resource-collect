@@ -5,254 +5,57 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>单条精选 · 集页</title>
   <link rel="stylesheet" href="assets/style.css">
+  <link rel="stylesheet" href="assets/pages/single.css">
   <!-- 主题:阻塞脚本在 <head> 里同步注入主题 CSS,避免首屏闪一下 -->
   <script src="assets/theme.js"></script>
-  <noscript><link rel="stylesheet" href="assets/themes/default.css"></noscript>
-  <style>
-    /* ===== 详情页样式:按渠道切换三套模板(视频 / 公众号文章 / 小红书笔记) ===== */
-    .crumb { font-size: 13px; color: var(--text-mute); margin: 18px 0; }
-    .crumb a { color: var(--brand); text-decoration: none; }
-    .crumb span { margin: 0 8px; }
-
-    /* --- 渠道色:模板内部覆盖品牌色,让按钮/链接跟随渠道 --- */
-    .tpl-wechat { --brand: #07c160; --brand-soft: #e9f8f0; }
-    .tpl-xhs { --brand: #ff2442; --brand-soft: #fff0f3; }
-
-    .plat-pill {
-      display: inline-block; font-size: 11px; color: #fff; padding: 3px 10px;
-      border-radius: 20px; margin-bottom: 12px; letter-spacing: .3px;
-    }
-
-    /* ---------- 模板 A:B站视频(双栏 + 官方 iframe 播放器) ---------- */
-    .single-layout { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(260px, 1fr); gap: 28px; align-items: start; }
-    /* 网格子项默认 min-width:auto,里面横向滑动的分集目录会把整列撑宽,移动端尤其明显 */
-    .single-layout > * { min-width: 0; }
-    @media (max-width: 860px) {
-      .single-layout { grid-template-columns: minmax(0, 1fr); gap: 22px; }
-      .player-frame, .wx-article, .xhs-card, .cover-link { width: 100%; }
-    }
-    .player-frame {
-      position: relative; width: 100%; aspect-ratio: 16 / 9; border-radius: var(--radius);
-      overflow: hidden; background: #000; box-shadow: var(--shadow);
-    }
-    .player-frame iframe { width: 100%; height: 100%; border: 0; display: block; }
-    .player-fallback { margin-top: 10px; font-size: 12px; color: var(--text-mute); line-height: 1.6; }
-    .player-fallback a { color: var(--brand); text-decoration: none; }
-
-    /* 分集/分P 目录:紧跟播放区,横向滑动;展开全部后切网格 */
-    .parts-slot:empty { display: none; }
-    .parts-strip {
-      margin-top: 16px; padding: 14px 16px; background: var(--surface); min-width: 0;
-      border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow);
-    }
-    .parts-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
-    .parts-head h3 { font-size: 14px; font-weight: 600; }
-    .parts-note { font-size: 12px; color: var(--text-mute); }
-    .parts-now { margin-left: auto; font-size: 12px; color: var(--brand); }
-    .parts-toggle {
-      border: 1px solid var(--border); background: var(--surface); color: var(--text-sub);
-      font-size: 12px; padding: 4px 10px; border-radius: 999px; cursor: pointer;
-    }
-    .parts-toggle:hover { border-color: var(--brand); color: var(--brand); }
-    .parts-scroll {
-      display: flex; gap: 8px; overflow-x: auto; max-width: 100%; padding: 2px 0 8px;
-      scrollbar-width: thin; -webkit-overflow-scrolling: touch;
-    }
-    .part-chip {
-      flex: 0 0 auto; display: inline-flex; align-items: center; gap: 8px;
-      max-width: 280px; padding: 7px 10px; cursor: pointer;
-      background: var(--bg); color: var(--text); border: 1px solid var(--border);
-      border-radius: var(--radius-sm); font-size: 12px; line-height: 1.4; text-align: left;
-    }
-    .part-chip:hover { border-color: var(--brand); color: var(--brand); }
-    .part-chip.active { border-color: var(--brand); background: var(--brand-soft); color: var(--brand); font-weight: 600; }
-    .part-chip .pc-no { color: var(--text-mute); font-variant-numeric: tabular-nums; }
-    .part-chip .pc-t { max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .part-chip .pc-d { color: var(--text-mute); font-variant-numeric: tabular-nums; }
-    .parts-strip.expanded .parts-scroll {
-      display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
-      overflow: visible; max-height: none;
-    }
-    .parts-strip.expanded .part-chip { max-width: none; width: 100%; }
-    .parts-strip.expanded .part-chip .pc-t { max-width: none; }
-    @media (max-width: 600px) {
-      .parts-strip { padding: 12px; }
-      .parts-head h3 { font-size: 13px; }
-      .parts-now { flex-basis: 100%; margin-left: 0; order: 9; }
-      .part-chip { max-width: 230px; }
-      .part-chip .pc-t { max-width: 132px; }
-    }
-
-    .detail h1 { font-size: 22px; font-weight: 600; line-height: 1.4; margin: 0 0 12px; }
-    .detail .sub { color: var(--text-sub); font-size: 13px; margin: 0 0 18px; }
-    .detail-row { display: flex; gap: 10px; font-size: 13px; padding: 9px 0; border-bottom: 1px solid var(--border); }
-    .detail-row .label { flex: 0 0 68px; color: var(--text-mute); }
-    .detail-row .value { color: var(--text); line-height: 1.5; }
-    .desc-box { margin-top: 18px; }
-    .desc-box h3 { font-size: 14px; font-weight: 600; margin: 0 0 8px; }
-    .desc-box p { font-size: 13px; color: var(--text-sub); line-height: 1.7; margin: 0; }
-    .watch-btn {
-      display: inline-block; margin-top: 22px; background: var(--brand); color: #fff;
-      text-decoration: none; border-radius: var(--radius-sm); padding: 12px 22px; font-size: 14px;
-      font-weight: 550; box-shadow: 0 6px 18px rgba(45, 127, 249, .22);
-      transition: transform .15s ease, box-shadow .15s ease;
-    }
-    .watch-btn:hover { transform: translateY(-1px); box-shadow: 0 10px 24px rgba(45, 127, 249, .28); }
-    .side-link { margin-top: 14px; }
-    .side-link a { font-size: 12px; color: var(--text-mute); }
-    .tag-chips { display: flex; flex-wrap: wrap; gap: 6px; }
-    .tag-chips i {
-      font-style: normal; font-size: 11px; color: var(--text-sub);
-      border: 1px solid var(--border); border-radius: 20px; padding: 2px 9px; background: var(--bg);
-    }
-
-    /* ---------- 模板 B:公众号文章(单栏阅读版式) ---------- */
-    .tpl-wechat { max-width: 780px; margin: 0 auto; }
-    .wx-article {
-      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
-      overflow: hidden; box-shadow: var(--shadow);
-    }
-    .wx-cover { aspect-ratio: 16 / 9; background: var(--brand-soft); overflow: hidden; }
-    .wx-cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
-    .wx-body { padding: 30px 38px 34px; }
-    .wx-body h1 { font-size: 25px; line-height: 1.45; font-weight: 650; margin: 0 0 14px; letter-spacing: -.2px; }
-    .wx-meta { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; font-size: 12px; color: var(--text-mute); margin-bottom: 16px; }
-    .wx-meta .wx-name { color: var(--brand); font-weight: 500; }
-    .wx-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 18px; }
-    .wx-tags i { font-style: normal; font-size: 11px; color: var(--text-sub); background: var(--brand-soft); border-radius: 4px; padding: 3px 8px; }
-    .wx-lead { font-size: 15px; line-height: 2; color: var(--text-sub); margin: 0 0 26px; padding-left: 14px; border-left: 3px solid var(--border); }
-    .wx-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; padding-top: 20px; border-top: 1px solid var(--border); }
-    .wx-btn {
-      display: inline-block; background: var(--brand); color: #fff; text-decoration: none;
-      border-radius: 24px; padding: 11px 26px; font-size: 14px;
-    }
-    .wx-hint { font-size: 12px; color: var(--text-mute); }
-
-    /* ---------- 模板 C:小红书笔记(图左文右) ---------- */
-    .tpl-xhs { max-width: 900px; margin: 0 auto; }
-    .xhs-card {
-      display: grid; grid-template-columns: 330px minmax(0, 1fr); gap: 0;
-      background: var(--surface); border: 1px solid var(--border); border-radius: 18px;
-      overflow: hidden; box-shadow: var(--shadow);
-    }
-    @media (max-width: 760px) { .xhs-card { grid-template-columns: 1fr; } }
-    .xhs-media { aspect-ratio: 3 / 4; background: var(--brand-soft); overflow: hidden; }
-    .xhs-media img { width: 100%; height: 100%; object-fit: cover; display: block; }
-    .xhs-side { padding: 28px 30px 30px; display: flex; flex-direction: column; }
-    .xhs-side h1 { font-size: 21px; line-height: 1.5; font-weight: 600; margin: 0 0 14px; }
-    .xhs-author { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
-    .xhs-avatar {
-      width: 32px; height: 32px; border-radius: 50%; background: var(--brand); color: #fff;
-      display: grid; place-items: center; font-size: 13px; flex: none;
-    }
-    .xhs-author .who { font-size: 13px; color: var(--text); font-weight: 500; }
-    .xhs-author .when { font-size: 12px; color: var(--text-mute); }
-    .xhs-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
-    .xhs-tags i { font-style: normal; font-size: 12px; color: var(--brand); background: var(--brand-soft); border-radius: 20px; padding: 4px 12px; }
-    .xhs-desc { font-size: 14px; line-height: 1.9; color: var(--text-sub); margin: 0 0 24px; }
-    .xhs-btn {
-      align-self: flex-start; margin-top: auto; background: var(--brand); color: #fff;
-      text-decoration: none; border-radius: 24px; padding: 11px 26px; font-size: 14px;
-    }
-    .xhs-note { margin-top: 14px; font-size: 12px; color: var(--text-mute); line-height: 1.6; }
-    /* 胶囊在纵向 flex 里默认被拉伸,显式靠左 */
-    .xhs-side .plat-pill { align-self: flex-start; }
-
-    /* ---------- 多集内容:上一集 / 下一集 / 全集列表 ---------- */
-    .ep-nav { display: flex; align-items: stretch; gap: 12px; margin: 22px 0 0; }
-    .ep-btn {
-      flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;
-      padding: 10px 14px; background: var(--surface); border: 1px solid var(--border);
-      border-radius: var(--radius-sm); color: var(--text-sub); font-size: 13px;
-    }
-    .ep-btn.next { align-items: flex-end; text-align: right; }
-    .ep-btn:hover { border-color: var(--brand); }
-    .ep-btn:hover .ep-dir { color: var(--brand); }
-    .ep-btn.disabled { opacity: .45; pointer-events: none; }
-    /* 方向标签 + 目标集短标题(单行省略) */
-    .ep-btn .ep-dir { font-size: 12px; color: var(--text-sub); }
-    .ep-btn .ep-name {
-      max-width: 100%; font-size: 12px; color: var(--text-mute);
-      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-    }
-    .ep-pos { flex: none; align-self: center; font-size: 12px; color: var(--text-mute); white-space: nowrap; }
-    .ep-pos b { color: var(--text); font-weight: 600; }
-
-    .ep-list {
-      margin-top: 30px; background: var(--surface); border: 1px solid var(--border);
-      border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden;
-    }
-    .ep-head {
-      display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
-      padding: 15px 20px; border-bottom: 1px solid var(--border);
-    }
-    .ep-head h3 { font-size: 15px; font-weight: 600; }
-    .ep-head span { font-size: 12px; color: var(--text-mute); }
-    .ep-items { list-style: none; max-height: 400px; overflow: auto; padding: 6px 0; }
-    .ep-item a {
-      display: flex; align-items: baseline; gap: 12px; padding: 9px 20px;
-      font-size: 13px; color: var(--text-sub);
-    }
-    .ep-item a:hover { background: var(--brand-soft); color: var(--text); }
-    .ep-item.cur a { background: var(--brand-soft); color: var(--brand); font-weight: 500; }
-    .ep-no { flex: none; width: 26px; font-size: 11px; color: var(--text-mute); font-variant-numeric: tabular-nums; }
-    .ep-item.cur .ep-no { color: var(--brand); }
-    .ep-t { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .ep-d { flex: none; font-size: 11px; color: var(--text-mute); }
-    @media (max-width: 600px) {
-      .ep-nav { gap: 8px; }
-      .ep-btn { padding: 10px 8px; font-size: 12px; }
-      .ep-d { display: none; }
-    }
-
-    /* ---------- 模板 D:其他渠道兜底(封面 + 双栏) ---------- */
-    .cover-link {
-      display: block; position: relative; aspect-ratio: 16 / 9; border-radius: var(--radius);
-      overflow: hidden; background: var(--bg); box-shadow: var(--shadow);
-    }
-    .cover-link img { width: 100%; height: 100%; object-fit: cover; display: block; }
-    .cover-ph { width: 100%; height: 100%; display: grid; place-items: center; background: linear-gradient(135deg, #1e3a5f, #2d7ff9); color: #fff; font-size: 46px; }
-    .cover-link .read-note {
-      position: absolute; left: 0; right: 0; bottom: 0; padding: 26px 16px 12px;
-      background: linear-gradient(transparent, rgba(0,0,0,.65)); color: #fff; font-size: 13px; text-align: right;
-    }
-
-    .empty { padding: 40px 0; text-align: center; color: var(--text-mute); }
-    @media (max-width: 600px) {
-      .wx-body { padding: 22px 20px 26px; }
-      .wx-body h1 { font-size: 21px; }
-      .xhs-side { padding: 20px 18px 24px; }
-    }
-  </style>
+  <script src="assets/site.js"></script>
+  <script src="assets/templates.js"></script>
+  <script src="assets/layout.js"></script>
+  <noscript>
+    <link rel="stylesheet" href="assets/themes/default.css">
+    <link rel="stylesheet" href="assets/layouts/standard.css">
+  </noscript>
 </head>
 <body>
+  <a class="skip-link" href="#main-content">跳到主要内容</a>
+
   <header class="site-header">
     <div class="wrap">
       <div class="brand">
-        <a href="index.html"><span class="brand-mark">◈</span><span>集页</span></a>
+        <a id="brand-link" href="index.html"><span class="brand-mark">◈</span><span>集页</span></a>
       </div>
       <div class="header-meta" id="header-meta">单条精选</div>
     </div>
   </header>
 
-  <main class="wrap">
-    <div class="crumb"><a href="index.html">全部主题</a><span>/</span><span id="crumb-title">—</span></div>
+  <main class="wrap" id="main-content">
+    <div class="crumb" id="crumb"></div>
     <div id="single-root"></div>
   </main>
 
   <footer class="site-footer">
     <div class="wrap">
       <div>内容来自各平台公开内容,版权归原作者所有;B站视频在页内播放,其余渠道点击按钮跳转原文。</div>
-      <div><a href="index.html">← 返回全部主题</a></div>
+      <div><a id="back-link" href="index.html">← 返回全部主题</a></div>
     </div>
   </footer>
 
+  <script src="assets/data/sections.js"></script>
   <script src="assets/data-loader.js"></script>
   <script src="assets/render.js"></script>
   <script src="assets/personal.js"></script>
   <script>
     var id = CollectionLoader.currentId();
     var root = document.getElementById('single-root');
+    // 从「我的收藏」进入详情时保留 view=mine,面包屑和返回链接才能回到我的页
+    var view = new URLSearchParams(location.search).get('view') === 'mine' ? 'mine' : '';
+    function homeHref() { return 'index.html' + (view === 'mine' ? '?view=mine' : ''); }
+    (function mountViewLinks() {
+      document.getElementById('brand-link').href = homeHref();
+      var back = document.getElementById('back-link');
+      back.href = homeHref();
+      if (view === 'mine') back.textContent = '← 返回我的收藏';
+    })();
 
     var PLAT = Render.PLAT;                 // 渠道展示名映射(视图层唯一实现)
 
@@ -341,11 +144,11 @@
     }
 
     if (!id) {
-      root.innerHTML = '<div class="empty">未指定内容。请从 <a href="index.html">首页</a> 选择一条。</div>';
+      root.innerHTML = '<div class="empty">未指定内容。请从 <a href="' + homeHref() + '">' + (view === 'mine' ? '我的收藏' : '首页') + '</a> 选择一条。</div>';
     } else {
       CollectionLoader.load(id, function (topic, err) {
         if (err || !topic) {
-          root.innerHTML = '<div class="empty">未找到该内容数据(' + esc(err || '') + ')。请从 <a href="index.html">首页</a> 选择。</div>';
+          root.innerHTML = '<div class="empty">未找到该内容数据(' + esc(err || '') + ')。请从 <a href="' + homeHref() + '">' + (view === 'mine' ? '我的收藏' : '首页') + '</a> 选择。</div>';
           return;
         }
         // 按发布时间升序 = 「第 1 集 → 第 N 集」的固定顺序,上一集/下一集都基于它
@@ -388,12 +191,12 @@
 
         document.title = (topic.title || v.title) + ' · ' + out.label + ' · 集页';
         document.getElementById('header-meta').textContent = out.label;
-        document.getElementById('crumb-title').textContent = topic.title || v.title;
+        document.getElementById('crumb').innerHTML = Render.breadcrumb(Render.sectionMeta(topic), topic.title || v.title, null, { view: view });
         document.body.setAttribute('data-tpl', out.tpl);
         // 多集内容:详情下方追加「上一集 / 下一集」与全集列表
         // 分集目录:放在播放区下方;有目录时不再重复渲染底部的全集列表
         var dir = Render.parts(v, { unitId: id, videos: all, season: topic.season });
-        root.innerHTML = out.html + (dir ? '' : Render.episodes(v, all, topic.title, id));
+        root.innerHTML = out.html + (dir ? '' : Render.episodes(v, all, topic.title, id, { view: view }));
         var slot = root.querySelector('.parts-slot');
         if (slot) slot.innerHTML = dir;
         mountPartsPlayer();

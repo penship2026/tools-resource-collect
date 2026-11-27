@@ -71,6 +71,16 @@ class PagesContractTest(unittest.TestCase):
         self.assertNotIn("data-hero-id", html)
         self.assertNotIn("hero-editor", html)
 
+    def test_recollect_does_not_edit_title_or_visibility(self):
+        """重新采集只回填采集信息:标题与显示状态统一走「编辑信息」。"""
+        html = read("collector/collect.html")
+        self.assertNotIn('id="btn-title-only"', html)
+        self.assertNotIn('id="btn-offline"', html)
+        self.assertNotIn("API_TITLE", html)
+        self.assertIn("$('field-title').classList.toggle('hidden', inRecollect)", html)
+        self.assertIn("$('title').value = unit.title || it.title || ''", html)
+        self.assertIn("单元主题与显示状态统一在「编辑信息」中维护", html)
+
     def test_public_pages_have_skip_link_and_main_anchor(self):
         for page in ["index.html", "series.html", "list.html", "single.html"]:
             html = read(page)

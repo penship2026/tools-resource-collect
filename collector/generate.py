@@ -1477,45 +1477,6 @@ def record_intake_only(unit_id, intake, report, title=None, log=print):
     return True
 
 
-@locked_write
-def update_title(unit_id, title, log=print):
-    """
-    只更新显示标题,不重新采集内容。
-    索引与单元数据文件同时改写,并同步到采集记录里的标题字段。
-    """
-    unit_id = (unit_id or "").strip()
-    title = (title or "").strip()
-    if not unit_id:
-        return {"ok": False, "error": "缺少主题单元 id"}
-    if not title:
-        return {"ok": False, "error": "单元主题不能为空"}
-    index = load_index()
-    target = next((t for t in index if t.get("id") == unit_id), None)
-    if not target:
-        return {"ok": False, "error": "未找到主题单元: %s" % unit_id}
-    old_title = target.get("title", "")
-    data = load_collection_data(unit_id)
-    if data is None:
-        return {"ok": False, "error": "未找到单元数据文件: %s" % unit_id}
-    data["title"] = title
-    data["updated"] = datetime.date.today().isoformat()
-    if data.get("intake"):
-        data["intake"] = dict(data["intake"], title=title)
-    if data.get("runs"):
-        # 历史记录保留当时的标题,只有最新一条跟随本次改名
-        runs = list(data["runs"])
-        runs[0] = dict(runs[0], title=title)
-        data["runs"] = runs
-    write_collection_file(data)
-    rebuild_index()
-    target = next((t for t in load_index() if t.get("id") == unit_id), target)
-    log("标题已更新: %s → %s" % (old_title or "(空)", title))
-    page = ("single.html?id=%s" if (target.get("type") or "series") == "single"
-            else "series.html?id=%s") % unit_id
-    return {"ok": True, "id": unit_id, "title": title, "old_title": old_title,
-            "page": page}
-
-
 _META_UNSET = object()
 
 

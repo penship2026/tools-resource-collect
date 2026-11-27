@@ -17,7 +17,7 @@
                                mode=keyword|url|batch,支持 B站/公众号/小红书
   GET  /api/topics             列出已有主题(含最近采集时间与方式)
   GET  /api/intake?id=         读取某单元上次填写的采集信息 + 最近采集记录(重新采集回填用)
-  POST /api/title              只更新显示标题,不重新采集内容
+  POST /api/unit/meta          只改主题单元元数据,不重新采集内容
   GET  /*                      静态文件托管(首页/子页/数据)
 
 运行角色(便于采集端与展示端分离部署,同机/同容器下共享数据目录):
@@ -349,7 +349,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     # 老单元没有采集记录时,至少能用当初的关键词/链接回填
                     "keyword": data.get("keyword") or meta.get("keyword", ""),
                     "last_at": meta.get("last_at", ""),
-                    # 当前是否在首页显示:重新采集态据此显示「下线不显示 / 重新上线显示」
+                    # 当前是否在首页显示,显示状态统一由「编辑信息」维护
                     "enabled": meta.get("enabled", True) is not False,
                 },
             })
@@ -554,17 +554,6 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 self._json({"ok": False, "error": "切换显示失败: %s" % exc}, 500)
                 return
             self._json(result, 200 if result.get("ok") else 404)
-            return
-
-        # 只更新显示标题,不重新采集内容
-        if path.endswith("/api/title"):
-            unit_id = (payload.get("id") or "").strip()
-            title = (payload.get("title") or "").strip()
-            if not generate.valid_unit_id(unit_id):
-                self._json({"ok": False, "error": "主题单元 id 不合法"}, 400)
-                return
-            result = generate.update_title(unit_id, title)
-            self._json(result, 200 if result.get("ok") else 400)
             return
 
         if not path.endswith("/api/collect"):

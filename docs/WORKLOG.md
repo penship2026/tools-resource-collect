@@ -774,3 +774,13 @@ Chrome 无头截图三页面全部正常:首页卡片标签独立行两行截断
 - 采集页「归属板块」选择后,「加入已有主题」下拉只保留同板块单元;选择主题仍会自动带入板块和标题,切换板块导致目标不匹配时清空目标并回收自动标题。
 - `/api/topics` 增补 `tags`,供编辑区回填。
 - 验收:全量 Python 140 例、`--verify`、`docs_check`、`layout_lint` 通过;临时数据目录起 8766 实测 `/api/unit/meta` 保存后标题/标签/板块/显示状态回读一致,`videos` 未变。
+
+## 三十四、二期 A4 工作台与设计管理处(2026-11-27)
+
+- 新增 `tools/ai-template/registry.py`：内置 3 套版式/6 套主题与 `published.json` sidecar 合并；按 `/* AI_LAYOUTS */` / `/* AI_THEMES */` 标记插入 JS 注册表条目；`standard` / `default` 锁定。
+- 新增 `site_store.py`：只读写 `site.yml` 的 `display` 块与 `assets/site.js`，保留 `default_layout`、`editorial`、`window.EDITORIAL`；1–5 套、去重、锁定项与 key 格式校验，双文件失败回滚。
+- 新增 `publish.py`：批准必须有 reviewer、`metrics.json` `ok=true` 且 `visual=checked`；按 CSS → docs → review → 注册表 → `published.json` 事务写，失败回滚、草稿保留。驳回写 `reviews/<date>-<key>-reject.json`，迭代最多 2 轮。
+- 新增 `display.py`：管理页 payload、上下架、排序；上架第 6 套返回 `DISPLAY_FULL`，下架 `standard/default` 返回 `DISPLAY_LOCKED`。
+- 新增 `workbench/review.html`、`workbench/manage.html`、`server.py` 与 `published.json`、`docs/templates/`、`reviews/`；`cli.py` 增 `serve / approve / reject / revise / display`，工作台只监听 `127.0.0.1`，不发布 Pages。
+- 新增 `tests/test_workbench_ai.py` 8 例：批准前资产零变化、闸门/审批人校验、版式+主题发布、事务回滚、驳回/迭代上限、5 套与锁定、HTTP 冒烟。全量 Python 141 例通过。
+- 本次按阶段提交 A4 代码；批准与展示管理运行时仍不自动 git commit，`site.yml`、`assets/site.js` 与采集数据不并入 A4 提交。

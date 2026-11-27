@@ -1,11 +1,12 @@
 # 二期详细设计 · AI 模板与主题工坊
 
-> 版本 v1.3 · 2026-11-27 · 状态：评审修订完成，待开发
+> 版本 v1.4 · 2026-11-27 · 状态：A4 实现完成，待验收
 > 对应方案：`docs/PLAN-TEMPLATES-20261127.md`（D70–D73、D92–D98）
 > 评审记录：`docs/REVIEW-TEMPLATES-P2-20261127.md`
 > 前置：一期 3 套版式、布局 token 白名单、`templates.js` 注册表已就绪；截图脚本与基线由 A0 新建，不再假设已存在
 > 核心定位：**AI 是可选增强，不是运行时依赖**——生成在离线/本机完成，线上仍是零构建纯静态
 
+> **v1.4 修订**：A4 落地为 `registry / site_store / publish / display / server` 五个本机模块与两个工作台页面；批准按 CSS→docs→review→注册表→sidecar 事务写，管理处只写 `site.yml` display 与 `assets/site.js`。
 > **v1.3 修订**：AI 支持两类产物（版式模板 / 主题）；前端每类最多展示 5 套，内置也计入名额；展示清单由本机「AI 设计管理处」控制，设计库可多于展示位。
 > **v1.2 修订**：补充「无 AI 基线」硬约束与降级表；删除 AI 模板后，全部一期功能仍须可用。
 > **v1.1 修订**：Spec 只保留渲染层已落地的 `nav / lead / bands / toc` 四类能力；删除主题绑定与 `rails / timeline / rail`；补齐 draft 目录、原子发布、`status` 与回退；G3/G4/G6 改用本机 Chrome/CDP + 固定 fixture；增加 6 套版式切换容量策略；工期改为 12–15 人日 + 2–3 人日评审。
@@ -425,7 +426,17 @@ docs/templates/<key>.json       Spec 原文件（可复现）
 }
 ```
 
+### 8.2 A4 落地边界
+
+- 本机模块：`registry.py`（内置 + `published.json` 合并、JS 标记插入）、`site_store.py`（display 块与 `site.js` 原子读写）、`publish.py`（批准/驳回/迭代）、`display.py`（上下架/排序/5 套校验）、`server.py`（127.0.0.1 API）。
+- 批准前只读候选：检查 `reviewer`、`metrics.json` 的 `ok=true` 与 `visual=checked`，再编译；不写 `assets/`、`site.yml`、`site.js`。
+- 批准事务顺序：CSS → `docs/templates/*.json` / `*.md` → `reviews/*.json` → `templates.js` / `theme.js` 注册表 → `published.json` sidecar；任一步失败按备份回滚，草稿保留。批准不自动 git commit。
+- 驳回写 `reviews/<date>-<key>-reject.json`，原因是固定四类；迭代记录 `*-revise-N.json`，第 3 轮返回 `REVISE_LIMIT`。
+- 管理处只写 `site.yml` 的 `display.visible_layouts` / `display.visible_themes` 与 `assets/site.js`，保留 `site.default_layout`、`editorial` 与 `window.EDITORIAL`；版式/主题各 5 套，`standard` / `default` 锁定，第 6 套上架返回 `DISPLAY_FULL`。
+- 工作台只监听 `127.0.0.1`，页面不发布到 Pages；运行时仍只读 `site.js`，不需要 `tools/`。
+
 ---
+
 
 ## 九、治理
 

@@ -58,3 +58,26 @@ python3 tools/ai-template/cli.py preview --spec ... --no-shot
 - 失败返回非 0，`metrics.json` 的 `gates` 逐项带 `G1_SCHEMA` / `G2_FORBIDDEN` / `G3_RENDER` / `G4_CONTRAST` / `G6_DHASH` 等错误码。
 - 版式：5 套展示主题 × 三档；主题：同一 fixture 套 5 套展示主题 × 三档；每候选 15 张。
 - G6 版式对比基座 archetype，结构与截图 dHash 双指标；主题对比当前 5 套展示主题的主色/背景/字体/圆角。
+
+## A4 评审工作台与设计管理处
+
+```text
+# 只监听 127.0.0.1，不发布到 Pages
+python3 tools/ai-template/cli.py serve --port 8787
+
+# 浏览器：http://127.0.0.1:8787/          候选对比 / 批准 / 驳回 / 迭代
+# 浏览器：http://127.0.0.1:8787/manage.html 展示清单上下架 / 排序 / 预览
+
+# 等价命令行
+python3 tools/ai-template/cli.py approve --spec tools/ai-template/drafts/<key>/candidate-1/spec.json --reviewer liyan
+python3 tools/ai-template/cli.py reject --spec ... --reviewer liyan --reason 同质化
+python3 tools/ai-template/cli.py revise --spec ... --comments "标题区太重"
+python3 tools/ai-template/cli.py display --kind theme --key anime --on
+```
+
+- 批准要求 `reviewer` + `metrics.json` 的 `ok=true` 与 `visual=checked`；缺一返回 `APPROVE_*` 错误码。
+- 批准按 CSS → docs → review → 注册表 → `published.json` 顺序原子写，失败回滚；草稿保留；批准只写工作区，**不自动 git commit**。
+- 发布产物：`assets/layouts|themes/<key>.css`、`docs/templates/<key>.{json,md}`、`tools/ai-template/reviews/<date>-<key>.json`，并在 `assets/templates.js` / `assets/theme.js` 的 `AI_*` 标记前插入注册表条目。
+- 驳回记录到 `reviews/<date>-<key>-reject.json`，原因固定四类；迭代最多 2 轮，第 3 轮返回 `REVISE_LIMIT` 转人工。
+- 管理处只写 `site.yml` 的 `display.visible_layouts` / `display.visible_themes` 与 `assets/site.js`，不动 `editorial`；版式/主题各最多 5 套，`standard` / `default` 锁定；上架第 6 套返回 `DISPLAY_FULL`，下架锁定项返回 `DISPLAY_LOCKED`。
+- 设计库可多于 5 套；未展示的设计仍留在管理页，可预览或换入。运行时只读 `site.js` 过滤，不调用模型，不需要 `tools/`。

@@ -36,6 +36,9 @@ def _load_local(name, filename):
 
 generate = _load_local("ai_template_generate", "generate.py")
 preview = _load_local("ai_template_preview", "preview.py")
+publish = _load_local("ai_template_publish", "publish.py")
+display = _load_local("ai_template_display", "display.py")
+server = _load_local("ai_template_server", "server.py")
 
 
 def _load(path):
@@ -145,6 +148,53 @@ def cmd_lint(args):
     return 0
 
 
+def cmd_serve(args):
+    server.serve(args.port, ROOT)
+    return 0
+
+
+def _print_result(result):
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    return 0 if result.get("ok") else 1
+
+
+def cmd_approve(args):
+    try:
+        result = publish.approve_candidate(
+            Path(args.spec), args.reviewer, root=ROOT, note=args.note,
+            model=args.model, prompt_id=args.prompt_id, rounds=args.rounds,
+        )
+    except publish.PublishError as exc:
+        return _print_result(exc.as_dict())
+    return _print_result(result)
+
+
+def cmd_reject(args):
+    try:
+        result = publish.reject_candidate(
+            Path(args.spec), args.reviewer, args.reason, args.note, root=ROOT,
+        )
+    except publish.PublishError as exc:
+        return _print_result(exc.as_dict())
+    return _print_result(result)
+
+
+def cmd_revise(args):
+    try:
+        result = publish.record_revision(Path(args.spec), args.comments, args.reviewer, root=ROOT)
+    except publish.PublishError as exc:
+        return _print_result(exc.as_dict())
+    return _print_result(result)
+
+
+def cmd_display(args):
+    try:
+        result = display.set_visible(args.kind, args.key, bool(args.on), root=ROOT)
+    except display.DisplayError as exc:
+        return _print_result(exc.as_dict())
+    return _print_result(result)
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description="集页 AI 版式/主题编译器")
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -181,6 +231,40 @@ def main(argv=None):
     p = sub.add_parser("lint")
     p.add_argument("--file", required=True, help="主题 CSS 路径")
     p.set_defaults(func=cmd_lint)
+
+    p = sub.add_parser("serve", help="启动 127.0.0.1 工作台（评审 + 管理处）")
+    p.add_argument("--port", type=int, default=8787, help="默认 8787")
+    p.set_defaults(func=cmd_serve)
+
+    p = sub.add_parser("approve", help="批准候选并原子发布")
+    p.add_argument("--spec", required=True, help="候选 spec.json 路径")
+    p.add_argument("--reviewer", required=True, help="审批人，必填")
+    p.add_argument("--note", default="", help="审批备注")
+    p.add_argument("--model", default="", help="生成模型名，仅记录")
+    p.add_argument("--prompt-id", default="generate-v1", help="prompt 版本，仅记录")
+    p.add_argument("--rounds", type=int, default=1, help="迭代轮次，默认 1")
+    p.set_defaults(func=cmd_approve)
+
+    p = sub.add_parser("reject", help="驳回候选并留记录")
+    p.add_argument("--spec", required=True, help="候选 spec.json 路径")
+    p.add_argument("--reviewer", required=True, help="审批人，必填")
+    p.add_argument("--reason", required=True, choices=("同质化", "破版", "观感差", "不支持该场景"))
+    p.add_argument("--note", default="")
+    p.set_defaults(func=cmd_reject)
+
+    p = sub.add_parser("revise", help="记录迭代意见；超过 2 轮转人工")
+    p.add_argument("--spec", required=True, help="候选 spec.json 路径")
+    p.add_argument("--comments", required=True, help="迭代意见")
+    p.add_argument("--reviewer", default="")
+    p.set_defaults(func=cmd_revise)
+
+    p = sub.add_parser("display", help="管理处上下架展示项")
+    p.add_argument("--kind", required=True, choices=("layout", "theme"))
+    p.add_argument("--key", required=True)
+    group = p.add_mutually_exclusive_group(required=True)
+    group.add_argument("--on", action="store_true", help="上架")
+    group.add_argument("--off", action="store_true", help="下架")
+    p.set_defaults(func=cmd_display)
 
     args = ap.parse_args(argv)
     return args.func(args)

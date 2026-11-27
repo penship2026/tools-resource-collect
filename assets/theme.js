@@ -19,7 +19,8 @@
     tech: { file: 'tech.css', label: '科技' },
     campus: { file: 'campus.css', label: '学院' },
     classical: { file: 'classical.css', label: '古典' },
-    anime: { file: 'anime.css', label: '二次元' }
+    anime: { file: 'anime.css', label: '二次元' },
+    /* AI_THEMES */
   };
   var AUTO_LABEL = '跟随系统';
   var INHERIT = 'inherit';

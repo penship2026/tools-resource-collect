@@ -35,7 +35,8 @@ window.TEMPLATES = {
       bands: true,
       sidebar: false,
       toc: true
-    }
+    },
+    /* AI_LAYOUTS */
   }
 };
 

@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>集页 · AI 设计评审</title>
+  <style>
+    :root { --ink:#1f2a24; --muted:#5f6f66; --line:#d9e2dc; --brand:#2f6f4e; --wash:#f3f7f4; }
+    * { box-sizing: border-box; }
+    body { margin:0; font:15px/1.6 -apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif; color:var(--ink); background:#f7f9f7; }
+    header { position:sticky; top:0; z-index:5; background:#fff; border-bottom:1px solid var(--line); padding:14px 20px; display:flex; gap:16px; align-items:center; flex-wrap:wrap; }
+    header h1 { font-size:18px; margin:0; }
+    header .hint { color:var(--muted); font-size:13px; }
+    header a { color:var(--brand); }
+    header input { padding:8px 10px; border:1px solid var(--line); border-radius:8px; min-width:180px; }
+    main { max-width:1500px; margin:0 auto; padding:18px 20px 60px; }
+    .summary { margin:0 0 14px; color:var(--muted); font-size:13px; }
+    .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(360px,1fr)); gap:16px; }
+    .card { background:#fff; border:1px solid var(--line); border-radius:14px; overflow:hidden; display:flex; flex-direction:column; }
+    .card-head { padding:12px 14px; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; gap:10px; align-items:baseline; }
+    .card-head h2 { margin:0; font-size:16px; }
+    .card-head code { color:var(--muted); font-size:12px; }
+    .shots { background:var(--wash); padding:8px; display:grid; grid-template-columns:1fr 150px; gap:8px; }
+    .shots iframe { width:100%; border:1px solid var(--line); border-radius:8px; background:#fff; }
+    .shots iframe.wide { height:360px; }
+    .shots iframe.narrow { height:360px; }
+    .meta { padding:10px 14px; font-size:12px; color:var(--muted); display:flex; gap:12px; flex-wrap:wrap; }
+    .gate { font-weight:600; }
+    .gate.ok { color:var(--brand); }
+    .gate.bad { color:#a12d1f; }
+    .errors { margin:0; padding:0 14px 10px; color:#a12d1f; font-size:12px; }
+    details.meta { display:block; padding:0 14px 10px; }
+    details.meta summary { cursor:pointer; color:var(--brand); }
+    details.meta div { margin-top:6px; white-space:pre-wrap; }
+    .actions { margin-top:auto; padding:12px 14px; border-top:1px solid var(--line); display:grid; gap:8px; }
+    .actions input, .actions select, .actions textarea { width:100%; padding:7px 9px; border:1px solid var(--line); border-radius:8px; font:inherit; }
+    .row { display:flex; gap:8px; }
+    .row button { flex:1; }
+    button { padding:8px 10px; border:1px solid var(--line); border-radius:8px; background:#fff; cursor:pointer; font:inherit; }
+    button.primary { background:var(--brand); color:#fff; border-color:var(--brand); }
+    button:disabled { opacity:.45; cursor:not-allowed; }
+    .result { padding:8px 14px 12px; font-size:12px; color:var(--brand); }
+    .result.bad { color:#a12d1f; }
+    .empty { padding:40px; text-align:center; color:var(--muted); }
+  </style>
+</head>
+<body>
+<header>
+  <h1>AI 设计评审</h1>
+  <span class="hint">候选对比 → 批准 / 驳回 / 迭代；批准前不写 assets/</span>
+  <label>reviewer <input id="reviewer" placeholder="填写审批人"></label>
+  <a href="/manage.html">AI 设计管理处 →</a>
+  <button id="reload" type="button">刷新</button>
+</header>
+<main>
+  <p class="summary" id="summary">正在读取候选…</p>
+  <div class="grid" id="grid"></div>
+</main>
+<script>
+(function () {
+  'use strict';
+  var grid = document.getElementById('grid');
+  var summary = document.getElementById('summary');
+  var reviewer = document.getElementById('reviewer');
+  try { reviewer.value = localStorage.getItem('jiye.reviewer') || 'liyan'; } catch (e) {}
+  reviewer.addEventListener('change', function () {
+    try { localStorage.setItem('jiye.reviewer', reviewer.value.trim()); } catch (e) {}
+  });
+
+  function esc(value) {
+    return String(value == null ? '' : value).replace(/[&<>"']/g, function (c) {
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+
+  function post(url, body) {
+    return fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) })
+      .then(function (r) { return r.json(); });
+  }
+
+  function gateLine(item) {
+    var gates = (item.gates || []).map(function (g) {
+      return '<span class="gate ' + (g.ok ? 'ok' : 'bad') + '">' + esc(g.gate) + (g.ok ? ' ✓' : ' ✗') + '</span>';
+    }).join(' ');
+    var errors = (item.errors || []).map(function (e) { return esc(e.code || '') + ' ' + esc(e.message || ''); });
+    return '<div class="meta"><span>CSS ' + esc(item.cssBytes || 0) + ' B</span><span>截图 ' +
+      esc(item.shots == null ? '未跑' : item.shots) + '</span><span>溢出 ' + esc(item.overflow == null ? '-' : item.overflow) +
+      '</span><span>dHash ' + esc(item.dhash || '-') + '</span><span>G6 ' + esc(item.g6 || '-') + '</span></div>' +
+      '<div class="meta">' + (gates || '<span class="gate bad">no gates</span>') + '</div>' +
+      (errors.length ? '<p class="errors">' + errors.join('<br>') + '</p>' : '');
+  }
+
+  function card(item) {
+    var kind = item.kind;
+    var base = item.preview;
+    var wide = base + '?theme=default';
+    var narrow = base + (kind === 'theme' ? '?theme=dark&layout=news' : '?theme=dark');
+    var canApprove = item.ok && item.visual === 'checked';
+    var el = document.createElement('article');
+    el.className = 'card';
+    el.innerHTML =
+      '<div class="card-head"><div><h2>' + esc(item.name) + '</h2>' +
+      '<code>' + esc(kind) + ' · ' + esc(item.key) + '</code></div>' +
+      '<span>' + esc(item.visual || 'not-run') + '</span></div>' +
+      '<div class="shots"><iframe class="wide" loading="lazy" src="' + esc(wide) + '"></iframe>' +
+      '<iframe class="narrow" loading="lazy" src="' + esc(narrow) + '"></iframe></div>' +
+      gateLine(item) +
+      '<details class="meta"><summary>Spec 摘要</summary><div>' + esc(item.intent || '') +
+      (item.rationale && item.rationale.length ? '<br>' + item.rationale.map(function (x) { return '· ' + esc(x); }).join('<br>') : '') +
+      (item.archetype ? '<br>archetype:' + esc(item.archetype) : '') + '</div></details>' +
+      '<div class="actions">' +
+      '<button type="button" class="primary" data-act="approve" ' + (canApprove ? '' : 'disabled') + '>批准发布</button>' +
+      '<div class="row"><select data-role="reason"><option>同质化</option><option>破版</option><option>观感差</option><option>不支持该场景</option></select>' +
+      '<button type="button" data-act="reject">驳回</button></div>' +
+      '<textarea rows="2" data-role="comments" placeholder="迭代意见（≤2 轮）"></textarea>' +
+      '<button type="button" data-act="revise">要求迭代</button></div>' +
+      '<div class="result" data-role="result"></div>';
+    var result = el.querySelector('[data-role="result"]');
+    function report(data) {
+      result.className = 'result' + (data.ok ? '' : ' bad');
+      result.textContent = data.ok ? ('完成：' + (data.css || data.review || data.round || 'ok')) :
+        ((data.code || 'ERROR') + '：' + (data.message || ''));
+    }
+    el.querySelector('[data-act="approve"]').addEventListener('click', function () {
+      if (!reviewer.value.trim()) { report({ok:false, code:'APPROVE_REVIEWER', message:'先填写 reviewer'}); return; }
+      if (!window.confirm('确认批准 ' + item.key + '？批准后会写 CSS、docs、注册表与审批记录。')) return;
+      post('/api/approve', {path:item.path, reviewer:reviewer.value.trim()}).then(report);
+    });
+    el.querySelector('[data-act="reject"]').addEventListener('click', function () {
+      post('/api/reject', {path:item.path, reviewer:reviewer.value.trim(),
+        reason:el.querySelector('[data-role="reason"]').value,
+        note:el.querySelector('[data-role="comments"]').value}).then(report);
+    });
+    el.querySelector('[data-act="revise"]').addEventListener('click', function () {
+      post('/api/revise', {path:item.path, reviewer:reviewer.value.trim(),
+        comments:el.querySelector('[data-role="comments"]').value}).then(report);
+    });
+    return el;
+  }
+
+  function load() {
+    summary.textContent = '正在读取候选…';
+    grid.innerHTML = '';
+    fetch('/api/candidates').then(function (r) { return r.json(); }).then(function (data) {
+      if (!data.ok) { summary.textContent = data.message || '读取失败'; return; }
+      summary.textContent = '共 ' + data.items.length + ' 个候选；批准会原子写入 assets/、docs/、注册表与 reviews/。';
+      if (!data.items.length) { grid.innerHTML = '<p class="empty">drafts/ 下还没有候选，先跑 generate + preview。</p>'; return; }
+      data.items.forEach(function (item) { grid.appendChild(card(item)); });
+    }).catch(function (err) { summary.textContent = '读取失败：' + err; });
+  }
+
+  document.getElementById('reload').addEventListener('click', load);
+  load();
+})();
+</script>
+</body>
+</html>

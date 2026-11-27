@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>集页 · AI 设计管理处</title>
+  <style>
+    :root { --ink:#1f2a24; --muted:#5f6f66; --line:#d9e2dc; --brand:#2f6f4e; --wash:#f3f7f4; }
+    * { box-sizing:border-box; }
+    body { margin:0; font:15px/1.6 -apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif; color:var(--ink); background:#f7f9f7; }
+    header { position:sticky; top:0; z-index:5; background:#fff; border-bottom:1px solid var(--line); padding:14px 20px; display:flex; gap:16px; align-items:center; flex-wrap:wrap; }
+    header h1 { font-size:18px; margin:0; }
+    header .hint { color:var(--muted); font-size:13px; }
+    header a { color:var(--brand); }
+    main { max-width:1180px; margin:0 auto; padding:18px 20px 60px; }
+    section { background:#fff; border:1px solid var(--line); border-radius:14px; margin-bottom:18px; overflow:hidden; }
+    section h2 { margin:0; padding:12px 16px; font-size:16px; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; gap:10px; }
+    section h2 span { color:var(--muted); font-size:13px; font-weight:400; }
+    table { border-collapse:collapse; width:100%; }
+    th, td { text-align:left; padding:10px 16px; border-bottom:1px solid var(--line); font-size:13px; vertical-align:middle; }
+    th { color:var(--muted); font-weight:500; background:var(--wash); }
+    tr:last-child td { border-bottom:0; }
+    .badge { display:inline-block; padding:1px 7px; border-radius:99px; background:var(--wash); color:var(--muted); font-size:11px; }
+    .badge.on { background:#e2f0e7; color:var(--brand); }
+    .badge.lock { background:#f3e8dd; color:#8a4f2d; }
+    button { padding:6px 10px; border:1px solid var(--line); border-radius:8px; background:#fff; cursor:pointer; font:inherit; font-size:12px; }
+    button.primary { background:var(--brand); color:#fff; border-color:var(--brand); }
+    button:disabled { opacity:.4; cursor:not-allowed; }
+    .ops { display:flex; gap:6px; flex-wrap:wrap; }
+    .msg { padding:10px 16px; color:var(--muted); font-size:12px; }
+    .msg.bad { color:#a12d1f; }
+    .empty { padding:22px 16px; color:var(--muted); }
+  </style>
+</head>
+<body>
+<header>
+  <h1>AI 设计管理处</h1>
+  <span class="hint">只改展示清单，不生成、不自动提交；127.0.0.1 本机页面</span>
+  <a href="/">← 回到评审</a>
+  <button id="reload" type="button">刷新</button>
+</header>
+<main>
+  <div id="message" class="msg">正在读取设计库…</div>
+  <div id="sections"></div>
+</main>
+<script>
+(function () {
+  'use strict';
+  var root = document.getElementById('sections');
+  var message = document.getElementById('message');
+
+  function esc(value) {
+    return String(value == null ? '' : value).replace(/[&<>"']/g, function (c) {
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+  function post(url, body) {
+    return fetch(url, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)})
+      .then(function (r) { return r.json(); });
+  }
+  function say(text, bad) {
+    message.textContent = text;
+    message.className = 'msg' + (bad ? ' bad' : '');
+  }
+
+  function render(kind, data) {
+    var title = kind === 'layout' ? '版式' : '主题';
+    var section = document.createElement('section');
+    var rows = (data.items || []).map(function (item) {
+      var locked = item.locked;
+      var on = item.visible;
+      var full = data.count >= data.max;
+      var toggle = on
+        ? '<button type="button" data-act="off" ' + (locked ? 'disabled' : '') + '>下架</button>'
+        : '<button type="button" data-act="on" ' + ((full || locked) ? 'disabled' : '') + '>上架</button>';
+      var up = on ? '<button type="button" data-act="up">↑</button>' : '';
+      var down = on ? '<button type="button" data-act="down">↓</button>' : '';
+      var look = '<button type="button" data-act="preview">预览</button>';
+      var type = kind === 'layout' ? '版式' : '主题';
+      return '<tr data-key="' + esc(item.key) + '"><td><b>' + esc(item.label) + '</b><br><code>' + esc(item.key) + '</code></td>' +
+        '<td>' + type + '</td>' +
+        '<td>' + esc(item.source === 'builtin' ? '内置' : 'AI') + '</td>' +
+        '<td><span class="badge">' + esc(item.status || 'published') + '</span></td>' +
+        '<td>' + (on ? '<span class="badge on">展示中</span>' : '<span class="badge">隐藏</span>') +
+        (locked ? ' <span class="badge lock">锁定</span>' : '') + '</td>' +
+        '<td>' + esc(item.file) + '</td>' +
+        '<td><div class="ops">' + look + toggle + up + down + '</div></td></tr>';
+    }).join('');
+    section.innerHTML = '<h2>' + title + ' <span>' + data.count + ' / ' + data.max + ' 展示中；锁定 ' +
+      esc(data.locked) + ' 不可下架</span></h2><table><thead><tr><th>名称 / key</th><th>类型</th><th>来源</th><th>状态</th><th>展示</th><th>文件</th><th>操作</th></tr></thead><tbody>' +
+      (rows || '<tr><td colspan="7" class="empty">暂无设计</td></tr>') + '</tbody></table>';
+
+    section.addEventListener('click', function (ev) {
+      var btn = ev.target.closest('button[data-act]');
+      if (!btn) return;
+      var tr = btn.closest('tr');
+      var key = tr.getAttribute('data-key');
+      var act = btn.getAttribute('data-act');
+      btn.disabled = true;
+      if (act === 'preview') {
+        var query = kind === 'layout' ? '?layout=' + encodeURIComponent(key) : '?theme=' + encodeURIComponent(key) + '&layout=standard';
+        window.open('/repo/index.html' + query, '_blank');
+        btn.disabled = false;
+        return;
+      }
+      if (act === 'up' || act === 'down') {
+        post('/api/reorder', {kind:kind, key:key, direction: act === 'up' ? -1 : 1}).then(function (data) {
+          if (!data.ok) { say((data.code || 'ERROR') + '：' + (data.message || ''), true); return; }
+          say('已调整顺序');
+          load();
+        });
+        return;
+      }
+      post('/api/display', {kind:kind, key:key, on: act === 'on'}).then(function (data) {
+        if (!data.ok) { say((data.code || 'ERROR') + '：' + (data.message || ''), true); return; }
+        say(act === 'on' ? '已上架 ' + key : '已下架 ' + key);
+        load();
+      });
+    });
+    return section;
+  }
+
+  function load() {
+    root.innerHTML = '';
+    fetch('/api/manage').then(function (r) { return r.json(); }).then(function (data) {
+      if (!data.ok) { say(data.message || '读取失败', true); return; }
+      say('展示上限 5；standard 版式与 default 主题锁定；保存后写 site.yml + site.js，不自动提交。');
+      root.appendChild(render('layout', data.kinds.layout));
+      root.appendChild(render('theme', data.kinds.theme));
+    }).catch(function (err) { say('读取失败：' + err, true); });
+  }
+
+  document.getElementById('reload').addEventListener('click', load);
+  load();
+})();
+</script>
+</body>
+</html>

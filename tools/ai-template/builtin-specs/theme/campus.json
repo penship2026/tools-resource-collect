@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "kind": "theme",
+  "key": "campus",
+  "name": "学院",
+  "intent": "现有学院主题抽取：米白纸张、藏青主色、衬线标题",
+  "mode": "light",
+  "tokens": {
+    "--bg": "#efe9db",
+    "--surface": "#fffdf7",
+    "--text": "#1e2a3a",
+    "--text-sub": "#55637a",
+    "--text-mute": "#8b95a7",
+    "--border": "#d9cfb9",
+    "--brand": "#173b6c",
+    "--brand-soft": "#e9eff8",
+    "--shadow": "0 1px 2px rgba(60, 50, 30, .06), 0 10px 26px rgba(60, 50, 30, .06)",
+    "--radius": "10px",
+    "--radius-sm": "5px",
+    "--radius-pill": "999px",
+    "--font-sans": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", \"PingFang SC\", \"Hiragino Sans GB\", \"Microsoft YaHei\", sans-serif",
+    "--font-display": "\"Iowan Old Style\", \"Palatino Linotype\", \"Songti SC\", \"STSong\", \"Noto Serif SC\", Georgia, serif",
+    "--fs-hero": "clamp(30px, 4.2vw, 42px)",
+    "--fs-title": "19px",
+    "--fs-body": "15px",
+    "--fs-sm": "13px",
+    "--fs-xs": "12px",
+    "--gap-card": "18px",
+    "--pad-card": "18px",
+    "--shadow-hover": "0 2px 4px rgba(60, 50, 30, .08), 0 16px 34px rgba(60, 50, 30, .1)",
+    "--brand-2": "#8a6a3f",
+    "--hero-wash": "radial-gradient(1000px 400px at 12% -12%, rgba(23, 59, 108, .12), rgba(23, 59, 108, 0) 70%)",
+    "--header-bg": "rgba(239, 233, 219, .9)",
+    "--plat-bilibili": "#fb7299",
+    "--plat-wechat": "#07c160",
+    "--plat-xhs": "#ff2442",
+    "--plat-multi": "#5b6472"
+  },
+  "rationale": [
+    "保留现有内置主题的主色、背景与字体特征",
+    "29 个 token 与现有 CSS 一一对应",
+    "抽取为 Spec 后可从内置主题克隆新版本"
+  ],
+  "limits": {
+    "maxCssKb": 4,
+    "maxRules": 40
+  }
+}

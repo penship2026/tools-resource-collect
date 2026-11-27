@@ -1,11 +1,12 @@
 # 二期详细设计 · AI 模板与主题工坊
 
-> 版本 v1.7 · 2026-11-27 · 状态：A4 实现完成，待验收；A4.5 模板编辑闭环已落地，内置版式 Spec 已抽取
+> 版本 v1.8 · 2026-11-27 · 状态：A4 实现完成，待验收；A4.5 模板编辑闭环、内置版式与主题 Spec 抽取已落地
 > 对应方案：`docs/PLAN-TEMPLATES-20261127.md`（D70–D73、D92–D98）
 > 评审记录：`docs/REVIEW-TEMPLATES-P2-20261127.md`
 > 前置：一期 3 套版式、布局 token 白名单、`templates.js` 注册表已就绪；截图脚本与基线由 A0 新建，不再假设已存在
 > 核心定位：**AI 是可选增强，不是运行时依赖**——生成在离线/本机完成，线上仍是零构建纯静态
 
+> **v1.8 修订**：补齐 `default/dark/tech/campus/classical/anime` 六套内置主题 Spec，内置版式与主题均可克隆维护；A5 试点期 `max_layouts` 放开到 20，不再受 5 套限制，主题仍为 8。
 > **v1.7 修订**：从现有内置版式 `standard/news/magazine` 抽取三份 Design Spec，放 `tools/ai-template/builtin-specs/layout/`；管理页据此把内置版式标为可克隆，克隆出的新 key 草稿可手改、预览、批准，原 CSS/注册表不动。主题尚未抽取，内置主题仍只能归档。
 > **v1.6 修订**：二期从“一次性批量生成 3 个候选”改为**模板编辑维护闭环**：管理台内 AI 生成 1–5 个候选、人工选 1 个；候选 Spec 可直接手改并存为新版本；批准时可勾选立即上架；已发布 AI 模板可克隆新版本，内置/旧模板可下线归档但文件不动。
 > **v1.5 修订**：展示上限改为可配置 `display.max_layouts` / `display.max_themes`（1–20，默认 5）；管理页可改上限、`cli display --max`、`POST /api/display/limit`；A5 试点主题上限先设 8，使 5 套内置 + 3 个 AI 主题全部展示；版式 3+3 超 5 时需先下架一套内置或同步提高版式上限。
@@ -399,7 +400,7 @@ docs/templates/<key>.json       Spec 原文件（可复现）
 展示名额：
 
 - **默认版式最多 5 套、主题最多 5 套**，内置占名额；`standard` 版式与 `default` 主题锁定，不可隐藏，保证回退。
-- 管理处可分别设置 `display.max_layouts` / `display.max_themes`（1–20，默认 5）；A5 试点期主题上限设为 8，容纳 5 套内置 + 3 个 AI 主题，先全部展示。
+- 管理处可分别设置 `display.max_layouts` / `display.max_themes`（1–20，默认 5）；A5 试点期版式上限放开到 20，容纳 3 套内置 + 3 个 AI 版式后仍有余量；主题上限设为 8，容纳 5 套内置 + 3 个 AI 主题。
 - 设计库可以多于当前上限；只有展示清单里的进入页脚切换器。未展示的设计仍可在管理页预览。
 - 首版主题展示清单：`default / dark / tech / campus / classical`；`anime` 暂不展示，提高主题上限后可在管理页上架。
 - 超过当前上限时「上架」按钮禁用，提示先下架或提高上限；不允许静默截断。
@@ -451,7 +452,7 @@ docs/templates/<key>.json       Spec 原文件（可复现）
 - 批准推送：`POST /api/approve` 可带 `push:true`；批准成功后写展示清单与 `site.js`。展示位满/锁定/已归档时返回 `push_message`，不回滚已完成的发布。
 - 克隆：`POST /api/clone` 可从 `docs/templates/<key>.json` 的 `spec`（已发布 AI 模板）或 `tools/ai-template/builtin-specs/<kind>/<key>.json`（抽取的内置版式）复制新 key 草稿；旧 CSS/注册表不动。
 - 归档：`POST /api/archive` 先从展示清单移除，再写 `published.json.archived`；不改 CSS、注册表或原 published 条目。归档项不能直接重新上架，需克隆新版本。
-- 内置抽取范围：当前只抽了 `standard / news / magazine` 三套版式；内置主题没有 `builtin-specs/theme/*.json`，仍只能下线归档，不能克隆。
+- 内置抽取范围：已抽 `standard / news / magazine` 三套版式与 `default / dark / tech / campus / classical / anime` 六套主题；主题的 `tech` / `anime` 品牌对比度低于 G4，克隆后需先调深品牌色再批准。
 - 仍未覆盖：空白手动新建模板。当前“从零新建”走 AI 生成 1 个候选，或从内置/已发布模板克隆。
 
 ---
@@ -550,9 +551,12 @@ AI_TIMEOUT=60
 | **A2 生成管线（2–3d）** | `cli.py generate`（kind=layout/theme）、适配器、缓存、两类合成样例 | 一条命令产 3 候选；`mock` 双类型离线全通；请求体不含真实收藏 |
 | **A3 预览与闸门（2–3d）** | `preview.py`、`metrics.py`、六道闸门、Chrome/CDP 截图 | 每个失败有错误码；版式三档、主题跨 5 套展示主题跑通；G3/G4/G6 可复现 |
 | **A4 工作台与设计管理处（2–2.5d）** | 候选对比、批准/驳回/迭代、草稿转正式、`manage.html` 展示清单与最大上架数 | 单次评审 ≤10 分钟；批准前运行目录零变化；默认 5 套时上架第 6 套被拒、提高上限后可继续；`standard/default` 不可下架 |
-| **A5 试点与治理（3–4d）** | 3 个 AI 版式 + 3 个 AI 主题入库、说明、展示清单、下线/回滚演练 | 设计均过 G1–G6；前端版式/主题各 ≤5；下线回退 `standard/default`；断网/无 Key 下一期功能全可用；CI 全绿 |
+| **A4.6 内置模板抽取（0.5d）** | 3 套内置版式 + 6 套内置主题抽 Spec；管理页按 `clonable` 显示克隆入口 | 9 份 Spec 校验通过；克隆出新 key 草稿；原 CSS/注册表不动；`tech/anime` 遗留对比度在预览中标红 |
+| **A5 试点与治理（3–4d）** | 3 个 AI 版式 + 3 个 AI 主题入库、说明、展示清单、下线/回滚演练 | 设计均过 G1–G6；版式上限 20、主题上限 8，3+3 全部展示；下线回退 `standard/default`；断网/无 Key 下一期功能全可用；CI 全绿 |
 
-**总计 15–19 人日**，另计 3–4 人日评审/验收。A0 未通过不得进 A1；A1 未通过不得进 A2；A3 未通过不得批准任何设计。
+**总计 15.5–19.5 人日**，另计 3–4 人日评审/验收。
+
+**A5 模型通道**：优先 OpenRouter 的 `:free` 模型（`https://openrouter.ai/api/v1`，需用户自行注册取 Key，免预充值，约 50 次/日），适合 6 次以内的真实生成验证；本机 Ollama 作为无 Key 备用（`http://127.0.0.1:11434/v1`，CPU 推理慢，仅验证链路）。两者都走 `adapters/openai_compat.py`，不改变运行时；无 Key 时仍自动降级 mock。A0 未通过不得进 A1；A1 未通过不得进 A2；A3 未通过不得批准任何设计。
 
 ---
 

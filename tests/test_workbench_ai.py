@@ -296,11 +296,16 @@ class ManualAndArchiveTest(unittest.TestCase):
 
 
 class BuiltinSpecTest(unittest.TestCase):
-    def test_extracted_layout_specs_are_valid(self):
-        base = Path(__file__).resolve().parents[1] / "tools" / "ai-template" / "builtin-specs" / "layout"
+    def test_extracted_specs_are_valid_and_clonable(self):
+        base = Path(__file__).resolve().parents[1] / "tools" / "ai-template" / "builtin-specs"
         for key in ("standard", "news", "magazine"):
-            spec = json.loads((base / (key + ".json")).read_text(encoding="utf-8"))
+            spec = json.loads((base / "layout" / (key + ".json")).read_text(encoding="utf-8"))
             self.assertEqual(cli.generate.validate_candidates([spec], "layout", expect=1), [])
+        for key in ("default", "dark", "tech", "campus", "classical", "anime"):
+            spec = json.loads((base / "theme" / (key + ".json")).read_text(encoding="utf-8"))
+            self.assertEqual(cli.generate.validate_candidates([spec], "theme", expect=1), [])
+        for kind, key in (("layout", "news"), ("theme", "tech")):
+            self.assertTrue(server.registry.items(kind)[key]["clonable"])
 
     def test_clone_builtin_layout_spec(self):
         tmp, root = make_root()
@@ -314,6 +319,20 @@ class BuiltinSpecTest(unittest.TestCase):
         self.assertTrue(result["ok"])
         self.assertEqual(result["spec_source"], "builtin")
         self.assertTrue((root / "tools" / "ai-template" / "drafts" / "news-v2" / "candidate-1" / "spec.json").exists())
+
+
+    def test_clone_builtin_theme_spec(self):
+        tmp, root = make_root()
+        self.addCleanup(tmp.cleanup)
+        base = Path(__file__).resolve().parents[1] / "tools" / "ai-template" / "builtin-specs" / "theme"
+        result = cli.generate.clone_published(
+            "theme", "tech", "tech-v2", "科技新版",
+            docs_dir=root / "docs" / "templates", out_dir=root / "tools" / "ai-template" / "drafts",
+            builtin_dir=base,
+        )
+        self.assertTrue(result["ok"])
+        self.assertEqual(result["spec_source"], "builtin")
+        self.assertTrue((root / "tools" / "ai-template" / "drafts" / "tech-v2" / "candidate-1" / "spec.json").exists())
 
 
 class HttpSmokeTest(unittest.TestCase):

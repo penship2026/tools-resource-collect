@@ -826,3 +826,11 @@ Chrome 无头截图三页面全部正常:首页卡片标签独立行两行截断
 - `generate.clone_published` 先读已发布 docs，找不到回退内置 Spec；克隆强制换新 key，旧版 CSS/注册表/展示不动。
 - 当前只抽版式，未抽主题；内置主题仍只能下线归档。抽取值按现有结构、密度、封面比与响应式断点填写，编译后视觉以现有页面为基准，不保证逐像素一致。
 - 验收：三份 Spec `validate` 通过；`standard/news/magazine` 均可克隆出 `candidate-1` 草稿；工作台测试新增 2 例。
+
+## 四十、内置主题抽取与 A5 放开版式上限(2026-11-27)
+
+- 从现有 6 套内置主题解析 29 个 token，生成 `tools/ai-template/builtin-specs/theme/default|dark|tech|campus|classical|anime.json`；`registry.items` 会把这些主题标为可克隆，管理页可克隆成新 key 草稿。
+- 抽取值与现有 CSS 对齐；`anime` 的 `--hero-wash` 因 schema 单值 160 字符上限，压缩成等价的 8 位十六进制 alpha 写法。
+- `tech` 与 `anime` 的 `--brand / --bg` 对比度为 2.50 / 2.86，低于 AI 模板 G4 的 3.0；克隆后预览会标红，需先调深品牌色再批准，这是内置主题历史状态。
+- A5 试点期放开版式套数：`site.yml` 与 `assets/site.js` 的 `display.max_layouts` 从 5 调到 20；主题仍为 8，3 套内置 + 3 个 AI 版式不再受 5 套限制。
+- 验收：9 份内置 Spec 校验通过；版式/主题克隆测试通过；`collector/generate.py --verify` 通过。

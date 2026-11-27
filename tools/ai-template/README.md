@@ -36,6 +36,18 @@ export AI_API_KEY="..."
 export AI_MODEL="..."
 python3 tools/ai-template/cli.py generate --kind theme --request "暖色纸张质感，长文阅读"
 
+# 免费通道：OpenRouter（注册后创建 Key，:free 模型免预充值，约 50 次/日）
+# .env 写入：
+# AI_BASE_URL=https://openrouter.ai/api/v1
+# AI_API_KEY=sk-or-v1-...
+# AI_MODEL=baidu/ernie-5.5-flash-preview:free
+# 备选：nvidia/nemotron-3-ultra-550b-a55b:free / google/gemma-4-31b-it:free
+
+# 免费通道：本机 Ollama（无需 Key，CPU 推理慢）
+# AI_BASE_URL=http://127.0.0.1:11434/v1
+# AI_API_KEY=ollama-local
+# AI_MODEL=deepseek-r1:7b
+
 # 复核：validate + compile + lint
 python3 tools/ai-template/cli.py validate --spec tools/ai-template/drafts/clay/candidate-2/spec.json
 python3 tools/ai-template/cli.py lint --file tools/ai-template/drafts/clay/candidate-2/clay.css
@@ -100,5 +112,5 @@ python3 tools/ai-template/cli.py display --kind theme --key anime --on
 - `POST /api/spec/save`：`{path, spec}`，校验后写 `candidate-N-eN`，不覆盖旧候选。
 - `POST /api/revise`：`{path, comments, reviewer, max_rounds}`，写 `candidate-N-rN`，服务器上限 3 轮。
 - `POST /api/approve`：加 `push:true` 时批准后写展示清单与 `site.js`；展示位满返回 `push_message`，不回滚发布。
-- `POST /api/clone`：`{kind, key, new_key, new_name}`；已发布 AI 模板从 `docs/templates` 取 Spec，内置版式从 `builtin-specs/layout` 取抽取 Spec；内置主题尚未抽取，不能克隆。
+- `POST /api/clone`：`{kind, key, new_key, new_name}`；已发布 AI 模板从 `docs/templates` 取 Spec，内置版式/主题从 `builtin-specs/layout|theme` 取抽取 Spec。
 - `POST /api/archive`：`{kind, key}`，先移出展示清单，再写 `published.json.archived`；CSS/注册表不动，锁定项拒绝。

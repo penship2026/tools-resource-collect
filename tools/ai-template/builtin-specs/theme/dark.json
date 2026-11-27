@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "kind": "theme",
+  "key": "dark",
+  "name": "深色",
+  "intent": "现有深色主题抽取：深底浅字、蓝色强调，适合夜间阅读",
+  "mode": "dark",
+  "tokens": {
+    "--bg": "#0f1115",
+    "--surface": "#181b21",
+    "--text": "#e8eaed",
+    "--text-sub": "#9ca3af",
+    "--text-mute": "#6b7280",
+    "--border": "#2a2e37",
+    "--brand": "#5b9dff",
+    "--brand-soft": "#1b2e4a",
+    "--shadow": "0 1px 3px rgba(0, 0, 0, .3), 0 8px 24px rgba(0, 0, 0, .25)",
+    "--radius": "14px",
+    "--radius-sm": "9px",
+    "--radius-pill": "999px",
+    "--font-sans": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", \"PingFang SC\", \"Hiragino Sans GB\", \"Microsoft YaHei\", sans-serif",
+    "--font-display": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", \"PingFang SC\", \"Hiragino Sans GB\", \"Microsoft YaHei\", sans-serif",
+    "--fs-hero": "clamp(30px, 4.2vw, 42px)",
+    "--fs-title": "19px",
+    "--fs-body": "15px",
+    "--fs-sm": "13px",
+    "--fs-xs": "12px",
+    "--gap-card": "18px",
+    "--pad-card": "18px",
+    "--shadow-hover": "0 16px 36px rgba(0, 0, 0, .45), 0 2px 8px rgba(0, 0, 0, .3)",
+    "--brand-2": "#8fbcff",
+    "--hero-wash": "radial-gradient(1200px 380px at 12% -10%, rgba(91, 157, 255, .22), rgba(91, 157, 255, 0) 70%)",
+    "--header-bg": "rgba(15, 17, 21, .86)",
+    "--plat-bilibili": "#fb7299",
+    "--plat-wechat": "#07c160",
+    "--plat-xhs": "#ff2442",
+    "--plat-multi": "#7c8798"
+  },
+  "rationale": [
+    "保留现有内置主题的主色、背景与字体特征",
+    "29 个 token 与现有 CSS 一一对应",
+    "抽取为 Spec 后可从内置主题克隆新版本"
+  ],
+  "limits": {
+    "maxCssKb": 4,
+    "maxRules": 40
+  }
+}

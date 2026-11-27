@@ -22,8 +22,11 @@ python3 tools/ai-template/cli.py lint --file /tmp/ai-theme/mist.css
 ## A2 生成管线
 
 ```text
-# 离线 mock：无 Key 也能产出 3 个候选，只用于链路验证
+# 离线 mock：无 Key 也能跑通链路，默认 1 个候选
 python3 tools/ai-template/cli.py generate --kind layout --request "3 列门户，移动端不溢出" --mock
+
+# 一次要多个候选：--count 1–5
+python3 tools/ai-template/cli.py generate --kind theme --request "暖色纸张质感" --mock --count 3
 
 # 有模型：复制 .env.example 为 .env 并填写，Key 只留本机
 cp tools/ai-template/.env.example tools/ai-template/.env
@@ -38,7 +41,7 @@ python3 tools/ai-template/cli.py validate --spec tools/ai-template/drafts/clay/c
 python3 tools/ai-template/cli.py lint --file tools/ai-template/drafts/clay/candidate-2/clay.css
 ```
 
-- 一条命令固定产 3 个候选；输出 `drafts/<key>/candidate-N/{spec.json,<key>.css,<key>.registry.json}`，根目录 `run.json` 记录来源、模型、缓存命中与 prompt 指纹。
+- `--count 1–5` 决定候选数量，默认 1；输出 `drafts/<key>/candidate-N/{spec.json,<key>.css,<key>.registry.json}`，根目录 `run.json` 记录来源、模型、缓存命中与 prompt 指纹。
 - 默认只发 `synthetic-preview-v1` 合成样例；不读取 `jiye.mine.v1`、采集正文、作者、来源链接。
 - 缓存键 `sha256(kind + system + user + model)`，命中不调用模型；非法 JSON/校验失败重试 1 次，候选同质直接报错。
 - 无 `AI_BASE_URL / AI_API_KEY / AI_MODEL` 时自动降级 mock，`source=mock` 的产物不得当可上线模板。
@@ -83,3 +86,19 @@ python3 tools/ai-template/cli.py display --kind theme --key anime --on
 - 驳回记录到 `reviews/<date>-<key>-reject.json`，原因固定四类；迭代最多 2 轮，第 3 轮返回 `REVISE_LIMIT` 转人工。
 - 管理处只写 `site.yml` 的 `display.visible_layouts` / `display.visible_themes` / `display.max_layouts` / `display.max_themes` 与 `assets/site.js`，不动 `editorial`；默认版式/主题各最多 5 套，可在管理页把上限调到 1–20；`standard` / `default` 锁定；超过上限上架返回 `DISPLAY_FULL`，下架锁定项返回 `DISPLAY_LOCKED`。
 - 设计库可多于 5 套；未展示的设计仍留在管理页，可预览或换入。运行时只读 `site.js` 过滤，不调用模型，不需要 `tools/`。
+
+## A4.5 模板编辑维护
+
+```text
+# 评审页顶部：选类型/写需求/候选数 1–5 → 生成
+# 卡片内：展开 Spec 手改 → 保存为 candidate-1-eN；按意见重生成 → candidate-1-rN
+# 批准：可勾选“批准后立即上架”
+# 管理处：已发布 AI 模板“克隆新版本”；旧模板“下线归档”
+```
+
+- `POST /api/generate`：`{kind, request, constraints, count, mock}`，mock 只用于链路验证。
+- `POST /api/spec/save`：`{path, spec}`，校验后写 `candidate-N-eN`，不覆盖旧候选。
+- `POST /api/revise`：`{path, comments, reviewer, max_rounds}`，写 `candidate-N-rN`，服务器上限 3 轮。
+- `POST /api/approve`：加 `push:true` 时批准后写展示清单与 `site.js`；展示位满返回 `push_message`，不回滚发布。
+- `POST /api/clone`：`{kind, key, new_key, new_name}`，仅已发布 AI 模板可克隆；内置模板没有 Spec。
+- `POST /api/archive`：`{kind, key}`，先移出展示清单，再写 `published.json.archived`；CSS/注册表不动，锁定项拒绝。

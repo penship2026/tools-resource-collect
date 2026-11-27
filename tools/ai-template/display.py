@@ -49,6 +49,8 @@ def set_visible(kind, key, on, root=ROOT):
     items = registry.items(kind, root)
     if key not in items:
         raise DisplayError("DISPLAY_UNKNOWN", "设计不存在:%s" % key)
+    if on and items[key].get("archived"):
+        raise DisplayError("DISPLAY_ARCHIVED", "已归档的模板不能直接上架，请先克隆新版本")
     locked = registry.LAYOUT_LOCK if kind == "layout" else registry.THEME_LOCK
     if not on and key == locked:
         raise DisplayError("DISPLAY_LOCKED", "%s 为锁定项，不能下架" % locked)

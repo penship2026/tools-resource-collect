@@ -45,6 +45,7 @@ def load_published(root=ROOT):
         data = {}
     data.setdefault("layouts", {})
     data.setdefault("themes", {})
+    data.setdefault("archived", {})
     return data
 
 
@@ -57,6 +58,7 @@ def dump_published(data, root=ROOT):
 
 def items(kind, root=ROOT):
     data = load_published(root)
+    archived = set(data.get("archived", {}).get(kind, []))
     base = BUILTIN_LAYOUTS if kind == "layout" else BUILTIN_THEMES
     out = {}
     for key, item in base.items():
@@ -64,7 +66,27 @@ def items(kind, root=ROOT):
     for key, item in data.get("layouts" if kind == "layout" else "themes", {}).items():
         out[key] = dict(item, key=key, kind=kind,
                         locked=key == (LAYOUT_LOCK if kind == "layout" else THEME_LOCK))
+    for key in list(out):
+        out[key]["archived"] = key in archived
+        if key in archived:
+            out[key]["status"] = "archived"
     return out
+
+
+def archive(kind, key, root=ROOT):
+    """把旧模板标为归档；不改 CSS、注册表或原 published 条目。"""
+    if kind not in ("layout", "theme"):
+        raise ValueError("kind 必须是 layout/theme")
+    if key not in items(kind, root):
+        raise ValueError("设计不存在:%s" % key)
+    if key == (LAYOUT_LOCK if kind == "layout" else THEME_LOCK):
+        raise ValueError("锁定项不能归档")
+    data = load_published(root)
+    bucket = data.setdefault("archived", {}).setdefault(kind, [])
+    if key not in bucket:
+        bucket.append(key)
+    dump_published(data, root)
+    return {"ok": True, "kind": kind, "key": key, "archived": True}
 
 
 def entry(published, kind, key):

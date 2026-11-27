@@ -237,15 +237,22 @@ def reject_candidate(spec_path, reviewer, reason, note="", root=ROOT):
     return {"ok": True, "key": key, "review": _relative(root, review_path)}
 
 
-def record_revision(spec_path, comments, reviewer="", root=ROOT):
+def revision_count(spec_path, root=ROOT):
+    """返回该 key 已记录的迭代轮数，用于生成前拦截。"""
+    _, spec = _load_candidate(spec_path)
+    key = str(spec.get("key") or "unknown")
+    return len(sorted((Path(root) / REVIEWS).glob("*-%s-revise-*.json" % key)))
+
+
+def record_revision(spec_path, comments, reviewer="", root=ROOT, max_rounds=2):
     path, spec = _load_candidate(spec_path)
     key = str(spec.get("key") or "unknown")
     if not str(comments or "").strip():
         raise PublishError("REVISE_COMMENTS", "迭代必须填写意见")
     existing = sorted((Path(root) / REVIEWS).glob("*-%s-revise-*.json" % key))
     round_no = len(existing) + 1
-    if round_no > 2:
-        raise PublishError("REVISE_LIMIT", "该设计已迭代 2 轮，转人工设计")
+    if round_no > int(max_rounds):
+        raise PublishError("REVISE_LIMIT", "该设计已迭代 %d 轮，转人工设计" % int(max_rounds))
     review_path = Path(root) / REVIEWS / ("%s-%s-revise-%d.json" % (time.strftime("%Y%m%d"), key, round_no))
     record = {
         "key": key, "kind": spec.get("kind"), "reviewer": str(reviewer or "").strip(),

@@ -1,11 +1,12 @@
 # 二期详细设计 · AI 模板与主题工坊
 
-> 版本 v1.4 · 2026-11-27 · 状态：A4 实现完成，待验收
+> 版本 v1.6 · 2026-11-27 · 状态：A4 实现完成，待验收；A4.5 模板编辑闭环已落地
 > 对应方案：`docs/PLAN-TEMPLATES-20261127.md`（D70–D73、D92–D98）
 > 评审记录：`docs/REVIEW-TEMPLATES-P2-20261127.md`
 > 前置：一期 3 套版式、布局 token 白名单、`templates.js` 注册表已就绪；截图脚本与基线由 A0 新建，不再假设已存在
 > 核心定位：**AI 是可选增强，不是运行时依赖**——生成在离线/本机完成，线上仍是零构建纯静态
 
+> **v1.6 修订**：二期从“一次性批量生成 3 个候选”改为**模板编辑维护闭环**：管理台内 AI 生成 1–5 个候选、人工选 1 个；候选 Spec 可直接手改并存为新版本；批准时可勾选立即上架；已发布 AI 模板可克隆新版本，内置/旧模板可下线归档但文件不动。
 > **v1.5 修订**：展示上限改为可配置 `display.max_layouts` / `display.max_themes`（1–20，默认 5）；管理页可改上限、`cli display --max`、`POST /api/display/limit`；A5 试点主题上限先设 8，使 5 套内置 + 3 个 AI 主题全部展示；版式 3+3 超 5 时需先下架一套内置或同步提高版式上限。
 > **v1.4 修订**：A4 落地为 `registry / site_store / publish / display / server` 五个本机模块与两个工作台页面；批准按 CSS→docs→review→注册表→sidecar 事务写，管理处只写 `site.yml` display 与 `assets/site.js`。
 > **v1.3 修订**：AI 支持两类产物（版式模板 / 主题）；前端默认每类展示 5 套，内置也计入名额；展示清单由本机「AI 设计管理处」控制，设计库可多于展示位。
@@ -320,21 +321,23 @@ docs/templates/<key>.json       Spec 原文件（可复现）
 ## 六、生成与评审流程
 
 ```
-1. 输入        kind=layout 或 theme + 自然语言 + 可选参考截图 + 目标场景
-2. 生成        模型产出 3 个候选 Spec（枚举/区间/白名单内）
-3. 校验        JSON Schema + key 唯一性 + 与同类已有设计的字段重复度
-4. 编译        3 份 CSS（版式 <8KB / 主题 <4KB），写 drafts/<key>/<candidate>/
+1. 输入        选择「新建 AI 模板」或「从已发布 AI 模板克隆」；kind=layout/theme + 自然语言 + 可选约束
+2. 生成        模型产出 1–5 个候选 Spec（枚举/区间/白名单内），人可只生成 1 个
+3. 人工改      评审页展开 Spec 直接改 JSON；保存为 candidate-N-eN，不覆盖旧候选
+4. 校验/编译   每次生成或手改都走 Schema + key 唯一性 + 编译器；写 drafts/<key>/<candidate>/
 5. 预览        固定 fixture + 真实页面，1280 / 768 / 390 截图
 6. 指标        溢出/对比度/体积/辨识度/控制台错误
-7. 评审        人工在 workbench 对比，选 1 个或要求迭代（≤2 轮）
-8. 审批        批准 → 草稿转正式：CSS + 注册表 + 说明 + 审批记录
-9. 回归        CI（lint + 截图矩阵 + 现有用例）
-10. 合入       一个提交（CSS + 注册表 + docs），可单提交回退
+7. 评审        人工在 workbench 对比，选 1 个；不满意可按意见重新生成（candidate-N-rN，≤3 轮）
+8. 审批        批准 → 草稿转正式：CSS + 注册表 + 说明 + 审批记录；可勾选「批准后立即上架」
+9. 推送        上架写 site.yml display 与 assets/site.js；也可在管理处单独上下架
+10. 归档       旧模板下线归档只记 published.json.archived 并从展示清单移除，CSS/注册表不动
 ```
 
-**发布顺序**：先写 CSS 与 `docs/templates/*`，再原子替换 `templates.js` 或 `theme.js`；任何一步失败都不改运行目录。驳回或未批准的候选留在 `drafts/`，不删除，供 prompt 复盘。发布后进入「AI 设计管理处」，由人决定是否占用一个展示位。
+**发布顺序**：先写 CSS 与 `docs/templates/*`，再原子替换 `templates.js` 或 `theme.js`；任何一步失败都不改运行目录。驳回或未批准的候选留在 `drafts/`，不删除，供 prompt 复盘。
 
-候选策略：版式候选必须在**至少 2 个维度**上不同（列数、封面比例、首屏类型、密度）；主题候选必须在**至少 2 项**上不同（主色、背景明度、字体、圆角），否则要求模型重出。
+**旧模板维护**：内置模板没有可编辑 Spec，只能下线归档；已发布 AI 模板可从 `docs/templates/<key>.json` 的 `spec` 克隆成新 key 草稿，再手改/预览/批准。旧模板文件与注册表不动，避免正在展示的页面被改坏。
+
+候选策略：版式候选必须在**至少 2 个维度**上不同（列数、封面比例、首屏类型、密度）；主题候选必须在**至少 2 项**上不同（主色、背景明度、字体、圆角），否则要求模型重出。候选数量不再固定 3 个，默认 1 个，可在管理台选 1–5 个。
 
 ---
 
@@ -374,10 +377,12 @@ docs/templates/<key>.json       Spec 原文件（可复现）
 - 批准只写工作区文件，**不自动 git commit**；提交由人执行，保持"一个模板一个提交"。
 - 驳回也留记录（原因分类：同质化 / 破版 / 观感差 / 不支持该场景），用于 prompt 调优。
 - 迭代 ≤2 轮；第 3 轮仍不合格转人工设计，不无限烧调用。
+- 新闭环：评审页顶部可直接输入需求、约束与候选数（1–5）生成；每张候选卡可展开 Spec 手动改并保存为新版本，也可勾选「批准后立即上架」。批准仍必须 reviewer。
+- 候选数量、生成/手改/迭代都不覆盖旧文件：生成 `candidate-N`，迭代 `candidate-N-rN`，手改 `candidate-N-eN`。
 
 ### 8.1 AI 设计管理处
 
-本机页面 `tools/ai-template/workbench/manage.html`，只在 127.0.0.1 打开，不发布到 Pages。它管理**所有已发布的版式与主题**，不负责生成。
+本机页面 `tools/ai-template/workbench/manage.html`，只在 127.0.0.1 打开，不发布到 Pages。它管理**所有版式与主题**，也承接模板维护：已发布 AI 模板可克隆新版本，旧模板可下线归档。
 
 列表字段：
 
@@ -388,7 +393,7 @@ docs/templates/<key>.json       Spec 原文件（可复现）
 | 来源 | 内置 / AI / 人工 |
 | 状态 | published / deprecated / archived |
 | 展示 | 是否占用展示位 |
-| 操作 | 预览、上架、下架、排序 |
+| 操作 | 预览、上架、下架、排序、下线归档、克隆新版本 |
 
 展示名额：
 
@@ -422,8 +427,8 @@ docs/templates/<key>.json       Spec 原文件（可复现）
   "css_sha256": "…",
   "model": "…",
   "prompt_id": "generate-v1",
-  "candidates": 3,
-  "rounds": 2,
+  "candidates": 1,
+  "rounds": 1,
   "metrics": { "cssKb": 6.8, "contrast": 5.1, "overflow": 0, "dhash": 14 }
 }
 ```
@@ -436,6 +441,16 @@ docs/templates/<key>.json       Spec 原文件（可复现）
 - 驳回写 `reviews/<date>-<key>-reject.json`，原因是固定四类；迭代记录 `*-revise-N.json`，第 3 轮返回 `REVISE_LIMIT`。
 - 管理处只写 `site.yml` 的 `display.visible_layouts` / `display.visible_themes` / `display.max_layouts` / `display.max_themes` 与 `assets/site.js`，保留 `site.default_layout`、`editorial` 与 `window.EDITORIAL`；默认上限 5，管理页可设 1–20，`standard` / `default` 锁定，超过当前上限返回 `DISPLAY_FULL`。
 - 工作台只监听 `127.0.0.1`，页面不发布到 Pages；运行时仍只读 `site.js`，不需要 `tools/`。
+
+### 8.3 A4.5 模板编辑闭环
+
+- 生成：评审页顶部面板 `POST /api/generate`，参数 `kind / request / constraints / count(1–5) / mock`；真实模型不可用时降级 mock，mock 产物不得上线。
+- 手改：每张候选卡展开 `spec`，`POST /api/spec/save` 校验后写 `candidate-N-eN`；不覆盖原候选，手改版本仍需预览/批准。
+- 迭代：`POST /api/revise` 按意见重新生成 `candidate-N-rN`，旧版保留；服务器上限 3 轮，超过返回 `REVISE_LIMIT`。
+- 批准推送：`POST /api/approve` 可带 `push:true`；批准成功后写展示清单与 `site.js`。展示位满/锁定/已归档时返回 `push_message`，不回滚已完成的发布。
+- 克隆：`POST /api/clone` 只对已发布 AI 模板有效，从 `docs/templates/<key>.json` 的 `spec` 复制新 key 草稿；内置模板没有 Spec，不能克隆。
+- 归档：`POST /api/archive` 先从展示清单移除，再写 `published.json.archived`；不改 CSS、注册表或原 published 条目。归档项不能直接重新上架，需克隆新版本。
+- 仍未覆盖：空白手动新建模板。当前“从零新建”走 AI 生成 1 个候选或克隆已有 AI 模板；内置模板只能归档，不直接改其 CSS。
 
 ---
 

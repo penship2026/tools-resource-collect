@@ -41,17 +41,35 @@
     button:disabled { opacity:.45; cursor:not-allowed; }
     .result { padding:8px 14px 12px; font-size:12px; color:var(--brand); }
     .result.bad { color:#a12d1f; }
+    .editor { border-top:1px solid var(--line); padding:10px 14px; }
+    .editor summary { cursor:pointer; color:var(--brand); font-size:13px; }
+    .editor textarea { width:100%; min-height:220px; margin:8px 0; padding:8px; border:1px solid var(--line); border-radius:8px; font:12px/1.5 ui-monospace,Menlo,monospace; }
+    .check { display:flex; gap:6px; align-items:center; color:var(--muted); font-size:12px; }
     .empty { padding:40px; text-align:center; color:var(--muted); }
+    .builder { background:#fff; border-bottom:1px solid var(--line); padding:12px 20px; display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    .builder label { display:flex; gap:6px; align-items:center; color:var(--muted); font-size:13px; }
+    .builder select, .builder input { padding:7px 9px; border:1px solid var(--line); border-radius:8px; font:inherit; }
+    .builder input.request { min-width:260px; }
+    .builder input.constraints { min-width:180px; }
+    #gen-status { color:var(--muted); font-size:12px; }
   </style>
 </head>
 <body>
 <header>
   <h1>AI 设计评审</h1>
-  <span class="hint">候选对比 → 批准 / 驳回 / 迭代；批准前不写 assets/</span>
+  <span class="hint">管理台生成 → 预览 → 修改/再生成 → 批准；批准前不写 assets/</span>
   <label>reviewer <input id="reviewer" placeholder="填写审批人"></label>
   <a href="/manage.html">AI 设计管理处 →</a>
   <button id="reload" type="button">刷新</button>
 </header>
+<section class="builder">
+  <label>类型 <select id="gen-kind"><option value="layout">版式</option><option value="theme">主题</option></select></label>
+  <label>需求 <input class="request" id="gen-request" placeholder="例如：3 列门户，移动端不溢出"></label>
+  <label>约束 <input class="constraints" id="gen-constraints" placeholder="可选：暖色、紧凑、长文阅读"></label>
+  <label>候选 <select id="gen-count"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option></select></label>
+  <button id="gen-run" class="primary" type="button">生成候选</button>
+  <span id="gen-status">无模型 Key 时自动 mock，产物仅用于链路验证</span>
+</section>
 <main>
   <p class="summary" id="summary">正在读取候选…</p>
   <div class="grid" id="grid"></div>
@@ -62,9 +80,28 @@
   var grid = document.getElementById('grid');
   var summary = document.getElementById('summary');
   var reviewer = document.getElementById('reviewer');
+  var genStatus = document.getElementById('gen-status');
   try { reviewer.value = localStorage.getItem('jiye.reviewer') || 'liyan'; } catch (e) {}
   reviewer.addEventListener('change', function () {
     try { localStorage.setItem('jiye.reviewer', reviewer.value.trim()); } catch (e) {}
+  });
+  document.getElementById('gen-run').addEventListener('click', function () {
+    var btn = this;
+    var request = document.getElementById('gen-request').value.trim();
+    if (!request) { genStatus.textContent = '先填写需求'; return; }
+    btn.disabled = true;
+    genStatus.textContent = '生成中…';
+    post('/api/generate', {
+      kind: document.getElementById('gen-kind').value,
+      request: request,
+      constraints: document.getElementById('gen-constraints').value.trim(),
+      count: Number(document.getElementById('gen-count').value)
+    }).then(function (data) {
+      btn.disabled = false;
+      if (!data.ok) { genStatus.textContent = (data.code || 'ERROR') + '：' + (data.message || ''); return; }
+      genStatus.textContent = '已生成 ' + data.candidates.length + ' 个候选（' + data.source + '）；可先跑预览再决定';
+      load();
+    }).catch(function (err) { btn.disabled = false; genStatus.textContent = '生成失败：' + err; });
   });
 
   function esc(value) {
@@ -108,12 +145,17 @@
       '<details class="meta"><summary>Spec 摘要</summary><div>' + esc(item.intent || '') +
       (item.rationale && item.rationale.length ? '<br>' + item.rationale.map(function (x) { return '· ' + esc(x); }).join('<br>') : '') +
       (item.archetype ? '<br>archetype:' + esc(item.archetype) : '') + '</div></details>' +
+      '<details class="editor"><summary>手动编辑 Spec（保存为新版本，不覆盖旧候选）</summary>' +
+      '<textarea data-role="spec">' + esc(JSON.stringify(item.spec || {}, null, 2)) + '</textarea>' +
+      '<button type="button" data-act="save-spec">保存手动版本</button></details>' +
       '<div class="actions">' +
-      '<button type="button" class="primary" data-act="approve" ' + (canApprove ? '' : 'disabled') + '>批准发布</button>' +
+      '<div class="row"><button type="button" data-act="preview">跑预览 / G1–G6</button>' +
+      '<button type="button" class="primary" data-act="approve" ' + (canApprove ? '' : 'disabled') + '>批准发布</button></div>' +
+      '<label class="check"><input type="checkbox" data-role="push" checked> 批准后立即上架并推送到前台</label>' +
       '<div class="row"><select data-role="reason"><option>同质化</option><option>破版</option><option>观感差</option><option>不支持该场景</option></select>' +
       '<button type="button" data-act="reject">驳回</button></div>' +
-      '<textarea rows="2" data-role="comments" placeholder="迭代意见（≤2 轮）"></textarea>' +
-      '<button type="button" data-act="revise">要求迭代</button></div>' +
+      '<textarea rows="2" data-role="comments" placeholder="迭代意见：说明要改什么，生成新版本保留旧版"></textarea>' +
+      '<button type="button" data-act="revise">按意见重新生成</button></div>' +
       '<div class="result" data-role="result"></div>';
     var result = el.querySelector('[data-role="result"]');
     function report(data) {
@@ -123,17 +165,63 @@
     }
     el.querySelector('[data-act="approve"]').addEventListener('click', function () {
       if (!reviewer.value.trim()) { report({ok:false, code:'APPROVE_REVIEWER', message:'先填写 reviewer'}); return; }
-      if (!window.confirm('确认批准 ' + item.key + '？批准后会写 CSS、docs、注册表与审批记录。')) return;
-      post('/api/approve', {path:item.path, reviewer:reviewer.value.trim()}).then(report);
+      var push = el.querySelector('[data-role="push"]').checked;
+      if (!window.confirm('确认批准 ' + item.key + (push ? ' 并推送到前台' : '') + '？')) return;
+      post('/api/approve', {path:item.path, reviewer:reviewer.value.trim(), push:push}).then(function (data) {
+        report(data);
+        if (data.ok && !data.pushed && data.push_message) { report({ok:false, code:data.push_code || 'PUSH', message:data.push_message}); return; }
+        if (data.ok) load();
+      });
     });
     el.querySelector('[data-act="reject"]').addEventListener('click', function () {
       post('/api/reject', {path:item.path, reviewer:reviewer.value.trim(),
         reason:el.querySelector('[data-role="reason"]').value,
         note:el.querySelector('[data-role="comments"]').value}).then(report);
     });
+    el.querySelector('[data-act="save-spec"]').addEventListener('click', function () {
+      var btn = this;
+      var text = el.querySelector('[data-role="spec"]').value;
+      var spec;
+      try { spec = JSON.parse(text); } catch (e) { report({ok:false, code:'SPEC_JSON', message:'Spec 不是合法 JSON：' + e}); return; }
+      btn.disabled = true;
+      post('/api/spec/save', {path:item.path, spec:spec}).then(function (data) {
+        if (!data.ok) { btn.disabled = false; report(data); return; }
+        result.textContent = '已保存手动版本 ' + data.candidate + '，正在刷新';
+        load();
+      }).catch(function (err) {
+        btn.disabled = false;
+        report({ok:false, code:'SPEC_SAVE', message:String(err)});
+      });
+    });
+    el.querySelector('[data-act="preview"]').addEventListener('click', function () {
+      var btn = this;
+      btn.disabled = true;
+      result.className = 'result';
+      result.textContent = '正在跑预览与闸门…';
+      post('/api/preview', {path:item.path, kind:item.kind}).then(function (data) {
+        report(data);
+        if (data.ok) load();
+        else btn.disabled = false;
+      }).catch(function (err) {
+        btn.disabled = false;
+        report({ok:false, code:'PREVIEW', message:String(err)});
+      });
+    });
     el.querySelector('[data-act="revise"]').addEventListener('click', function () {
-      post('/api/revise', {path:item.path, reviewer:reviewer.value.trim(),
-        comments:el.querySelector('[data-role="comments"]').value}).then(report);
+      var comments = el.querySelector('[data-role="comments"]').value.trim();
+      if (!comments) { report({ok:false, code:'REVISE_COMMENTS', message:'先填写迭代意见'}); return; }
+      var btn = this;
+      btn.disabled = true;
+      result.className = 'result';
+      result.textContent = '正在按意见生成新版本…';
+      post('/api/revise', {path:item.path, reviewer:reviewer.value.trim(), comments:comments}).then(function (data) {
+        if (!data.ok) { btn.disabled = false; report(data); return; }
+        result.textContent = '已生成 ' + data.candidate + '（第 ' + data.round + ' 轮），正在刷新';
+        load();
+      }).catch(function (err) {
+        btn.disabled = false;
+        report({ok:false, code:'REVISE', message:String(err)});
+      });
     });
     return el;
   }
@@ -143,8 +231,8 @@
     grid.innerHTML = '';
     fetch('/api/candidates').then(function (r) { return r.json(); }).then(function (data) {
       if (!data.ok) { summary.textContent = data.message || '读取失败'; return; }
-      summary.textContent = '共 ' + data.items.length + ' 个候选；批准会原子写入 assets/、docs/、注册表与 reviews/。';
-      if (!data.items.length) { grid.innerHTML = '<p class="empty">drafts/ 下还没有候选，先跑 generate + preview。</p>'; return; }
+      summary.textContent = '共 ' + data.items.length + ' 个候选；可在顶部生成候选，批准会原子写入 assets/、docs/、注册表与 reviews/。';
+      if (!data.items.length) { grid.innerHTML = '<p class="empty">还没有候选：在上方填写需求，点击「生成候选」。</p>'; return; }
       data.items.forEach(function (item) { grid.appendChild(card(item)); });
     }).catch(function (err) { summary.textContent = '读取失败：' + err; });
   }

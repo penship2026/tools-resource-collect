@@ -78,6 +78,29 @@ class GenerateAITest(unittest.TestCase):
                 self.assertEqual(theme_lint.lint_theme_css(css), [], cand["key"])
         self.assertEqual(len(run["candidates"]), 3)
 
+    def test_mock_count_is_configurable(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            one = generate.generate("layout", "单候选", mock=True, expect=1,
+                                    out_dir=Path(tmp) / "one", cache_dir=Path(tmp) / "c1")
+            five = generate.generate("theme", "五候选", mock=True, expect=5,
+                                     out_dir=Path(tmp) / "five", cache_dir=Path(tmp) / "c5")
+        self.assertEqual(len(one["candidates"]), 1)
+        self.assertEqual(len(five["candidates"]), 5)
+
+    def test_regenerate_keeps_key_and_writes_new_version(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / "out"
+            run = generate.generate("theme", "暖色纸张质感", mock=True, expect=1,
+                                    out_dir=out, cache_dir=Path(tmp) / "cache")
+            spec = out / run["candidates"][0]["key"] / "candidate-1" / "spec.json"
+            revised = generate.regenerate(spec, "再暖一点，圆角小一些", mock=True,
+                                          out_dir=out, cache_dir=Path(tmp) / "cache2")
+            self.assertTrue(revised["ok"])
+            self.assertEqual(revised["key"], "mist")
+            self.assertEqual(revised["candidate"], "candidate-1-r2")
+            self.assertTrue(Path(revised["spec_path"]).exists())
+            self.assertTrue(Path(revised["css"]).exists())
+
     def test_cache_hit_second_call(self):
         with tempfile.TemporaryDirectory() as tmp:
             kw = dict(mock=True, out_dir=Path(tmp) / "out", cache_dir=Path(tmp) / "cache")
@@ -138,7 +161,7 @@ class GenerateAITest(unittest.TestCase):
         payload = json.loads(out.getvalue())
         self.assertTrue(payload["ok"])
         self.assertEqual(payload["source"], "mock")
-        self.assertEqual(len(payload["candidates"]), 3)
+        self.assertEqual(len(payload["candidates"]), 1)
 
 
 if __name__ == "__main__":

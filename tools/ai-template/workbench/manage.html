@@ -74,10 +74,12 @@
       var full = data.count >= data.max;
       var toggle = on
         ? '<button type="button" data-act="off" ' + (locked ? 'disabled' : '') + '>下架</button>'
-        : '<button type="button" data-act="on" ' + ((full || locked) ? 'disabled' : '') + '>上架</button>';
+        : '<button type="button" data-act="on" ' + ((full || locked || item.archived) ? 'disabled' : '') + '>上架</button>';
       var up = on ? '<button type="button" data-act="up">↑</button>' : '';
       var down = on ? '<button type="button" data-act="down">↓</button>' : '';
       var look = '<button type="button" data-act="preview">预览</button>';
+      var archive = (!locked && !item.archived) ? '<button type="button" data-act="archive">下线归档</button>' : '';
+      var clone = (item.source !== 'builtin' && !item.archived) ? '<button type="button" data-act="clone">克隆新版本</button>' : '';
       var type = kind === 'layout' ? '版式' : '主题';
       return '<tr data-key="' + esc(item.key) + '"><td><b>' + esc(item.label) + '</b><br><code>' + esc(item.key) + '</code></td>' +
         '<td>' + type + '</td>' +
@@ -86,7 +88,7 @@
         '<td>' + (on ? '<span class="badge on">展示中</span>' : '<span class="badge">隐藏</span>') +
         (locked ? ' <span class="badge lock">锁定</span>' : '') + '</td>' +
         '<td>' + esc(item.file) + '</td>' +
-        '<td><div class="ops">' + look + toggle + up + down + '</div></td></tr>';
+        '<td><div class="ops">' + look + toggle + up + down + archive + clone + '</div></td></tr>';
     }).join('');
     section.innerHTML = '<h2>' + title + ' <span>' + data.count + ' / ' + data.max + ' 展示中；锁定 ' +
       esc(data.locked) + ' 不可下架</span></h2>' +
@@ -112,6 +114,27 @@
       var tr = btn.closest('tr');
       var key = tr.getAttribute('data-key');
       btn.disabled = true;
+      if (act === 'archive') {
+        if (!window.confirm('下线并归档旧模板 ' + key + '？CSS 与注册表保持原样。')) { btn.disabled = false; return; }
+        post('/api/archive', {kind:kind, key:key}).then(function (data) {
+          if (!data.ok) { say((data.code || 'ERROR') + '：' + (data.message || ''), true); btn.disabled = false; return; }
+          say('已下线归档 ' + key);
+          load();
+        });
+        return;
+      }
+      if (act === 'clone') {
+        var newKey = window.prompt('新版本 key（小写字母/数字/-）', key + '-v2');
+        if (!newKey) { btn.disabled = false; return; }
+        var newName = window.prompt('新版本名称', '新版本');
+        if (!newName) { btn.disabled = false; return; }
+        post('/api/clone', {kind:kind, key:key, new_key:newKey.trim(), new_name:newName.trim()}).then(function (data) {
+          if (!data.ok) { say((data.code || 'ERROR') + '：' + (data.message || ''), true); btn.disabled = false; return; }
+          say('已生成新草稿 ' + data.key + '，转到评审页预览/修改');
+          window.location.href = '/';
+        });
+        return;
+      }
       if (act === 'preview') {
         var query = kind === 'layout' ? '?layout=' + encodeURIComponent(key) : '?theme=' + encodeURIComponent(key) + '&layout=standard';
         window.open('/repo/index.html' + query, '_blank');

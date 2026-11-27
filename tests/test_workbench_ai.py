@@ -252,7 +252,126 @@ class DisplayTest(unittest.TestCase):
         self.assertIn('"display"', js)
 
 
+class ManualAndArchiveTest(unittest.TestCase):
+    def test_manual_edit_writes_new_version_without_overwrite(self):
+        tmp, root = make_root()
+        self.addCleanup(tmp.cleanup)
+        spec_path = add_candidate(root, "manual-a4")
+        old = spec_path.read_text(encoding="utf-8")
+        spec = json.loads(old)
+        spec["name"] = "手动改名"
+        result = cli.generate.save_manual(spec_path, spec)
+        self.assertTrue(result["ok"])
+        self.assertEqual(result["candidate"], "candidate-1-e2")
+        self.assertTrue((root / result["spec_path"]).exists())
+        self.assertEqual(spec_path.read_text(encoding="utf-8"), old)
+
+    def test_archive_keeps_files_and_blocks_reupload(self):
+        tmp, root = make_root()
+        self.addCleanup(tmp.cleanup)
+        add_candidate(root, "old-a4")
+        archived = server.registry.archive("theme", "anime", root=root)
+        self.assertTrue(archived["ok"])
+        self.assertEqual(server.registry.items("theme", root)["anime"]["status"], "archived")
+        with self.assertRaises(display.DisplayError) as ctx:
+            display.set_visible("theme", "anime", True, root=root)
+        self.assertEqual(ctx.exception.code, "DISPLAY_ARCHIVED")
+
+    def test_clone_published_spec_to_draft(self):
+        tmp, root = make_root()
+        self.addCleanup(tmp.cleanup)
+        (root / "docs" / "templates").mkdir(parents=True)
+        source = dict(THEME_SPEC)
+        source["key"] = "mist-src"
+        (root / "docs" / "templates" / "mist-src.json").write_text(
+            json.dumps({"spec": source}, ensure_ascii=False), encoding="utf-8")
+        result = cli.generate.clone_published(
+            "theme", "mist-src", "mist-v2", "雾青新版",
+            docs_dir=root / "docs" / "templates",
+            out_dir=root / "tools" / "ai-template" / "drafts")
+        self.assertTrue(result["ok"])
+        self.assertEqual(result["key"], "mist-v2")
+        self.assertTrue((root / "tools" / "ai-template" / "drafts" / "mist-v2" / "candidate-1" / "spec.json").exists())
+
+
 class HttpSmokeTest(unittest.TestCase):
+    def test_generate_and_revise_from_workbench(self):
+        tmp, root = make_root()
+        self.addCleanup(tmp.cleanup)
+        srv = server.make_server(0, root)
+        thread = threading.Thread(target=srv.serve_forever, daemon=True)
+        thread.start()
+        self.addCleanup(srv.server_close)
+        self.addCleanup(srv.shutdown)
+        base = "http://127.0.0.1:%d" % srv.server_address[1]
+
+        req = urllib.request.Request(base + "/api/generate", method="POST",
+                                     data=json.dumps({"kind": "layout", "request": "管理台生成",
+                                                      "count": 1}).encode("utf-8"),
+                                     headers={"Content-Type": "application/json"})
+        result = json.loads(urllib.request.urlopen(req, timeout=3).read().decode("utf-8"))
+        self.assertTrue(result["ok"])
+        self.assertEqual(result["source"], "mock")
+        self.assertEqual(len(result["candidates"]), 1)
+        spec_path = "tools/ai-template/drafts/%s/candidate-1/spec.json" % result["candidates"][0]["key"]
+
+        req = urllib.request.Request(base + "/api/revise", method="POST",
+                                     data=json.dumps({"path": spec_path, "comments": "再紧凑一些",
+                                                      "max_rounds": 3}).encode("utf-8"),
+                                     headers={"Content-Type": "application/json"})
+        revised = json.loads(urllib.request.urlopen(req, timeout=3).read().decode("utf-8"))
+        self.assertTrue(revised["ok"])
+        self.assertEqual(revised["candidate"], "candidate-1-r2")
+        self.assertEqual(revised["round"], 1)
+        self.assertTrue((root / revised["review"]).exists())
+
+        old_spec = json.loads((root / revised["spec_path"]).read_text(encoding="utf-8"))
+        old_spec["name"] = "HTTP 手改版"
+        req = urllib.request.Request(base + "/api/spec/save", method="POST",
+                                     data=json.dumps({"path": revised["spec_path"], "spec": old_spec}).encode("utf-8"),
+                                     headers={"Content-Type": "application/json"})
+        saved = json.loads(urllib.request.urlopen(req, timeout=3).read().decode("utf-8"))
+        self.assertTrue(saved["ok"])
+        self.assertEqual(saved["candidate"], "candidate-1-r2-e2")
+
+        req = urllib.request.Request(base + "/api/archive", method="POST",
+                                     data=json.dumps({"kind": "theme", "key": "anime"}).encode("utf-8"),
+                                     headers={"Content-Type": "application/json"})
+        archived = json.loads(urllib.request.urlopen(req, timeout=3).read().decode("utf-8"))
+        self.assertTrue(archived["ok"])
+
+        (root / "docs" / "templates").mkdir(parents=True, exist_ok=True)
+        clone_src = dict(old_spec, key="http-src")
+        (root / "docs" / "templates" / "http-src.json").write_text(
+            json.dumps({"spec": clone_src}, ensure_ascii=False), encoding="utf-8")
+        req = urllib.request.Request(base + "/api/clone", method="POST",
+                                     data=json.dumps({"kind": "layout", "key": "http-src",
+                                                      "new_key": "http-clone", "new_name": "克隆版"}).encode("utf-8"),
+                                     headers={"Content-Type": "application/json"})
+        cloned = json.loads(urllib.request.urlopen(req, timeout=3).read().decode("utf-8"))
+        self.assertTrue(cloned["ok"])
+        self.assertEqual(cloned["key"], "http-clone")
+
+    def test_approve_push_to_display(self):
+        tmp, root = make_root()
+        self.addCleanup(tmp.cleanup)
+        spec_path = add_candidate(root, "push-a4")
+        display.set_limit("theme", 8, root=root)
+        srv = server.make_server(0, root)
+        thread = threading.Thread(target=srv.serve_forever, daemon=True)
+        thread.start()
+        self.addCleanup(srv.server_close)
+        self.addCleanup(srv.shutdown)
+        base = "http://127.0.0.1:%d" % srv.server_address[1]
+        req = urllib.request.Request(base + "/api/approve", method="POST",
+                                     data=json.dumps({"path": str(spec_path.relative_to(root)),
+                                                      "reviewer": "liyan", "push": True}).encode("utf-8"),
+                                     headers={"Content-Type": "application/json"})
+        result = json.loads(urllib.request.urlopen(req, timeout=3).read().decode("utf-8"))
+        self.assertTrue(result["ok"])
+        self.assertTrue(result.get("pushed"))
+        self.assertIn("push-a4", display.manage_payload(root=root)["visible"]["visible_themes"])
+
     def test_candidates_manage_and_display_post(self):
         tmp, root = make_root()
         self.addCleanup(tmp.cleanup)

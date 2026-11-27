@@ -101,7 +101,7 @@ def cmd_generate(args):
         run = generate.generate(
             args.kind, args.request, constraints=args.constraints,
             mock=args.mock, out_dir=args.out, use_cache=not args.no_cache,
-            attempts=args.attempts,
+            expect=args.count, attempts=args.attempts,
         )
     except generate.GenerationError as exc:
         print(json.dumps({"ok": False, "errors": exc.errors, "raw_tail": exc.raw[-400:]},
@@ -223,6 +223,7 @@ def main(argv=None):
     p.add_argument("--mock", action="store_true", help="强制离线 mock；无 AI_* 时自动降级")
     p.add_argument("--out", help="草稿根目录；默认 tools/ai-template/drafts")
     p.add_argument("--no-cache", action="store_true", help="不复用同 prompt 的缓存")
+    p.add_argument("--count", type=int, default=1, choices=(1, 2, 3, 4, 5), help="候选数量 1–5，默认 1")
     p.add_argument("--attempts", type=int, default=2, help="JSON/schema 失败重试次数，默认 2")
     p.set_defaults(func=cmd_generate)
 

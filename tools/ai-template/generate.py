@@ -65,22 +65,37 @@ def read_prompt(name):
     return (PROMPT_DIR / name).read_text(encoding="utf-8")
 
 
-def read_system(kind):
+def read_system(kind, count=3):
     if kind == "layout":
-        return read_prompt("system-layout.md")
-    if kind == "theme":
-        return read_prompt("system-theme.md")
-    raise GenerationError(["未知 kind: %s" % kind])
+        text = read_prompt("system-layout.md")
+    elif kind == "theme":
+        text = read_prompt("system-theme.md")
+    else:
+        raise GenerationError(["未知 kind: %s" % kind])
+    if count == 1:
+        text = text.replace(
+            "只输出**一个 JSON 数组**，恰好 3 个候选，每个候选是一个合法版式 Spec。",
+            "只输出**一个 JSON 对象**，恰好 1 个候选，是一个合法版式 Spec。")
+        text = text.replace(
+            "只输出**一个 JSON 数组**，恰好 3 个候选，每个候选是一个合法主题 Spec。",
+            "只输出**一个 JSON 对象**，恰好 1 个候选，是一个合法主题 Spec。")
+        text = text.replace("三个候选", "候选")
+    elif count != 3:
+        text = text.replace("恰好 3 个候选", "恰好 %d 个候选" % count)
+        text = text.replace("三个候选", "候选")
+    return text
 
 
-def build_user_prompt(kind, request, constraints="", sample=None):
+def build_user_prompt(kind, request, constraints="", sample=None, count=3):
     sample = sample or SAMPLE
     template = read_prompt("generate.md")
     return (template
             .replace("{{KIND}}", kind)
             .replace("{{SAMPLE}}", "```json\n%s\n```" % json.dumps(sample, ensure_ascii=False, indent=2))
             .replace("{{REQUEST}}", str(request or "").strip())
-            .replace("{{CONSTRAINTS}}", str(constraints or "无额外约束").strip()))
+            .replace("{{CONSTRAINTS}}", str(constraints or "无额外约束").strip())
+            .replace("设计 3 个候选", "设计 %d 个候选" % count)
+            .replace("三个候选", "候选"))
 
 
 def build_revise_prompt(spec, comments, metrics=""):
@@ -116,7 +131,7 @@ def parse_candidates(text):
     except json.JSONDecodeError as exc:
         raise CandidateError("模型输出不是合法 JSON:%s" % exc)
     if isinstance(data, dict):
-        data = data.get("candidates") or data.get("items")
+        data = data.get("candidates") or data.get("items") or [data]
     if not isinstance(data, list):
         raise CandidateError("候选必须是 JSON 数组")
     return data
@@ -202,8 +217,14 @@ def generate(kind, request, constraints="", mock=False, adapter=None, out_dir=No
              cache_dir=None, use_cache=True, expect=3, attempts=2):
     if kind not in ("layout", "theme"):
         raise GenerationError(["kind 必须是 layout / theme"])
-    system = read_system(kind)
-    user = build_user_prompt(kind, request, constraints)
+    try:
+        expect = int(expect)
+    except (TypeError, ValueError):
+        raise GenerationError(["候选数量必须是 1–5 的整数"])
+    if expect < 1 or expect > 5:
+        raise GenerationError(["候选数量必须在 1–5 之间"])
+    system = read_system(kind, expect)
+    user = build_user_prompt(kind, request, constraints, count=expect)
     chosen = choose_adapter(mock=mock, adapter=adapter)
     model = getattr(chosen, "model", "unknown")
     source = getattr(chosen, "source", "model")
@@ -276,3 +297,131 @@ def generate(kind, request, constraints="", mock=False, adapter=None, out_dir=No
     }
     _write_json(out / "run.json", run)
     return run
+
+
+def regenerate(spec_path, comments, metrics="", mock=False, adapter=None, out_dir=None,
+               cache_dir=None, use_cache=True, attempts=2):
+    """按评审意见生成同 key 的新版本候选；旧候选不覆盖。"""
+    path = Path(spec_path)
+    spec = json.loads(path.read_text(encoding="utf-8"))
+    kind = spec.get("kind")
+    key = spec.get("key")
+    if kind not in ("layout", "theme") or not key:
+        raise GenerationError(["候选 spec 缺少 kind/key"])
+    if not str(comments or "").strip():
+        raise GenerationError(["迭代意见不能为空"])
+    system = read_system(kind, 1)
+    user = build_revise_prompt(spec, comments, metrics)
+    chosen = choose_adapter(mock=mock, adapter=adapter)
+    model = getattr(chosen, "model", "unknown")
+    source = getattr(chosen, "source", "model")
+    cache_path = Path(cache_dir or CACHE_DIR) / (_cache_key(kind, system, user, model) + ".json")
+    cached = _read_cache(cache_path) if use_cache else None
+    cache_hit = bool(cached)
+    raw = cached["text"] if cached else ""
+    last_raw = raw
+    errors = []
+    items = None
+    for attempt in range(1, attempts + 1):
+        if not cache_hit or attempt > 1:
+            raw = chosen.complete(system, user, kind=kind)
+            last_raw = raw
+        try:
+            items = parse_candidates(raw)
+            errors = validate_candidates(items, kind, expect=1)
+            if not errors and str(items[0].get("key")) != str(key):
+                errors = ["迭代必须保持 key=%s，模型返回 %s" % (key, items[0].get("key"))]
+            if not errors:
+                break
+        except CandidateError as exc:
+            errors = [str(exc)]
+        if attempt < attempts:
+            cache_hit = False
+    if errors or not items:
+        raise GenerationError(errors or ["迭代生成失败"], last_raw)
+    if use_cache and not cache_hit:
+        _write_json(cache_path, {"text": raw, "model": model, "source": source,
+                                 "created_at": _now(), "prompt_sha256": cache_path.stem})
+
+    item = items[0]
+    result = compiler.compile_spec(item, kind=kind, no_timestamp=True)
+    base_dir = (Path(out_dir) / key) if out_dir else path.parent.parent
+    base_candidate = path.parent.name
+    base_candidate = base_candidate.split("-r", 1)[0]
+    versions = [p for p in base_dir.glob(base_candidate + "-r*") if p.is_dir()]
+    n = max([int(p.name.split("-r", 1)[1]) for p in versions if p.name.split("-r", 1)[1].isdigit()] or [1]) + 1
+    new_dir = base_dir / ("%s-r%d" % (base_candidate, n))
+    new_dir.mkdir(parents=True, exist_ok=True)
+    _write_json(new_dir / "spec.json", item)
+    (new_dir / ("%s.css" % key)).write_text(result["css"], encoding="utf-8")
+    _write_json(new_dir / ("%s.registry.json" % key), result["registry"])
+    return {
+        "ok": True, "kind": kind, "key": key, "source": source, "model": model,
+        "candidate": new_dir.name, "spec_path": str(new_dir / "spec.json"),
+        "css": str(new_dir / ("%s.css" % key)), "css_bytes": len(result["css"].encode("utf-8")),
+        "cache_hit": cache_hit, "comments": str(comments).strip(),
+    }
+
+
+def _write_compiled(out_dir, key, item, kind, candidate_name):
+    result = compiler.compile_spec(item, kind=kind, no_timestamp=True)
+    candidate_dir = Path(out_dir) / ("%s/%s" % (key, candidate_name))
+    candidate_dir.mkdir(parents=True, exist_ok=True)
+    _write_json(candidate_dir / "spec.json", item)
+    (candidate_dir / ("%s.css" % key)).write_text(result["css"], encoding="utf-8")
+    _write_json(candidate_dir / ("%s.registry.json" % key), result["registry"])
+    return candidate_dir, result
+
+
+def save_manual(spec_path, new_spec):
+    """手动修改 Spec：不覆盖旧候选，写成新的 -eN 版本。"""
+    path = Path(spec_path)
+    old = json.loads(path.read_text(encoding="utf-8"))
+    kind = old.get("kind")
+    key = old.get("key")
+    if kind not in ("layout", "theme") or not key:
+        raise GenerationError(["候选 spec 缺少 kind/key"])
+    if not isinstance(new_spec, dict) or str(new_spec.get("key")) != str(key):
+        raise GenerationError(["手动编辑必须保持 key=%s" % key])
+    errors = validate_candidates([new_spec], kind, expect=1)
+    if errors:
+        raise GenerationError(errors)
+    base_dir = path.parent.parent
+    base_candidate = path.parent.name
+    versions = [p for p in base_dir.glob(base_candidate + "-e*") if p.is_dir()]
+    n = max([int(p.name.split("-e", 1)[1]) for p in versions if p.name.split("-e", 1)[1].isdigit()] or [1]) + 1
+    candidate_name = "%s-e%d" % (base_candidate, n)
+    candidate_dir, result = _write_compiled(base_dir, key, new_spec, kind, candidate_name)
+    return {
+        "ok": True, "kind": kind, "key": key, "candidate": candidate_name,
+        "spec_path": str(candidate_dir / "spec.json"),
+        "css": str(candidate_dir / ("%s.css" % key)),
+        "css_bytes": len(result["css"].encode("utf-8")),
+    }
+
+
+def clone_published(kind, source_key, new_key, new_name, docs_dir, out_dir):
+    """从已发布 docs 里的 Spec 复制一份新草稿；旧模板文件不动。"""
+    if kind not in ("layout", "theme"):
+        raise GenerationError(["kind 必须是 layout / theme"])
+    docs = Path(docs_dir) / ("%s.json" % source_key)
+    if not docs.exists():
+        raise GenerationError(["没有已发布 Spec：%s" % source_key])
+    data = json.loads(docs.read_text(encoding="utf-8"))
+    spec = data.get("spec")
+    if not isinstance(spec, dict):
+        raise GenerationError(["已发布记录缺少 spec：%s" % source_key])
+    spec = json.loads(json.dumps(spec, ensure_ascii=False))
+    spec["key"] = new_key
+    spec["name"] = new_name or spec.get("name") or new_key
+    spec["intent"] = "基于 %s 维护的新版本：%s" % (source_key, spec.get("intent", ""))
+    errors = validate_candidates([spec], kind, expect=1)
+    if errors:
+        raise GenerationError(errors)
+    candidate_dir, result = _write_compiled(out_dir, new_key, spec, kind, "candidate-1")
+    return {
+        "ok": True, "kind": kind, "source_key": source_key, "key": new_key,
+        "candidate": "candidate-1", "spec_path": str(candidate_dir / "spec.json"),
+        "css": str(candidate_dir / ("%s.css" % new_key)),
+        "css_bytes": len(result["css"].encode("utf-8")),
+    }

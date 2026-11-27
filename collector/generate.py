@@ -34,9 +34,9 @@ series.html / single.html),由人工单独维护布局样式,通过 ?id= 读取�
   --batch          批量采集:位置参数传入多行链接/分享文案,可混合多个渠道
   --manual-title T 抓取失败时手工补录标题(公众号/小红书风控时可用)
   --manual-author A / --manual-desc D / --manual-date YYYY-MM-DD / --manual-cover URL
-  --id ID          指定采集单元 id;命中已有单元则只更新它,不新建
+  --id ID          指定主题单元 id;命中已有主题单元则只更新它,不新建
   --pages N        搜索翻页数,默认 30(每页 20 条)
-  --title T        显示标题,默认等于关键词
+  --title T        单元主题,默认等于关键词
   --up NAME        限定 UP 主名称,结果更精确
   --slug NAME      同 --id,兼容旧参数
   --slogan TEXT    副标题
@@ -933,7 +933,7 @@ def verify_data(log=print):
                 problems.append("%s: 数据文件未登记到索引" % fn)
     for p in problems:
         log("  ✗ %s" % p)
-    log("  检查单元 %d 个、板块 %d 个、主题 %d 个,问题 %d 项" % (
+    log("  检查主题单元 %d 个、板块 %d 个、单元主题 %d 个,问题 %d 项" % (
         units, len(sections), len(topics), len(problems)))
     return {"ok": not problems, "problems": problems, "units": units,
             "sections": len(sections), "topics": len(topics)}
@@ -1355,7 +1355,7 @@ def set_enabled(unit_id, enabled, log=print):
     index = load_index()
     target = next((t for t in index if t.get("id") == unit_id), None)
     if not target:
-        return {"ok": False, "error": "未找到采集单元: %s" % unit_id}
+        return {"ok": False, "error": "未找到主题单元: %s" % unit_id}
     # 开关先落到单元文件(唯一事实源),再重建索引
     data = load_collection_data(unit_id)
     if data is not None:
@@ -1369,7 +1369,7 @@ def set_enabled(unit_id, enabled, log=print):
 
 
 # 采集方式的中文名:采集记录、回填提示里统一使用
-MODE_LABELS = {"url": "按链接采集", "batch": "批量链接采集", "keyword": "按主题采集"}
+MODE_LABELS = {"url": "按链接采集", "batch": "批量链接采集", "keyword": "按单元主题采集"}
 
 
 def now_stamp():
@@ -1486,13 +1486,13 @@ def update_title(unit_id, title, log=print):
     unit_id = (unit_id or "").strip()
     title = (title or "").strip()
     if not unit_id:
-        return {"ok": False, "error": "缺少单元 id"}
+        return {"ok": False, "error": "缺少主题单元 id"}
     if not title:
-        return {"ok": False, "error": "标题不能为空"}
+        return {"ok": False, "error": "单元主题不能为空"}
     index = load_index()
     target = next((t for t in index if t.get("id") == unit_id), None)
     if not target:
-        return {"ok": False, "error": "未找到采集单元: %s" % unit_id}
+        return {"ok": False, "error": "未找到主题单元: %s" % unit_id}
     old_title = target.get("title", "")
     data = load_collection_data(unit_id)
     if data is None:
@@ -1525,15 +1525,15 @@ def update_unit_meta(unit_id, title=None, section=_META_UNSET, tags=_META_UNSET,
     """只更新采集单元的元数据(标题/板块/标签/显示状态),不碰 videos、不重新采集。"""
     unit_id = (unit_id or "").strip()
     if not valid_unit_id(unit_id):
-        return {"ok": False, "error": "单元 id 不合法"}
+        return {"ok": False, "error": "主题单元 id 不合法"}
     data = load_collection_data(unit_id)
     if data is None:
-        return {"ok": False, "error": "未找到采集单元: %s" % unit_id}
+        return {"ok": False, "error": "未找到主题单元: %s" % unit_id}
 
     if title is not None:
         title = str(title).strip()
         if not title:
-            return {"ok": False, "error": "标题不能为空"}
+            return {"ok": False, "error": "单元主题不能为空"}
         data["title"] = title
         if data.get("intake"):
             data["intake"] = dict(data["intake"], title=title)
@@ -1713,12 +1713,12 @@ def collect_topic(keyword, pages=30, title=None, up=None, slug=None,
         "channels": [], "channel_report": [],
     }
     if not keyword:
-        result["error"] = "主题关键词不能为空"
+        result["error"] = "单元主题关键词不能为空"
         return result
 
     selected = normalize_topic_channels(topic_channels, log=log)
     result["channels"] = selected
-    log("主题: %s | 渠道: %s" % (keyword, "、".join(channels.platform_name(c) for c in selected)))
+    log("单元主题: %s | 渠道: %s" % (keyword, "、".join(channels.platform_name(c) for c in selected)))
     if len(must) > 1 or any_list:
         log("匹配规则: must=%s | any=%s" % ("/".join(must), "/".join(any_list) or "无"))
 
@@ -1772,7 +1772,7 @@ def collect_topic(keyword, pages=30, title=None, up=None, slug=None,
         if pkey not in selected:
             continue
         label = channels.platform_name(pkey)
-        log("正在检索%s主题内容(搜索引擎找候选链接)..." % label)
+        log("正在检索%s单元主题内容(搜索引擎找候选链接)..." % label)
         try:
             hits = channels.search_topic(keyword, pkey, limit=12, log=log)
         except Exception as exc:
@@ -2476,14 +2476,14 @@ def remove_links(text, unit_id, mode="url", dry_run=False, log=print):
         "data_file": "", "page_file": "", "dry_run": bool(dry_run),
     }
     if mode not in ("url", "batch"):
-        result["error"] = "按主题采集不支持移除链接,请切换到按链接或批量链接"
+        result["error"] = "按单元主题采集不支持移除链接,请切换到按链接或批量链接"
         return result
     if not valid_unit_id(unit_id or ""):
-        result["error"] = "单元 id 不合法"
+        result["error"] = "主题单元 id 不合法"
         return result
     data = load_collection_data(unit_id)
     if data is None:
-        result["error"] = "未找到采集单元: %s" % unit_id
+        result["error"] = "未找到主题单元: %s" % unit_id
         return result
     tokens = channels.extract_urls(text or "")
     if not tokens and mode == "url" and (text or "").strip():
@@ -2508,7 +2508,7 @@ def remove_links(text, unit_id, mode="url", dry_run=False, log=print):
     result["total"] = len(videos) - len(remove_idx)
     result["kept"] = result["total"]
     if not remove_idx:
-        result["error"] = "没有匹配到可移除的条目,请核对链接是否属于该单元"
+        result["error"] = "没有匹配到可移除的条目,请核对链接是否属于该主题单元"
         return result
     removed = [videos[i] for i in sorted(remove_idx)]
     result["removed_titles"] = [v.get("title", "") for v in removed]
@@ -2743,15 +2743,15 @@ def normalize_dataset(log=print, dry_run=False):
 def build_parser():
     parser = argparse.ArgumentParser(
         description="多渠道采集数据生成器: B站(视频) / 公众号(图文) / 小红书(图文),纯规则不使用 AI,不生成页面")
-    parser.add_argument("keyword", nargs="?", default=None, help="搜索主题关键词(或 --url 时的链接/BV号)")
+    parser.add_argument("keyword", nargs="?", default=None, help="搜索单元主题关键词(或 --url 时的链接/BV号)")
     parser.add_argument("--pages", type=int, default=30, help="搜索翻页数,默认30(每页20条)")
-    parser.add_argument("--title", default=None, help="显示标题")
+    parser.add_argument("--title", default=None, help="单元主题")
     parser.add_argument("--up", default=None, help="限定UP主名称")
-    parser.add_argument("--id", dest="unit_id", default=None, help="采集单元 id;命中已有单元则只更新它")
+    parser.add_argument("--id", dest="unit_id", default=None, help="主题单元 id;命中已有主题单元则只更新它")
     parser.add_argument("--slug", default=None, help="同 --id,兼容旧参数")
     parser.add_argument("--slogan", default=None, help="副标题")
     parser.add_argument("--channels", default=None,
-                        help="按主题采集的渠道,逗号分隔:bilibili,wechat,xhs(默认 bilibili)")
+                        help="按单元主题采集的渠道,逗号分隔:bilibili,wechat,xhs(默认 bilibili)")
     parser.add_argument("--url", action="store_true", help="按链接采集单条内容(自动识别 B站/公众号/小红书)")
     parser.add_argument("--batch", action="store_true", help="批量链接采集:位置参数传多条链接/分享文案")
     parser.add_argument("--manual-title", default=None, help="手工补录标题(抓取被风控时使用)")
@@ -2761,8 +2761,8 @@ def build_parser():
     parser.add_argument("--manual-cover", default=None, help="手工补录封面图地址")
     parser.add_argument("--dry-run", action="store_true", help="只预览不写文件")
     parser.add_argument("--replace", action="store_true",
-                        help="重新采集时覆盖该单元已有条目(默认追加,保留旧数据)")
-    parser.add_argument("--list", action="store_true", help="列出所有采集单元")
+                        help="重新采集时覆盖该主题单元已有条目(默认追加,保留旧数据)")
+    parser.add_argument("--list", action="store_true", help="列出所有主题单元")
     parser.add_argument("--normalize", action="store_true",
                         help="数据侧解耦:去掉 page 字段,platform 统一为稳定 key(幂等)")
     parser.add_argument("--verify", action="store_true",
@@ -2773,11 +2773,11 @@ def build_parser():
     parser.add_argument("--on", dest="toggle_on", action="store_true", help="配合 --toggle:开启显示")
     parser.add_argument("--off", dest="toggle_off", action="store_true", help="配合 --toggle:关闭显示")
     parser.add_argument("--topics", action="append", default=None, metavar="FILE",
-                        help="按主题清单批量采集(如 topics.yml),可多次指定以合并清单")
+                        help="按单元主题清单批量采集(如 topics.yml),可多次指定以合并清单")
     parser.add_argument("--section", default=None,
-                        help="采集单元归属板块（sections.yml 中的 id）；按主题采集时由 topics.yml 提供")
+                        help="主题单元归属板块（sections.yml 中的 id）；按单元主题采集时由 topics.yml 提供")
     parser.add_argument("--migrate-sections", action="store_true",
-                        help="给存量单元补 section 字段并重建索引（幂等）")
+                        help="给存量主题单元补 section 字段并重建索引（幂等）")
     return parser
 
 
@@ -3038,22 +3038,22 @@ def run_topics(paths, pages=30, dry_run=False, log=print):
     entries = []
     for path in paths:
         if not os.path.exists(path):
-            print("错误:主题清单不存在: %s" % path, file=sys.stderr)
-            return {"ok": False, "status": "failed", "error": "主题清单不存在: %s" % path}
+            print("错误:单元主题清单不存在: %s" % path, file=sys.stderr)
+            return {"ok": False, "status": "failed", "error": "单元主题清单不存在: %s" % path}
         try:
             entries.extend(load_topics_yaml(path))
         except ValueError as exc:
             print("错误:%s" % exc, file=sys.stderr)
             return {"ok": False, "status": "failed", "error": str(exc)}
     if not entries:
-        return {"ok": False, "status": "failed", "error": "主题清单为空"}
+        return {"ok": False, "status": "failed", "error": "单元主题清单为空"}
 
     enabled_entries = [e for e in entries if e.get("enabled", True)]
     skipped = len(entries) - len(enabled_entries)
-    log("按主题清单采集：共 %d 个主题，启用 %d 个%s" % (
-        len(entries), len(enabled_entries), "，跳过 %d 个停用主题" % skipped if skipped else ""))
+    log("按单元主题清单采集：共 %d 个单元主题，启用 %d 个%s" % (
+        len(entries), len(enabled_entries), "，跳过 %d 个停用单元主题" % skipped if skipped else ""))
     if not enabled_entries:
-        return {"ok": False, "status": "failed", "error": "没有启用的主题", "skipped": skipped}
+        return {"ok": False, "status": "failed", "error": "没有启用的单元主题", "skipped": skipped}
 
     failed, succeeded = [], 0
     for idx, item in enumerate(enabled_entries, 1):
@@ -3091,13 +3091,13 @@ def run_topics(paths, pages=30, dry_run=False, log=print):
                 "succeeded": succeeded, "total": total, "skipped": skipped}
     if failed:
         log("")
-        log("完成：全部 %d 个主题失败" % len(failed))
+        log("完成：全部 %d 个单元主题失败" % len(failed))
         for f in failed:
             log("  - %s: %s" % (f["keyword"], f["error"]))
         return {"ok": False, "status": "failed", "failed": failed,
                 "succeeded": 0, "total": total, "skipped": skipped}
     log("")
-    log("全部 %d 个主题采集完成" % total)
+    log("全部 %d 个单元主题采集完成" % total)
     return {"ok": True, "status": "ok", "succeeded": succeeded, "total": total,
             "skipped": skipped}
 
@@ -3145,7 +3145,7 @@ def main():
         return
 
     if not args.keyword:
-        print("错误:请提供主题关键词/链接,或使用 --list/--toggle/--verify", file=sys.stderr)
+        print("错误:请提供单元主题关键词/链接,或使用 --list/--toggle/--verify", file=sys.stderr)
         sys.exit(1)
 
     manual = {

@@ -260,8 +260,8 @@ def dump_sections(sections):
 def dump_topics(topics):
     lines = [
         "version: 1", "",
-        "# 定时采集的主题清单（公开配置，由采集设置页维护）",
-        "# 一个主题对应一个采集单元；must 全部命中 + any 至少命中一个。", "",
+        "# 定时采集的单元主题清单（公开配置，由采集设置页维护）",
+        "# 一个单元主题对应一个主题单元；must 全部命中 + any 至少命中一个。", "",
         "topics:",
     ]
     for topic in topics:

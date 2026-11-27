@@ -39,8 +39,23 @@ class PagesContractTest(unittest.TestCase):
         self.assertIn("Render.detail", read("single.html"))
         self.assertIn("Render.episodes", read("single.html"))
 
+    def test_ui_terms_follow_new_naming(self):
+        """界面术语:主题单元 / 单元主题 / 页面主题 / 页面版式。"""
+        index = read("index.html")
+        for text in ("全部主题单元", "我的页面主题", "我的页面版式", "跟随公开页面主题"):
+            self.assertIn(text, index, text)
+        self.assertIn("<span>页面主题</span>", read("assets/theme.js"))
+        self.assertIn("<span>页面版式</span>", read("assets/layout.js"))
+        collect = read("collector/collect.html")
+        for text in ("按单元主题采集", "追加到已有单元", "单元主题关键词",
+                     "已有主题单元", "单元主题 <span"):
+            self.assertIn(text, collect, text)
+        settings = read("collector/settings.html")
+        for text in ("单元主题", "默认页面版式", "单元主题 id 同时是主题单元 id"):
+            self.assertIn(text, settings, text)
+
     def test_collect_form_has_section_and_target_topic(self):
-        """采集页:板块可空 + 可追加到已有主题,追加时强制 append 并带板块。"""
+        """采集页:板块可空 + 可追加到已有单元,追加时强制 append 并带板块。"""
         html = read("collector/collect.html")
         for text in ('id="section-id"', 'id="target-topic"',
                      "renderSectionOptions", "renderTargetOptions",
@@ -279,7 +294,7 @@ class PagesContractTest(unittest.TestCase):
         self.assertIn('id="merge-remove-pick"', html)
         self.assertIn('name="merge_mode" value="remove"', html)
         self.assertIn("mergeMode() === 'remove'", html)
-        self.assertIn("按主题采集不支持移除链接", html)
+        self.assertIn("按单元主题采集不支持移除链接", html)
         self.assertIn("d.removed", html)
         self.assertIn("当前采集服务还是旧版", html)
 

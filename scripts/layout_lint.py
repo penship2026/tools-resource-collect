@@ -159,9 +159,9 @@ def main():
     if problems:
         for p in problems:
             print("✗", p)
-        print("版式自检失败: %d 项" % len(problems))
+        print("页面版式自检失败: %d 项" % len(problems))
         return 1
-    print("版式自检通过:%d 页无内联样式、脚本顺序正确、注册表与 CSS 对齐、17 个 token 齐全、页级样式无渠道色" % len(PAGES))
+    print("页面版式自检通过:%d 页无内联样式、脚本顺序正确、注册表与 CSS 对齐、17 个 token 齐全、页级样式无渠道色" % len(PAGES))
     return 0
 
 

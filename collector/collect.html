@@ -43,7 +43,7 @@
     .field .tip { font-size: 12px; color: var(--text-mute); margin-top: 5px; }
     .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     .check { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-sub); }
-    /* 按主题采集的渠道多选 */
+    /* 按单元主题采集的渠道多选 */
     .channel-picks { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
     .pick {
       display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
@@ -89,7 +89,7 @@
     .topic-actions { display: flex; flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: flex-start; gap: 6px; margin-top: 10px; }
     .unit-row { border-bottom: 1px solid var(--border); }
     .unit-row .topic-item { display: block; border-bottom: none; }
-    /* 单元信息编辑:独立弹层,避免在列表行内堆字段 */
+    /* 主题单元信息编辑:独立弹层,避免在列表行内堆字段 */
     .meta-modal {
       position: fixed; inset: 0; z-index: 1000; background: rgba(20, 28, 40, .45);
       display: flex; align-items: center; justify-content: center; padding: 20px;
@@ -201,7 +201,7 @@
   <main class="wrap">
     <section class="hero" style="padding: 40px 0 20px">
       <h1>采集入口</h1>
-      <p class="sub">三种采集方式:按主题采集(可多选 B站 / 公众号 / 小红书)、按链接采单条、批量粘贴多条链接。程序按固定规则解析去重后写入采集单元,不使用 AI。</p>
+      <p class="sub">三种采集方式:按单元主题采集(可多选 B站 / 公众号 / 小红书)、按链接采单条、批量粘贴多条链接。程序按固定规则解析去重后写入主题单元,不使用 AI。</p>
       <div id="backend-badge" class="tip" style="margin-top:8px">后端状态检测中…</div>
       <div class="token-row" id="token-row" style="margin-top:10px;display:none">
         <input type="password" id="token" placeholder="访问口令(公网模式必填)" autocomplete="off">
@@ -225,10 +225,10 @@
         <div class="tabs">
           <button class="tab active" id="tab-url" type="button">按链接采集单条</button>
           <button class="tab" id="tab-batch" type="button">批量链接采集</button>
-          <button class="tab" id="tab-keyword" type="button">按主题采集</button>
+          <button class="tab" id="tab-keyword" type="button">按单元主题采集</button>
         </div>
         <form id="form">
-          <!-- 归属板块可留空;选择已有主题时自动沿用该主题的板块 -->
+          <!-- 归属板块可留空;选择已有主题单元时自动沿用该主题单元的板块 -->
           <div class="field" id="field-section">
             <label for="section-id">归属板块(可选)</label>
             <select id="section-id">
@@ -236,13 +236,13 @@
             </select>
             <div class="tip">留空时仍会出现在「全部」,但不计入任何板块导航;重新采集时默认沿用原板块。</div>
           </div>
-          <!-- 选择已有主题 = 本次结果追加到该主题,按链接去重,不新建单元 -->
+          <!-- 选择已有主题单元 = 本次结果追加到该主题单元,按链接去重,不新建主题单元 -->
           <div class="field" id="field-target-topic">
-            <label for="target-topic">加入已有主题(可选)</label>
+            <label for="target-topic">追加到已有单元(可选)</label>
             <select id="target-topic">
-              <option value="">不追加,新建采集单元</option>
+              <option value="">不追加,新建主题单元</option>
             </select>
-            <div class="tip">选中后本次采集会追加到该主题,并按链接唯一键去重;标题与板块沿用该主题,不新建单元。</div>
+            <div class="tip">选中后本次采集会追加到该主题单元,并按链接唯一键去重;单元主题与板块沿用该主题单元,不新建主题单元。</div>
           </div>
           <!-- 重新采集时才出现:追加(默认)保留旧条目 / 覆盖(只保留本次结果) -->
           <div class="field hidden" id="field-merge-mode">
@@ -252,15 +252,15 @@
               <label class="pick"><input type="radio" name="merge_mode" value="replace"> 覆盖(只保留本次结果)</label>
               <label class="pick" id="merge-remove-pick"><input type="radio" name="merge_mode" value="remove"> 移除当前链接</label>
             </div>
-            <div class="tip">覆盖会丢弃该单元里本次未采集到的旧条目,建议先点「预览模式」确认,或先导出备份。移除只对「按链接 / 批量链接」可用:输入框里填的链接会被当作要移除的条目,不会重新抓取,也不支持按主题采集。</div>
+            <div class="tip">覆盖会丢弃该主题单元里本次未采集到的旧条目,建议先点「预览模式」确认,或先导出备份。移除只对「按链接 / 批量链接」可用:输入框里填的链接会被当作要移除的条目,不会重新抓取,也不支持按单元主题采集。</div>
           </div>
           <!-- 必填项:按当前模式只显示对应的一个输入框 -->
           <div class="field hidden" id="field-keyword">
-            <label for="keyword">主题关键词 *</label>
+            <label for="keyword">单元主题关键词 *</label>
             <input type="text" id="keyword" placeholder="例如:每天挖掘一个神奇网站">
             <div class="tip">B站需关键词完整出现在视频标题中(可多字,但不拆分);公众号 / 小红书按关键词检索标题。例如「每天挖掘一个神奇网站」。</div>
           </div>
-          <!-- 按主题采集的渠道多选:默认 B站,图文渠道借搜索引擎找候选链接 -->
+          <!-- 按单元主题采集的渠道多选:默认 B站,图文渠道借搜索引擎找候选链接 -->
           <div class="field hidden" id="field-channels">
             <label>采集渠道(可多选)</label>
             <div class="channel-picks" id="channel-picks">
@@ -281,23 +281,23 @@
             <div class="tip">可一次粘贴多条链接或分享文案,逐条解析后合成一个合集;个别链接失败会跳过,并在日志里说明原因。</div>
           </div>
 
-          <!-- 显示标题:批量采集为必填,粘贴链接后自动生成默认值,可手动修改 -->
+          <!-- 单元主题:批量采集为必填,粘贴链接后自动生成默认值,可手动修改 -->
           <div class="field" id="field-title">
-            <label for="title">显示标题 <span class="req" id="title-req">*</span></label>
+            <label for="title">单元主题 <span class="req" id="title-req">*</span></label>
             <input type="text" id="title" placeholder="">
             <div class="tip" id="title-tip"></div>
           </div>
 
           <button class="btn" id="submit" type="submit">采集这条内容</button>
           <button class="btn ghost" id="reset" type="button">清空</button>
-          <button class="btn ghost" id="btn-title-only" type="button" hidden>仅更新标题(不重新采集)</button>
+          <button class="btn ghost" id="btn-title-only" type="button" hidden>仅更新单元主题(不重新采集)</button>
           <button class="btn ghost danger" id="btn-offline" type="button" hidden>下线不显示</button>
 
           <!-- 可选设置:默认折叠,需要手工补录时再展开 -->
           <details class="advanced" id="field-advanced">
             <summary>可选设置 · 手工补录 / 预览模式</summary>
             <div class="adv-body">
-              <!-- 单元 ID 只在「重新采集」时由已采集单元列表带入,新建时留空 -->
+              <!-- 主题单元 ID 只在「重新采集」时由已有主题单元列表带入,新建时留空 -->
               <input type="hidden" id="slug">
               <div class="field hidden" id="field-up">
                 <label for="up">指定 UP 主(可选)</label>
@@ -320,7 +320,7 @@
                   <div class="field"><label for="manual_cover">封面图地址</label><input type="text" id="manual_cover" placeholder="可留空"></div>
                 </div>
                 <div class="field"><label for="manual_desc">摘要</label><input type="text" id="manual_desc" placeholder="可留空"></div>
-                <div class="tip">小红书对未登录抓取有风控。填标题即可建单元,其余可留空;原文链接会保留,点击仍跳转原笔记。</div>
+                <div class="tip">小红书对未登录抓取有风控。填标题即可建主题单元,其余可留空;原文链接会保留,点击仍跳转原笔记。</div>
               </div>
               <div class="field check">
                 <input type="checkbox" id="dry_run">
@@ -339,40 +339,40 @@
         </div>
         <div class="logbox" id="log"></div>
         <details class="run-hist" id="run-hist" hidden>
-          <summary>该单元最近的采集记录</summary>
+          <summary>该主题单元最近的采集记录</summary>
           <ul id="run-list"></ul>
         </details>
       </div>
 
       <div class="panel">
-        <h2>已有采集单元</h2>
+        <h2>已有主题单元</h2>
         <div class="unit-search">
-          <input type="search" id="unit-search" placeholder="搜索标题、ID、作者、平台或关键词…" autocomplete="off">
+          <input type="search" id="unit-search" placeholder="搜索单元主题、ID、作者、平台或关键词…" autocomplete="off">
           <button type="button" class="toggle-btn" id="unit-search-clear" hidden>清除</button>
           <span class="unit-search-count" id="unit-search-count"></span>
         </div>
         <div id="topics"><div class="tip">加载中…</div></div>
         <div class="unit-note">
-          <p><b>重新采集</b>只回填上次的采集信息(并展开可选设置),确认后才会执行,不会自动采集;也可以只改显示标题,或「下线不显示」。</p>
-          <p><b>显示开关</b>每个单元独立控制首页展示;关闭后数据保留,只是不展示,可随时重新上线。</p>
+          <p><b>重新采集</b>只回填上次的采集信息(并展开可选设置),确认后才会执行,不会自动采集;也可以只改单元主题,或「下线不显示」。</p>
+          <p><b>显示开关</b>每个主题单元独立控制首页展示;关闭后数据保留,只是不展示,可随时重新上线。</p>
           <p><b>去重规则</b>按内容唯一键:B站=BV 号,公众号=原文地址,小红书=笔记 ID。</p>
         </div>
       </div>
     </div>
   </main>
 
-  <!-- 单元信息编辑弹层:只改元数据,不触发采集 -->
+  <!-- 主题单元信息编辑弹层:只改元数据,不触发采集 -->
   <div class="meta-modal" id="meta-modal" hidden>
     <div class="meta-card" role="dialog" aria-modal="true" aria-labelledby="meta-title-head">
       <div class="meta-head">
-        <h3 id="meta-title-head">编辑单元信息</h3>
+        <h3 id="meta-title-head">编辑主题单元信息</h3>
         <button type="button" class="meta-close" id="meta-close" aria-label="关闭">×</button>
       </div>
       <form id="meta-form">
         <input type="hidden" id="meta-id">
         <div class="grid2">
           <div class="field">
-            <label for="meta-title">标题 *</label>
+            <label for="meta-title">单元主题 *</label>
             <input type="text" id="meta-title" required autocomplete="off">
           </div>
           <div class="field">
@@ -386,8 +386,8 @@
         </div>
         <div class="field">
           <label for="meta-hero">画册大图 URL</label>
-          <input type="text" id="meta-hero" placeholder="https://… 只在画册版式生效,留空用封面" autocomplete="off">
-          <div class="tip">画册大图不在采集单元列表里维护,统一放在本弹层。</div>
+          <input type="text" id="meta-hero" placeholder="https://… 只在画册页面版式生效,留空用封面" autocomplete="off">
+          <div class="tip">画册大图不在主题单元列表里维护,统一放在本弹层。</div>
         </div>
         <div class="meta-checks">
           <label class="pick"><input type="checkbox" id="meta-enabled"> 显示中</label>
@@ -427,12 +427,12 @@
     // 默认按链接采集:日常最常用的是贴一条链接就入库
     let mode = 'url'; // url(单条链接) | batch(批量链接) | keyword(主题)
     let titleTouched = false;   // 用户是否手动改过标题(改过就不再被自动生成的默认值覆盖)
-    let lastAutoTitle = '';     // 上一次自动生成的默认标题,切方式时据此判断是否可以清掉
-    let recollectId = '';       // 非空 = 正在重新采集该单元;为空 = 新建采集
-    let recollectEnabled = true; // 该单元当前是否在首页显示(重新采集态用于「下线 / 重新上线」)
+    let lastAutoTitle = '';     // 上一次自动生成的默认单元主题,切方式时据此判断是否可以清掉
+    let recollectId = '';       // 非空 = 正在重新采集该主题单元;为空 = 新建采集
+    let recollectEnabled = true; // 该主题单元当前是否在首页显示(重新采集态用于「下线 / 重新上线」)
     let siteCsrf = '';           // 站点外观写入需要 CSRF,token 由 GET /api/site 下发
     let sectionsCache = [];      // 板块注册表,来自 GET /api/topics 的 sections 字段
-    let targetTitleApplied = ''; // 由目标主题自动带入的标题,取消目标时据此清理
+    let targetTitleApplied = ''; // 由目标主题单元自动带入的标题,取消目标时据此清理
 
     function mergeMode() {
       return (document.querySelector('input[name="merge_mode"]:checked') || {}).value || 'append';
@@ -440,7 +440,7 @@
     function submitLabel() {
       if (recollectId && mergeMode() === 'remove') return '确认移除链接';
       if (recollectId) return '确认重新采集';
-      if (!recollectId && $('target-topic').value) return '追加到该主题';
+      if (!recollectId && $('target-topic').value) return '追加到该主题单元';
       if (mode === 'batch') return '开始批量采集';
       return mode === 'url' ? '采集这条内容' : '开始采集';
     }
@@ -472,7 +472,7 @@
       sel.value = sectionsCache.some(s => s.id === cur) ? cur : '';
     }
 
-    // 已有主题跟随板块过滤:不选板块显示全部,选了板块只显示同板块主题
+    // 已有主题单元跟随板块过滤:不选板块显示全部,选了板块只显示同板块单元主题
     function renderTargetOptions() {
       const sel = $('target-topic');
       const cur = sel.value;
@@ -480,7 +480,7 @@
       const units = unitCache
         .filter(t => !section || (t.section || '') === section)
         .sort((a, b) => (a.title || '').localeCompare(b.title || '', 'zh'));
-      sel.innerHTML = '<option value="">不追加,新建采集单元</option>' + units.map(t => {
+      sel.innerHTML = '<option value="">不追加,新建主题单元</option>' + units.map(t => {
         const bits = [sectionName(t.section) || '未分类', (t.count || 0) + ' 条'];
         if (t.enabled === false) bits.push('已下线');
         return '<option value="' + esc(t.id) + '">' + esc(t.title || t.id) +
@@ -489,7 +489,7 @@
       sel.value = units.some(t => t.id === cur) ? cur : '';
     }
 
-    // 选择已有主题后标题沿用主题标题;选板块后主题下拉只保留同板块主题
+    // 选择已有主题单元后标题沿用单元主题标题;选板块后主题下拉只保留同板块单元主题
     function syncTargetTopic(autoSection) {
       if (recollectId) return;
       const unit = selectedTargetUnit();
@@ -517,7 +517,7 @@
       syncTargetTopic(false);
     }
 
-    // 重新采集时不显示「加入已有主题」,避免把本次结果误追加到另一个单元
+    // 重新采集时不显示「追加到已有单元」,避免把本次结果误追加到另一个主题单元
     function syncTargetField() {
       const inRecollect = !!recollectId;
       $('field-target-topic').classList.toggle('hidden', inRecollect);
@@ -528,21 +528,21 @@
       }
     }
 
-    // 标题字段随采集方式变化:批量必填,其余可选
+    // 单元主题字段随采集方式变化:批量必填,其余可选
     function updateTitleField() {
       const req = mode === 'batch';
       $('title').required = req;
       $('title-req').style.display = req ? '' : 'none';
       $('title').placeholder = req ? '粘贴链接后自动生成,也可直接写'
-        : (mode === 'url' ? '留空则用内容原标题' : '留空则与主题关键词相同');
+        : (mode === 'url' ? '留空则用内容原标题' : '留空则与单元主题关键词相同');
       $('title-tip').textContent = req
-        ? '必填。粘贴链接后按链接数自动生成默认标题(如「公众号 · 3 条合集」),可直接改成自己的叫法。'
-        : '可选。留空时:按链接采集用内容原标题,按主题采用主题关键词。';
+        ? '必填。粘贴链接后按链接数自动生成默认单元主题(如「公众号 · 3 条合集」),可直接改成自己的叫法。'
+        : '可选。留空时:按链接采集用内容原标题,按单元主题采集时用单元主题关键词。';
     }
 
     function setMode(m, opts) {
       const keep = opts && opts.keepStatus;
-      // 手动切换采集方式时,把上次自动填的标题清掉,避免带到新方式里
+      // 手动切换采集方式时,把上次自动填的单元主题清掉,避免带到新方式里
       if (!keep && $('title').value && $('title').value === lastAutoTitle) {
         $('title').value = '';
         titleTouched = false;
@@ -624,10 +624,10 @@
       [/mp\.weixin\.qq\.com|weixin\.qq\.com/i, '公众号'],
       [/xiaohongshu\.com|xhslink\.com/i, '小红书'],
     ];
-    const MODE_NAMES = { url: '按链接采集', batch: '批量链接采集', keyword: '按主题采集', remove: '移除链接' };
+    const MODE_NAMES = { url: '按链接采集', batch: '批量链接采集', keyword: '按单元主题采集', remove: '移除链接' };
     const CHANNEL_NAMES = { bilibili: 'B站', wechat: '公众号', xhs: '小红书' };
     function modeName(m) { return MODE_NAMES[m] || m || '未知方式'; }
-    // 按主题采集的多选渠道:顺序固定为 B站 / 公众号 / 小红书,便于回填和展示
+    // 按单元主题采集的多选渠道:顺序固定为 B站 / 公众号 / 小红书,便于回填和展示
     function selectedChannels() {
       return Array.from(document.querySelectorAll('#channel-picks input:checked')).map(i => i.value);
     }
@@ -788,26 +788,26 @@
         const cs = selectedChannels();
         if (cs.length) metaBits.push('渠道 ' + channelNames(cs));
       }
-      metaBits.push('单元 id: ' + unitId);
+      metaBits.push('主题单元 id: ' + unitId);
       showRecall('已带出上次采集信息,确认无误后点「确认重新采集」', metaBits.join(' · '));
       if (!it.at) {
-        $('recall-meta').textContent = '该单元没有采集记录,已按现有数据回填(批量采集按现有条目链接回填),可自行调整';
+        $('recall-meta').textContent = '该主题单元没有采集记录,已按现有数据回填(批量采集按现有条目链接回填),可自行调整';
       }
       statusBox.className = 'status';
       statusBox.textContent = '';
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    // 只更新显示标题,不重新采集内容(仅重新采集状态可用)
+    // 只更新单元主题,不重新采集内容(仅重新采集状态可用)
     $('btn-title-only').addEventListener('click', async () => {
       if (!recollectId) return;
       const title = $('title').value.trim();
       if (!title) {
         statusBox.className = 'status err';
-        statusBox.textContent = '标题不能为空';
+        statusBox.textContent = '单元主题不能为空';
         return;
       }
-      if (!confirm('确认只更新「' + recollectId + '」的显示标题?\n\n新标题: ' + title + '\n\n不会重新采集内容。')) return;
+      if (!confirm('确认只更新「' + recollectId + '」的单元主题?\n\n新单元主题: ' + title + '\n\n不会重新采集内容。')) return;
       const btn = $('btn-title-only');
       btn.disabled = true;
       try {
@@ -818,7 +818,7 @@
         const r = await readJSON(resp);
         statusBox.className = 'status ' + (r.ok ? 'ok' : 'err');
         statusBox.textContent = r.ok
-          ? '标题已更新为「' + r.title + '」(未重新采集)'
+          ? '单元主题已更新为「' + r.title + '」(未重新采集)'
           : (r.error || '更新失败');
         if (r.ok) {
           $('form-title').textContent = '重新采集 · ' + r.title;
@@ -835,7 +835,7 @@
       if (!recollectId) return;
       const next = !recollectEnabled; // true=重新上线,false=下线
       const msg = next
-        ? '确认把「' + recollectId + '」重新上线显示?\n\n数据原样保留,首页会重新出现该单元。'
+        ? '确认把「' + recollectId + '」重新上线显示?\n\n数据原样保留,首页会重新出现该主题单元。'
         : '确认把「' + recollectId + '」下线不显示?\n\n数据会保留,只是首页与聚合列表不再展示,\n之后在「重新采集」里可随时重新上线。';
       if (!confirm(msg)) return;
       const btn = $('btn-offline');
@@ -906,7 +906,7 @@
       return true;
     }
 
-    // 已有采集单元:默认每页 5 条,避免单元多了把页面撑得过长
+    // 已有主题单元:默认每页 5 条,避免单元多了把页面撑得过长
     const UNIT_PAGE_SIZE = 5;
     let unitCache = [];
     let unitPage = 1;
@@ -952,7 +952,7 @@
       }
     })();
 
-    // 站点配置只取 CSRF token 与置顶/大图字段;/api/topics 已带回每个单元的值
+    // 站点配置只取 CSRF token 与置顶/大图字段;/api/topics 已带回每个主题单元的值
     function loadSiteMeta() {
       apiFetch(API_SITE, { cache: 'no-store' }).then(readJSON).then(d => {
         if (d && d.ok) siteCsrf = d.csrf_token || '';
@@ -985,7 +985,7 @@
       return unitCache.filter(t => unitMatches(t, terms));
     }
 
-    // 编辑信息:独立弹层,字段从当前单元回填;保存只走元数据接口
+    // 编辑信息:独立弹层,字段从当前主题单元回填;保存只走元数据接口
     function openMetaModal(id) {
       const item = unitCache.find(t => t.id === id);
       if (!item) return;
@@ -1016,7 +1016,7 @@
       const tags = $('meta-tags').value.split(/[,，\n]/).map(x => x.trim()).filter(Boolean);
       if (!title) {
         statusBox.className = 'status err';
-        statusBox.textContent = '标题不能为空';
+        statusBox.textContent = '单元主题不能为空';
         return;
       }
       const btn = $('meta-save');
@@ -1063,14 +1063,14 @@
       if (clearBtn) clearBtn.hidden = !unitQuery.trim();
       if (!unitCache.length) {
         if (countEl) countEl.textContent = '';
-        box.innerHTML = '<div class="tip">暂无采集单元</div>';
+        box.innerHTML = '<div class="tip">暂无主题单元</div>';
         return;
       }
       const list = visibleUnits();
       const filtered = !!unitQuery.trim();
       if (countEl) countEl.textContent = filtered ? `匹配 ${list.length} / 共 ${unitCache.length} 个` : `共 ${unitCache.length} 个`;
       if (!list.length) {
-        box.innerHTML = '<div class="tip">没有匹配的采集单元,试试其他关键词</div>';
+        box.innerHTML = '<div class="tip">没有匹配的主题单元,试试其他关键词</div>';
         return;
       }
       const pages = Math.ceil(list.length / UNIT_PAGE_SIZE);
@@ -1110,7 +1110,7 @@
       if (pages > 1) {
         box.innerHTML += `
         <div class="unit-pager">
-          <span>第 ${unitPage} / ${pages} 页 · ${filtered ? `匹配 ${list.length} / 共 ${unitCache.length}` : `共 ${unitCache.length}`} 个单元</span>
+          <span>第 ${unitPage} / ${pages} 页 · ${filtered ? `匹配 ${list.length} / 共 ${unitCache.length}` : `共 ${unitCache.length}`} 个主题单元</span>
           <div class="pager-btns">
             <button type="button" data-page="prev" ${unitPage <= 1 ? 'disabled' : ''}>上一页</button>
             <button type="button" data-page="next" ${unitPage >= pages ? 'disabled' : ''}>下一页</button>
@@ -1196,7 +1196,7 @@
         mode: mode,
         keyword: keyword,
         title: $('title').value.trim(),
-        // 新建时若选了已有主题,本次结果追加到该主题;重新采集仍用 slug
+        // 新建时若选了已有主题单元,本次结果追加到该主题单元;重新采集仍用 slug
         unit_id: recollectId ? $('slug').value.trim() : targetId,
         section: $('section-id').value.trim(),
         up: $('up').value.trim(),
@@ -1204,7 +1204,7 @@
         channels: channels,
         dry_run: $('dry_run').checked,
         merge_mode: targetId ? 'append' : mergeMode(),
-        // 手工补录:公众号/小红书抓取被风控时,至少填标题即可建单元
+        // 手工补录:公众号/小红书抓取被风控时,至少填标题即可建主题单元
         manual_title: $('manual_title').value.trim(),
         manual_author: $('manual_author').value.trim(),
         manual_desc: $('manual_desc').value.trim(),
@@ -1212,17 +1212,17 @@
         manual_cover: $('manual_cover').value.trim(),
       };
       if (payload.merge_mode === 'replace' && payload.unit_id && !payload.dry_run &&
-          !confirm('确认覆盖采集?该单元里本次未采集到的旧条目会被删除。')) {
+          !confirm('确认覆盖采集?该主题单元里本次未采集到的旧条目会被删除。')) {
         return;
       }
       if (payload.merge_mode === 'remove' && !payload.dry_run) {
         if (mode === 'keyword') {
           statusBox.className = 'status err';
-          statusBox.textContent = '按主题采集不支持移除链接,请切换到按链接或批量链接';
+          statusBox.textContent = '按单元主题采集不支持移除链接,请切换到按链接或批量链接';
           return;
         }
         const n = linksIn(keyword).length || 1;
-        if (!confirm('确认从当前单元移除这 ' + n + ' 条链接?\n\n只移除与输入链接匹配的条目,不会重新抓取内容。')) {
+        if (!confirm('确认从当前主题单元移除这 ' + n + ' 条链接?\n\n只移除与输入链接匹配的条目,不会重新抓取内容。')) {
           return;
         }
       }
@@ -1230,7 +1230,7 @@
       $('submit').textContent = '采集中…';
       statusBox.className = 'status';
       statusBox.textContent = payload.merge_mode === 'remove'
-        ? '正在从当前单元移除链接…'
+        ? '正在从当前主题单元移除链接…'
         : (mode === 'keyword'
           ? '正在搜索 B站,请稍候(约需十几秒)…'
           : '正在解析链接内容,请稍候…');

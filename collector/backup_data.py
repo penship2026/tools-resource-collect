@@ -4,7 +4,7 @@
 采集数据备份 / 还原工具(纯 Python 标准库)
 
 数据边界 = 采集产出(采集只写数据,页面是固定模板不随采集变化):
-  assets/data/index.js                  采集单元索引(含显示开关)
+  assets/data/index.js                  主题单元索引(含显示开关)
   assets/data/collections/<id>.js       每次采集的独立数据
 三个页面(index.html / series.html / single.html)、样式和程序本身不纳入备份,
 它们不随采集变化,随代码版本管理即可。
@@ -54,7 +54,7 @@ COLLECTIONS_ARC = "assets/data/collections"
 
 
 def _collect_files():
-    """返回 [(归档内路径, 磁盘绝对路径)] 列表:索引 + 各采集单元数据"""
+    """返回 [(归档内路径, 磁盘绝对路径)] 列表:索引 + 各主题单元数据"""
     items = []
     index_path = os.path.join(DATA_DIR, "index.js")
     if os.path.isfile(index_path):
@@ -84,7 +84,7 @@ def cmd_backup(args):
             zf.write(full, arc)
     print("备份完成: %s" % path)
     print("  索引文件: 1 个")
-    print("  采集单元: %d 个,压缩包 %.1f KB" % (
+    print("  主题单元: %d 个,压缩包 %.1f KB" % (
         sum(1 for a, _ in items if a.startswith(COLLECTIONS_ARC)),
         os.path.getsize(path) / 1024.0))
     return 0
@@ -142,7 +142,7 @@ def cmd_restore(args):
             return 1
         print("将还原 %d 个文件到:" % len(members))
         print("  数据目录: %s" % DATA_DIR)
-        print("  采集单元: %s" % COLLECTIONS_DIR)
+        print("  主题单元: %s" % COLLECTIONS_DIR)
         if not args.yes:
             try:
                 answer = input("覆盖现有数据? [y/N] ").strip().lower()

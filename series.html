@@ -60,7 +60,7 @@
   <footer class="site-footer">
     <div class="wrap">
       <div>内容来自各平台公开投稿或发布,版权归原作者所有;点击卡片将跳转至原平台查看。</div>
-      <div><a id="back-link" href="index.html">← 返回全部主题</a></div>
+      <div><a id="back-link" href="index.html">← 返回全部主题单元</a></div>
     </div>
   </footer>
 
@@ -101,7 +101,7 @@
 
     if (!id) {
       document.querySelector('main').innerHTML =
-        '<div class="empty">未指定合集。请从 <a href="' + homeHref() + '">' + (view === 'mine' ? '我的收藏' : '首页') + '</a> 选择一个主题。</div>';
+        '<div class="empty">未指定合集。请从 <a href="' + homeHref() + '">' + (view === 'mine' ? '我的收藏' : '首页') + '</a> 选择一个主题单元。</div>';
     } else {
       CollectionLoader.load(id, function (topic, err) {
         if (err || !topic) {

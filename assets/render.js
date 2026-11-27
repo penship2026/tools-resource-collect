@@ -238,7 +238,7 @@
     var head = '<div class="band-head">' +
       '<div class="band-title"><span class="band-no">' + no + '</span>' +
       '<h2>' + esc(section.title) + '</h2>' +
-      '<span class="band-count">' + esc(section.count || 0) + ' 个主题</span></div>' +
+      '<span class="band-count">' + esc(section.count || 0) + ' 个主题单元</span></div>' +
       '<div class="band-desc">' + esc(section.description || '') + '</div>' +
       '<a class="band-more" href="index.html?section=' + encodeURIComponent(section.id) + '">查看全部 →</a>' +
       '</div>';
@@ -272,7 +272,7 @@
     opts = opts || {};
     var mine = opts.view === 'mine';
     var home = 'index.html' + (mine ? '?view=mine' : '');
-    var html = '<a href="' + home + '">' + (mine ? '我的收藏' : '全部主题') + '</a>';
+    var html = '<a href="' + home + '">' + (mine ? '我的收藏' : '全部主题单元') + '</a>';
     if (section && section.id) {
       var sectionHref = mine
         ? 'index.html?view=mine&section=' + encodeURIComponent(section.id)

@@ -209,7 +209,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
     def do_GET(self):
         path = urllib.parse.urlparse(self.path).path
         if path.endswith("/api/health"):
-            # 采集只写数据:数据目录 + 采集单元目录,两处都可写才算健康
+            # 采集只写数据:数据目录 + 主题单元目录,两处都可写才算健康
             data_ok = os.access(generate.DATA_DIR, os.W_OK)
             coll_ok = os.access(generate.COLLECTIONS_DIR, os.W_OK)
             idx = generate.index_status()
@@ -320,14 +320,14 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             qs = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
             unit_id = (qs.get("id") or [""])[0].strip()
             if not unit_id:
-                self._json({"ok": False, "error": "缺少单元 id"}, 400)
+                self._json({"ok": False, "error": "缺少主题单元 id"}, 400)
                 return
             if not generate.valid_unit_id(unit_id):
-                self._json({"ok": False, "error": "单元 id 不合法"}, 400)
+                self._json({"ok": False, "error": "主题单元 id 不合法"}, 400)
                 return
             data = generate.load_collection_data(unit_id)
             if data is None:
-                self._json({"ok": False, "error": "未找到采集单元: %s" % unit_id}, 404)
+                self._json({"ok": False, "error": "未找到主题单元: %s" % unit_id}, 404)
                 return
             meta = next((t for t in generate.load_index() if t.get("id") == unit_id), None) or {}
             videos = data.get("videos") or []
@@ -445,7 +445,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 return
             unit_id = (payload.get("id") or "").strip()
             if not generate.valid_unit_id(unit_id):
-                self._json({"ok": False, "error": "单元 id 不合法"}, 400)
+                self._json({"ok": False, "error": "主题单元 id 不合法"}, 400)
                 return
             if "pin" in payload and not isinstance(payload.get("pin"), bool):
                 self._json({"ok": False, "error": "pin 必须是布尔值"}, 400)
@@ -542,10 +542,10 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         if path.endswith("/api/toggle"):
             unit_id = (payload.get("id") or "").strip()
             if not unit_id:
-                self._json({"ok": False, "error": "缺少单元 id"}, 400)
+                self._json({"ok": False, "error": "缺少主题单元 id"}, 400)
                 return
             if not generate.valid_unit_id(unit_id):
-                self._json({"ok": False, "error": "单元 id 不合法"}, 400)
+                self._json({"ok": False, "error": "主题单元 id 不合法"}, 400)
                 return
             enabled = bool(payload.get("enabled"))
             try:
@@ -561,7 +561,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             unit_id = (payload.get("id") or "").strip()
             title = (payload.get("title") or "").strip()
             if not generate.valid_unit_id(unit_id):
-                self._json({"ok": False, "error": "单元 id 不合法"}, 400)
+                self._json({"ok": False, "error": "主题单元 id 不合法"}, 400)
                 return
             result = generate.update_title(unit_id, title)
             self._json(result, 200 if result.get("ok") else 400)
@@ -593,16 +593,16 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             elif mode == "url":
                 hint = "内容链接不能为空"
             else:
-                hint = "主题关键词不能为空"
+                hint = "单元主题关键词不能为空"
             self._json({"ok": False, "error": hint}, 400)
             return
         # 移除链接:只按填写的链接做本地匹配,不重新抓取内容;主题采集没有单条链接可移除
         if merge_mode == "remove":
             if mode == "keyword":
-                self._json({"ok": False, "error": "按主题采集不支持移除链接,请切换到按链接或批量链接"}, 400)
+                self._json({"ok": False, "error": "按单元主题采集不支持移除链接,请切换到按链接或批量链接"}, 400)
                 return
             if not unit_id_raw:
-                self._json({"ok": False, "error": "移除链接必须指定要操作的采集单元"}, 400)
+                self._json({"ok": False, "error": "移除链接必须指定要操作的主题单元"}, 400)
                 return
             logs = []
             result = generate.remove_links(
@@ -615,7 +615,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
         # 批量采集的显示标题是必填项(前端已有默认值,这里再兜一层)
         if mode == "batch" and not (payload.get("title") or "").strip():
-            self._json({"ok": False, "error": "请填写显示标题(批量采集必填,可用自动生成的默认值)"}, 400)
+            self._json({"ok": False, "error": "请填写单元主题(批量采集必填,可用自动生成的默认值)"}, 400)
             return
 
         # 手工补录字段(公众号/小红书抓取被风控时使用)
@@ -747,7 +747,7 @@ def main():
                 else:
                     print("未自动识别局域网 IP,请用系统网络设置里的本机 IP 拼出访问地址")
         print("数据目录: %s" % generate.DATA_DIR)
-        print("采集单元目录: %s" % generate.COLLECTIONS_DIR)
+        print("主题单元目录: %s" % generate.COLLECTIONS_DIR)
         if PUBLIC_MODE:
             print("写接口需在请求头带 X-Collect-Token(采集页顶部填入口令即可)")
         print("按 Ctrl+C 停止")

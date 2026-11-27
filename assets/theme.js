@@ -127,11 +127,11 @@
     var keys = visibleThemes();
     var wrap = document.createElement('div');
     wrap.className = 'theme-switch';
-    var html = '<span>主题</span>';
+    var html = '<span>页面主题</span>';
     var choices = ['auto'].concat(keys);
     if (keys.length >= 5) {
       // 5 套时 390px 按钮会溢出,改为下拉;auto 作为第一项
-      html += '<select class="theme-select" aria-label="主题">';
+      html += '<select class="theme-select" aria-label="页面主题">';
       choices.forEach(function (key) {
         var label = key === 'auto' ? AUTO_LABEL : THEMES[key].label;
         html += '<option value="' + key + '">' + label + '</option>';

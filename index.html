@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>集页 · 主题内容清单</title>
-  <meta name="description" content="一集一页,把值得收藏的内容收成清单。按主题汇总视频与图文,持续更新">
+  <title>集页 · 主题单元内容清单</title>
+  <meta name="description" content="一集一页,把值得收藏的内容收成清单。按主题单元汇总视频与图文,持续更新">
   <link rel="stylesheet" href="assets/style.css">
   <link rel="stylesheet" href="assets/pages/index.css">
   <!-- 主题:阻塞脚本在 <head> 里同步注入主题 CSS,避免首屏闪一下 -->
@@ -41,11 +41,11 @@
 
   <main class="wrap" id="main-content">
     <section class="hero" id="hero">
-      <h2 id="hero-title">每个值得收藏的宝藏主题<br>都有一页完整清单</h2>
-      <p class="sub" id="hero-sub">按主题收录各平台的视频与图文(公众号、小红书等),点开卡片即可看原片或原文。<br>清单由采集程序自动整理,持续更新。</p>
-      <p class="section-back" id="section-back" hidden><a href="index.html">← 全部主题</a></p>
+      <h2 id="hero-title">每个值得收藏的宝藏主题单元<br>都有一页完整清单</h2>
+      <p class="sub" id="hero-sub">按主题单元收录各平台的视频与图文(公众号、小红书等),点开卡片即可看原片或原文。<br>清单由采集程序自动整理,持续更新。</p>
+      <p class="section-back" id="section-back" hidden><a href="index.html">← 全部主题单元</a></p>
       <div class="facts facts-hero">
-        <div class="fact"><b id="stat-topics">0</b><span id="stat-topics-label">主题系列</span></div>
+        <div class="fact"><b id="stat-topics">0</b><span id="stat-topics-label">主题单元</span></div>
         <div class="fact"><b id="stat-platforms">0</b><span id="stat-platforms-label">来源渠道</span></div>
         <div class="fact fact-date"><b id="stat-updated">—</b><span>最近更新</span></div>
       </div>
@@ -56,7 +56,7 @@
     <div class="mag-toc-wrap" id="magazine-toc" hidden></div>
 
     <div class="section-title" id="all-title">
-      <h2 id="all-title-text">全部主题</h2>
+      <h2 id="all-title-text">全部主题单元</h2>
       <span class="hint" id="all-title-hint">点击卡片进入合集 / 单条内容</span>
     </div>
 
@@ -88,7 +88,7 @@
       <div class="filter-group search-group">
         <span class="filter-label">搜索</span>
         <div class="filter-opts">
-          <input type="text" class="search-input" id="topic-search" placeholder="搜索主题名称或发布者…">
+          <input type="text" class="search-input" id="topic-search" placeholder="搜索主题单元或发布者…">
         </div>
       </div>
     </div>
@@ -134,19 +134,19 @@
           <button type="button" id="mine-set-sub-reset" class="mine-set-link">恢复默认</button>
         </div>
         <div class="mine-set-row">
-          <label for="mine-set-layout">我的版式</label>
+          <label for="mine-set-layout">我的页面版式</label>
           <select id="mine-set-layout">
-            <option value="inherit">跟随公开版式</option>
+            <option value="inherit">跟随公开页面版式</option>
           </select>
-          <small>只影响「我的」页,公开页仍用页脚版式</small>
+          <small>只影响「我的」页,公开页仍用页脚页面版式</small>
         </div>
         <div class="mine-set-row">
-          <label for="mine-set-theme">我的主题</label>
+          <label for="mine-set-theme">我的页面主题</label>
           <select id="mine-set-theme">
-            <option value="inherit">跟随公开主题</option>
+            <option value="inherit">跟随公开页面主题</option>
             <option value="auto">跟随系统</option>
           </select>
-          <small>只影响「我的」页,公开页仍用页脚主题</small>
+          <small>只影响「我的」页,公开页仍用页脚页面主题</small>
         </div>
         <div class="mine-set-act">
           <button type="button" id="mine-set-save" class="mine-btn mine-btn-primary">保存</button>
@@ -174,7 +174,7 @@
         <div class="filter-group search-group">
           <span class="filter-label">搜索</span>
           <div class="filter-opts">
-            <input type="text" class="search-input" id="mine-search" placeholder="搜索收藏标题或所属主题…">
+            <input type="text" class="search-input" id="mine-search" placeholder="搜索收藏标题或所属主题单元…">
           </div>
         </div>
       </div>
@@ -323,19 +323,19 @@
       var itemsLabel = document.getElementById('stat-platforms-label');
       var topics = all.length;
       var items = platforms.length;
-      var title = '每个值得收藏的宝藏主题<br>都有一页完整清单';
-      var desc = '按主题收录各平台的视频与图文(公众号、小红书等),点开卡片即可看原片或原文。<br>清单由采集程序自动整理,持续更新。';
+      var title = '每个值得收藏的宝藏主题单元<br>都有一页完整清单';
+      var desc = '按主题单元收录各平台的视频与图文(公众号、小红书等),点开卡片即可看原片或原文。<br>清单由采集程序自动整理,持续更新。';
       var backHidden = true;
-      var tLabel = '主题系列';
+      var tLabel = '主题单元';
       var iLabel = '来源渠道';
       var metaTitle = BASE_TITLE;
       var metaDesc = BASE_DESC;
 
       if (routeInvalid) {
         title = '该栏目暂未开放';
-        desc = '板块不存在或已停用,可能已更名。回到全部主题继续浏览。';
+        desc = '板块不存在或已停用,可能已更名。回到全部主题单元继续浏览。';
         topics = 0; items = 0; backHidden = false;
-        tLabel = '收录主题'; iLabel = '收录内容';
+        tLabel = '收录主题单元'; iLabel = '收录内容';
         metaTitle = '栏目未开放 · 集页';
         metaDesc = '该板块不存在或已停用。';
       } else if (routeSection) {
@@ -343,9 +343,9 @@
         topics = scoped.length;
         items = scoped.reduce(function (n, t) { return n + (t.count || 0); }, 0);
         title = esc(routeSection.title);
-        desc = esc(routeSection.description || '') + '<br>' + topics + ' 个主题 · ' + items + ' 条内容';
+        desc = esc(routeSection.description || '') + '<br>' + topics + ' 个主题单元 · ' + items + ' 条内容';
         backHidden = false;
-        tLabel = '收录主题'; iLabel = '收录内容';
+        tLabel = '收录主题单元'; iLabel = '收录内容';
         metaTitle = routeSection.title + ' · 集页';
         metaDesc = routeSection.description || routeSection.title;
       }
@@ -561,9 +561,9 @@
       document.body.classList.toggle('is-section-view', !!routeSection || routeInvalid);
 
       allTitle.hidden = !!routeSection || routeInvalid || showBands;
-      document.getElementById('all-title-text').textContent = hasFilter ? '筛选结果' : '全部主题';
+      document.getElementById('all-title-text').textContent = hasFilter ? '筛选结果' : '全部主题单元';
       document.getElementById('all-title-hint').textContent = hasFilter
-        ? '共 ' + list.length + ' 个匹配主题'
+        ? '共 ' + list.length + ' 个匹配主题单元'
         : '点击卡片进入合集 / 单条内容';
 
       filterBar.hidden = routeInvalid;
@@ -581,7 +581,7 @@
             starHtml: starOf(t),
             pin: pinOf(t)
           });
-        }).join('') : '<div class="empty">没有匹配的主题</div>';
+        }).join('') : '<div class="empty">没有匹配的主题单元</div>';
       } else {
         grid.innerHTML = '';
       }
@@ -635,7 +635,7 @@
 
       if (routeInvalid) {
         emptyBox.hidden = false;
-        emptyBox.innerHTML = '<div class="empty">该栏目暂未开放。<a href="index.html">返回全部主题 →</a></div>';
+        emptyBox.innerHTML = '<div class="empty">该栏目暂未开放。<a href="index.html">返回全部主题单元 →</a></div>';
       } else {
         emptyBox.hidden = true;
       }

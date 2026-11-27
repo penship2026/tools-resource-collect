@@ -171,10 +171,10 @@
     if (keys.length < 2) return;
     var wrap = document.createElement('div');
     wrap.className = 'layout-switch';
-    var html = '<span>版式</span>';
+    var html = '<span>页面版式</span>';
     if (keys.length >= 5) {
       // 5 套时按钮在 390px 溢出,改为下拉
-      html += '<select class="layout-select" aria-label="版式">';
+      html += '<select class="layout-select" aria-label="页面版式">';
       keys.forEach(function (key) {
         html += '<option value="' + key + '">' + (LIST[key].label || key) + '</option>';
       });

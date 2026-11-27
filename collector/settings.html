@@ -159,7 +159,7 @@
             <button class="btn" id="save">保存全部改动</button>
             <span id="save-state"></span>
           </div>
-          <div class="hint">单卡改完可点卡片内「保存本卡」；这里用于一次保存多张卡片，以及删除板块/主题后落盘。</div>
+          <div class="hint">单卡改完可点卡片内「保存本卡」；这里用于一次保存多张卡片，以及删除板块/单元主题后落盘。</div>
           <div class="status" id="settings-status"></div>
         </div>
       </div>
@@ -167,16 +167,16 @@
       <div class="panel" data-area="topic">
         <div class="panel-head" data-area-head="topic" role="button" tabindex="0" aria-expanded="true">
           <div>
-            <h2><span class="area-chev" aria-hidden="true">▾</span>主题 <span class="pill" id="topic-count">—</span></h2>
-            <div class="hint">must 全部命中 + any 至少命中一个；主题 id 同时是采集单元 id，保存后不可改。</div>
+            <h2><span class="area-chev" aria-hidden="true">▾</span>单元主题 <span class="pill" id="topic-count">—</span></h2>
+            <div class="hint">must 全部命中 + any 至少命中一个；单元主题 id 同时是主题单元 id，保存后不可改。</div>
           </div>
           <div class="panel-actions">
-            <button class="btn ghost" id="add-topic" type="button">+ 新增主题</button>
+            <button class="btn ghost" id="add-topic" type="button">+ 新增单元主题</button>
           </div>
         </div>
         <div class="panel-body" data-area-body="topic">
           <div class="area-tools">
-            <input type="search" id="search-topics" placeholder="搜索主题、板块或关键词" autocomplete="off">
+            <input type="search" id="search-topics" placeholder="搜索单元主题、板块或关键词" autocomplete="off">
             <button class="btn ghost" id="toggle-topics" type="button">全部展开</button>
           </div>
           <div id="topics"></div>
@@ -187,16 +187,16 @@
     <aside>
       <div class="panel">
         <h2>站点外观</h2>
-        <div class="hint">默认版式只影响未手动切过版式的浏览器；已选择过的浏览器保留本机设置。保存后立即写入 <code>site.yml</code> 并生成 <code>assets/site.js</code>。</div>
+        <div class="hint">默认页面版式只影响未手动切过页面版式的浏览器；已选择过的浏览器保留本机设置。保存后立即写入 <code>site.yml</code> 并生成 <code>assets/site.js</code>。</div>
         <div class="row">
-          <label for="site-layout">默认版式</label>
+          <label for="site-layout">默认页面版式</label>
           <select id="site-layout">
             <option value="standard">简洁</option>
             <option value="news">门户</option>
             <option value="magazine">画册</option>
           </select>
         </div>
-        <div class="btns"><button class="btn" id="save-site" type="button">保存默认版式</button></div>
+        <div class="btns"><button class="btn" id="save-site" type="button">保存默认页面版式</button></div>
         <div class="status" id="site-status"></div>
       </div>
 
@@ -206,7 +206,7 @@
         <div class="kv">
           <div><span>cron</span><br><b id="cron-value">—</b></div>
           <div><span>北京时间</span><br><b id="beijing-value">—</b></div>
-          <div><span>每主题页数</span><br><b id="pages-value">—</b></div>
+          <div><span>每单元主题页数</span><br><b id="pages-value">—</b></div>
           <div><span>执行方</span><br><b>GitHub Actions</b></div>
         </div>
         <div class="btns">
@@ -334,17 +334,17 @@
       return '<label class="channel-chip"><input type="checkbox" data-add-channel value="' + esc(c.id) + '"' + (idx === 0 ? " checked" : "") + '><span>' + esc(c.label) + '</span></label>';
     }).join("");
     return '<div class="row"><label>归属板块</label><select id="add-topic-section">' + options + '</select></div>' +
-      '<div class="row"><label>主题名称</label><input id="add-topic-title" type="text" placeholder="例如 初中数学思维"></div>' +
+      '<div class="row"><label>单元主题名称</label><input id="add-topic-title" type="text" placeholder="例如 初中数学思维"></div>' +
       '<div class="row"><label>must</label><input id="add-topic-must" type="text" placeholder="1–4 个，逗号分隔，全部命中"></div>' +
       '<div class="row"><label>any</label><input id="add-topic-any" type="text" placeholder="可选，最多 5 个，至少命中一个"></div>' +
       '<div class="row"><label>渠道</label><div class="channel-picker">' + channels + '</div></div>' +
-      '<div class="row"><label>主题 id</label><input id="add-topic-id" type="text" placeholder="字母数字下划线短横，创建后不可改"></div>' +
+      '<div class="row"><label>单元主题 id</label><input id="add-topic-id" type="text" placeholder="字母数字下划线短横，创建后不可改"></div>' +
       '<div class="row"><label>显示 / 采集</label><label class="check"><input id="add-topic-enabled" type="checkbox" checked> 启用</label></div>';
   }
   function openAddForm(mode) {
     formMode = mode;
     formError("");
-    $("form-title").textContent = mode === "section" ? "新增板块" : "新增主题";
+    $("form-title").textContent = mode === "section" ? "新增板块" : "新增单元主题";
     $("form-fields").innerHTML = mode === "section" ? sectionFormHtml() : topicFormHtml();
     $("form-submit").disabled = false;
     $("form-modal").hidden = false;
@@ -374,11 +374,11 @@
     var id = $("add-topic-id").value.trim();
     var channels = Array.prototype.map.call($("form-fields").querySelectorAll("[data-add-channel]:checked"), function (box) { return box.value; });
     if (!section || !state.sections.some(function (s) { return s.id === section; })) throw new Error("归属板块不存在");
-    if (!title) throw new Error("主题名称不能为空");
+    if (!title) throw new Error("单元主题名称不能为空");
     if (must.length < 1 || must.length > 4) throw new Error("must 关键词必须是 1–4 个");
     if (anyList.length > 5) throw new Error("any 关键词最多 5 个");
-    if (!/^[A-Za-z0-9_-]{1,80}$/.test(id)) throw new Error("主题 id 只能使用字母、数字、下划线或短横");
-    if (state.topics.some(function (t) { return t.id === id; })) throw new Error("主题 id 已存在");
+    if (!/^[A-Za-z0-9_-]{1,80}$/.test(id)) throw new Error("单元主题 id 只能使用字母、数字、下划线或短横");
+    if (state.topics.some(function (t) { return t.id === id; })) throw new Error("单元主题 id 已存在");
     if (!channels.length) throw new Error("至少选择一个渠道");
     return {
       id: id, section: section, title: title, must_keywords: must,
@@ -682,8 +682,8 @@
     $("topic-count").textContent = query ? (shown.length + "/" + state.topics.length) : String(state.topics.length);
     if (!shown.length) {
       box.innerHTML = state.topics.length
-        ? '<div class="empty">没有匹配的主题，换个关键词试试。</div>'
-        : '<div class="hint">还没有主题。新增板块后请至少加一个启用主题，才能参与自动采集。</div>';
+        ? '<div class="empty">没有匹配的单元主题，换个关键词试试。</div>'
+        : '<div class="hint">还没有单元主题。新增板块后请至少加一个启用单元主题，才能参与自动采集。</div>';
       return;
     }
     box.innerHTML = shown.map(function (t, idx) {
@@ -713,7 +713,7 @@
           '<div class="row"><label>any</label><input type="text" data-f="any_keywords" value="' + esc((t.any_keywords || []).join("，")) + '" placeholder="0–5 个，至少一个"' + dis + '></div>' +
           '<div class="row"><label>渠道</label><div class="channel-picker">' + channelPicker + '</div></div>' +
           '<div class="row"><label>显示/采集</label><label class="check"><input type="checkbox" data-f="enabled"' + (t.enabled !== false ? " checked" : "") + dis + '> 启用</label></div>' +
-          (editing ? '<div class="card-actions"><span class="card-status" data-card-status="topic:' + esc(t.id) + '"></span><button class="btn" data-save-topic="' + esc(t.id) + '">保存本卡</button><button class="btn ghost" data-cancel-topic="' + esc(t.id) + '">取消</button><button class="btn danger" data-del-topic="' + idx + '">删除主题</button></div>' : '') +
+          (editing ? '<div class="card-actions"><span class="card-status" data-card-status="topic:' + esc(t.id) + '"></span><button class="btn" data-save-topic="' + esc(t.id) + '">保存本卡</button><button class="btn ghost" data-cancel-topic="' + esc(t.id) + '">取消</button><button class="btn danger" data-del-topic="' + idx + '">删除单元主题</button></div>' : '') +
         '</div>' +
         '</div>';
     }).join("");
@@ -756,7 +756,7 @@
       if (cancel) cancel.addEventListener("click", function () { cancelEdit("section", id); });
       var del = card.querySelector("[data-del-section]");
       if (del) del.addEventListener("click", async function () {
-        if (!(await askConfirm("删除这个自定义板块？有单元的板块不能删除。"))) return;
+        if (!(await askConfirm("删除这个自定义板块？有主题单元的板块不能删除。"))) return;
         state.sections.splice(state.sections.findIndex(function (s) { return s.id === id; }), 1);
         setEditing("section", id, false);
         markDirty("global", "delete-section");
@@ -792,7 +792,7 @@
       if (cancel) cancel.addEventListener("click", function () { cancelEdit("topic", id); });
       var del = card.querySelector("[data-del-topic]");
       if (del) del.addEventListener("click", async function () {
-        if (!(await askConfirm("删除这个主题？历史采集单元不会删除。"))) return;
+        if (!(await askConfirm("删除这个单元主题？历史主题单元不会删除。"))) return;
         state.topics.splice(state.topics.findIndex(function (t) { return t.id === id; }), 1);
         setEditing("topic", id, false);
         markDirty("global", "delete-topic");
@@ -892,7 +892,7 @@
   $("save").addEventListener("click", async function () {
     var emptyChannel = state.topics.filter(function (t) { return !(t.channels || []).length; })[0];
     if (emptyChannel) {
-      status($("settings-status"), "保存失败：主题「" + emptyChannel.title + "」至少选择一个渠道", false);
+      status($("settings-status"), "保存失败：单元主题「" + emptyChannel.title + "」至少选择一个渠道", false);
       return;
     }
     $("save").disabled = true;
@@ -918,7 +918,7 @@
     try {
       var data = await api("/api/site", { method: "PUT", body: JSON.stringify({ default_layout: $("site-layout").value }) });
       state.site = data.site || state.site;
-      status($("site-status"), "已保存。新会话默认使用「" + ({ standard: "简洁", news: "门户", magazine: "画册" }[state.site.default_layout] || state.site.default_layout) + "」版式", true);
+      status($("site-status"), "已保存。新会话默认使用「" + ({ standard: "简洁", news: "门户", magazine: "画册" }[state.site.default_layout] || state.site.default_layout) + "」页面版式", true);
     } catch (e) { status($("site-status"), "保存失败：" + e.message, false); }
     finally { btn.disabled = false; }
   });
@@ -966,7 +966,7 @@
       var text = (data.files || []).join("\n") || "没有待推送数据文件";
       if (data.blockers && data.blockers.length) text += "\n\n阻塞：\n" + data.blockers.join("\n");
       $("git-log").hidden = false; $("git-log").textContent = text;
-      status($("git-status"), data.blockers && data.blockers.length ? "有阻塞，暂不能推送" : ("可推送：" + (data.units || 0) + " 个单元 / " + (data.items || 0) + " 条"), !(data.blockers && data.blockers.length));
+      status($("git-status"), data.blockers && data.blockers.length ? "有阻塞，暂不能推送" : ("可推送：" + (data.units || 0) + " 个主题单元 / " + (data.items || 0) + " 条"), !(data.blockers && data.blockers.length));
     } catch (e) { status($("git-status"), "预览失败：" + e.message, false); }
   });
 

@@ -433,7 +433,7 @@ def search_topic(keyword, platform_key, limit=20, log=print):
         raise PlatformError("渠道 %s 不支持按主题搜索" % platform_key)
     keyword = (keyword or "").strip()
     if not keyword:
-        raise PlatformError("主题关键词不能为空")
+        raise PlatformError("单元主题关键词不能为空")
 
     errors = []
     for engine in _SEARCH_ENGINES[platform_key]:

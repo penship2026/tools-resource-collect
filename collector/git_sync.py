@@ -200,7 +200,7 @@ def push():
         units = len({os.path.basename(p)[:-3] for p in files if p.startswith(DATA_PREFIX)})
         items = sum(len((generate.load_collection_data(os.path.basename(p)[:-3]) or {}).get("videos") or [])
                     for p in files if p.startswith(DATA_PREFIX))
-        msg = "%s%s（%d 单元 / %d 条）" % (
+        msg = "%s%s（%d 主题单元 / %d 条）" % (
             COMMIT_PREFIX, generate.now_stamp(), units, items)
         _git(["commit", "-m", msg], check=True)
         head = _git(["rev-parse", "HEAD"]).stdout.strip()

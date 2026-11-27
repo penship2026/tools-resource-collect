@@ -393,7 +393,7 @@ class GenerateDataTest(unittest.TestCase):
         self.assertEqual(generate.load_collection_data("rmtest2")["videos"], [])
         bad = generate.remove_links("任意关键词", "rmtest2", mode="keyword")
         self.assertFalse(bad["ok"])
-        self.assertIn("按主题采集不支持", bad["error"])
+        self.assertIn("按单元主题采集不支持", bad["error"])
 
     def test_slugify_reuse_for_batch_rerun(self):
         uid = generate.slugify("bilibili:BV1|wechat:abc", None, set())

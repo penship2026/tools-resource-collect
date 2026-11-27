@@ -645,3 +645,12 @@ Chrome 无头截图三页面全部正常:首页卡片标签独立行两行截断
 - 我的页按板块过滤收藏：新增 `mineSection` / `mineScoped` / `unitSection`，优先读快照 `section`，旧收藏回退索引；导航计数改为本地收藏数。
 - 空态与统计：无收藏板块显示「该板块还没有收藏。」，有收藏时显示「该板块 N / 共 M 条收藏」。
 - 验证：CDP 造 AI/K12 两条收藏，切换后均停留在我的页并各显示 1 条，工具与效率显示空态；Python 79、视图 20、版式 15、`layout_lint`、`docs_check` 通过。
+
+## 十九、我的页入口收口与专属导入导出页(2026-11-27)
+
+- 移除我的页顶部导出/导入/设置按钮和合并/替换单选项,我的面板只留标题、统计、筛选与收藏卡。
+- 新增 `mine-io.html` + `assets/pages/mine-io.css`:导出 JSON、导入 JSON、合并/替换、导入前备份、状态反馈;数据只在 localStorage,不访问服务器。
+- 新增 `#mine-footer` 独立页脚:仅「导入导出 / 设置 / 回到公开页」;公开页脚改名 `#public-footer`,采集入口只留在公开页脚。
+- 我的视图收起公开首页的 lead/bands/toc/all-title,避免公开内容残留在个人面板背后。
+- 主题/版式切换器注入改为 `.site-footer:not(.mine-footer)`,我的页脚不出现这两组切换。
+- 验证:CDP 实测我的页无顶部入口、独立页脚无采集入口、设置可打开;`mine-io.html` 当前收藏数正确,模拟导入后 2→3;Python 81、视图 20、版式 15、`layout_lint`、`docs_check` 通过。

@@ -108,7 +108,7 @@
   }
 
   function renderSwitch() {
-    var footer = document.querySelector('.site-footer .wrap');
+    var footer = document.querySelector('.site-footer:not(.mine-footer) .wrap');
     if (!footer || footer.querySelector('.layout-switch')) return;
     var keys = Object.keys(LIST);
     if (keys.length < 2) return;

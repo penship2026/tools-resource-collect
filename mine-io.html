@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>导入 / 导出 · 我的收藏 · 集页</title>
+  <meta name="description" content="我的收藏导入导出:数据只保存在本机浏览器,可导出 JSON 备份或从备份恢复。">
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="stylesheet" href="assets/style.css">
+  <link rel="stylesheet" href="assets/pages/mine-io.css">
+  <script src="assets/theme.js"></script>
+  <script src="assets/site.js"></script>
+  <script src="assets/templates.js"></script>
+  <script src="assets/layout.js"></script>
+  <noscript>
+    <link rel="stylesheet" href="assets/themes/default.css">
+    <link rel="stylesheet" href="assets/layouts/standard.css">
+  </noscript>
+</head>
+<body class="page-mine-io">
+  <a class="skip-link" href="#main-content">跳到主要内容</a>
+
+  <header class="site-header">
+    <div class="wrap">
+      <a class="brand" href="index.html" aria-label="返回集页首页">
+        <span class="brand-mark" aria-hidden="true">◆</span>
+        <span>集页</span>
+      </a>
+      <div class="header-meta">我的 · 导入导出</div>
+    </div>
+  </header>
+
+  <main class="wrap" id="main-content">
+    <div class="crumb">
+      <a href="index.html?view=mine">我的收藏</a><span>/</span><span>导入导出</span>
+    </div>
+
+    <section class="io-hero">
+      <h1>导入 / 导出</h1>
+      <p>收藏只保存在这台设备的浏览器里。换设备、清缓存或整理数据前,建议先导出 JSON 备份。</p>
+      <small id="io-count">正在读取本机收藏…</small>
+    </section>
+
+    <div class="io-grid">
+      <section class="io-card">
+        <h2>导出备份</h2>
+        <p>把当前全部收藏导出为一个 JSON 文件,文件里包含标题、链接、所属主题与收藏时间。</p>
+        <button type="button" id="io-export" class="mine-btn mine-btn-primary">导出 JSON</button>
+        <p class="io-status" id="io-export-status" role="status"></p>
+      </section>
+
+      <section class="io-card">
+        <h2>导入恢复</h2>
+        <p>选择之前导出的 JSON。导入前会自动下载一份当前收藏备份,再按下面的方式写入。</p>
+        <fieldset class="io-mode">
+          <legend>导入方式</legend>
+          <label><input type="radio" name="io-mode" value="merge" checked> 合并 <span>保留较新的收藏</span></label>
+          <label><input type="radio" name="io-mode" value="replace"> 替换 <span>覆盖当前全部收藏</span></label>
+        </fieldset>
+        <p class="io-warn">「替换」不可撤销;如果只是想补回丢失的条目,请用「合并」。</p>
+        <button type="button" id="io-import" class="mine-btn">选择 JSON 文件</button>
+        <input type="file" id="io-file" accept=".json,application/json" hidden>
+        <p class="io-status" id="io-status" role="status"></p>
+      </section>
+    </div>
+
+    <p class="io-note">本页不上传数据,不调用服务器。导出的文件也只在你的电脑上生成。</p>
+  </main>
+
+  <footer class="site-footer mine-footer">
+    <div class="wrap mine-footer-inner">
+      <div class="mine-footer-copy">我的收藏只保存在这台设备,不上传、不同步。</div>
+      <nav class="mine-footer-links" aria-label="我的页导航">
+        <a href="index.html?view=mine">回到我的收藏</a>
+        <a href="index.html">公开首页</a>
+      </nav>
+    </div>
+  </footer>
+
+  <script src="assets/personal.js"></script>
+  <script>
+    (function () {
+      var countEl = document.getElementById('io-count');
+      var exportBtn = document.getElementById('io-export');
+      var exportStatus = document.getElementById('io-export-status');
+      var importBtn = document.getElementById('io-import');
+      var importFile = document.getElementById('io-file');
+      var importStatus = document.getElementById('io-status');
+
+      function count() { return window.Personal ? Personal.count() : 0; }
+      function refresh() {
+        var n = count();
+        countEl.textContent = n ? '当前有 ' + n + ' 条收藏' : '当前还没有收藏';
+        exportBtn.disabled = !n;
+      }
+      function setStatus(el, text, bad) {
+        el.textContent = text;
+        el.classList.toggle('is-bad', !!bad);
+      }
+
+      refresh();
+
+      exportBtn.addEventListener('click', function () {
+        if (!count()) { setStatus(exportStatus, '还没有收藏可导出。', true); return; }
+        Personal.exportJson();
+        setStatus(exportStatus, '已生成备份文件,请查看浏览器下载。');
+      });
+
+      importBtn.addEventListener('click', function () { importFile.click(); });
+      importFile.addEventListener('change', function (e) {
+        var file = e.target.files && e.target.files[0];
+        e.target.value = '';
+        if (!file) return;
+        var modeEl = document.querySelector('input[name="io-mode"]:checked');
+        setStatus(importStatus, '正在导入…');
+        Personal.importFile(file, modeEl ? modeEl.value : 'merge').then(function (r) {
+          refresh();
+          setStatus(importStatus, '导入完成:文件内 ' + r.added + ' 条,当前共 ' + r.total + ' 条。');
+        }).catch(function (err) {
+          setStatus(importStatus, '导入失败(未写入任何数据):' + err.message, true);
+        });
+      });
+    })();
+  </script>
+</body>
+</html>

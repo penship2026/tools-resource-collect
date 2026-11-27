@@ -300,6 +300,14 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 }
 .site-footer .wrap { display: flex; flex-direction: column; gap: 2px; }
 .site-footer a { color: var(--brand); }
+.site-footer.mine-footer .wrap { flex-direction: row; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.mine-footer-copy { color: var(--text-mute); }
+.mine-footer-links { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+.mine-footer-link {
+  padding: 0; border: 0; background: none; color: var(--brand);
+  font: inherit; line-height: inherit; cursor: pointer;
+}
+.mine-footer-link:hover { text-decoration: underline; }
 
 /* 面包屑 */
 .crumb { font-size: 13px; color: var(--text-mute); margin: 18px 0 20px; }
@@ -378,10 +386,8 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   white-space: pre-line;
 }
 .mine-hero-stat { display: inline-block; margin-top: 14px; font-size: var(--fs-xs); color: var(--text-mute); }
-.mine-tools { flex-wrap: wrap; justify-content: flex-end; flex: 0 0 auto; }
 @media (max-width: 720px) {
   .mine-hero { flex-direction: column; gap: 16px; padding-top: 30px; }
-  .mine-tools { justify-content: flex-start; }
 }
 .mine-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
 .mine-head h2 { font-size: 18px; display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
@@ -397,7 +403,6 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   border-radius: var(--radius-sm); padding: 4px 8px; max-width: 220px; outline: none;
 }
 .mine-head small { font-size: 12px; color: var(--text-mute); font-weight: 400; margin-left: 8px; }
-.mine-tools { display: flex; gap: 8px; }
 .mine-btn {
   border: 1px solid var(--border); background: var(--surface); color: var(--text-sub);
   border-radius: 8px; padding: 6px 12px; font-size: 12px; cursor: pointer;
@@ -429,8 +434,6 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 }
 .mine-set-link:hover { color: var(--brand); }
 .mine-set-act { display: flex; gap: 8px; }
-
-.mine-mode { display: flex; gap: 16px; font-size: 12px; color: var(--text-mute); margin-bottom: 16px; }
 
 .fav-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
 .fav-card {

@@ -546,8 +546,17 @@
     if (grid) grid.hidden = true;
     var sectionTitle = document.querySelector('.section-title');
     if (sectionTitle) sectionTitle.hidden = true;
+    // 我的视图只保留板块导航与个人面板,公开首页的头条/分节/目录/全部标题全部收起
+    ['lead', 'section-bands', 'magazine-toc', 'section-empty', 'all-title'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) el.hidden = true;
+    });
     var hero = document.querySelector('.hero');
     if (hero) hero.hidden = true;
+    var publicFooter = document.getElementById('public-footer');
+    if (publicFooter) publicFooter.hidden = true;
+    var mineFooter = document.getElementById('mine-footer');
+    if (mineFooter) mineFooter.hidden = false;
     panel.hidden = false;
     // 个人数据不上搜索引擎;静态页无法按参数改 meta,这里补一个(并写入 robots 头)
     if (!document.querySelector('meta[name="robots"]')) {
@@ -596,7 +605,7 @@
 
     // 设置面板:收藏页名称 + 我的页专属主题(不跟公开主题共用)
     (function () {
-      var btn = panel.querySelector('#mine-settings');
+      var btn = document.getElementById('mine-settings');
       var box = panel.querySelector('#mine-settings-panel');
       var titleInput = panel.querySelector('#mine-set-title');
       var publicInput = panel.querySelector('#mine-set-public');
@@ -643,6 +652,7 @@
         fill();
         box.hidden = false;
         btn.setAttribute('aria-expanded', 'true');
+        if (box.scrollIntoView) box.scrollIntoView({ behavior: 'smooth', block: 'center' });
         titleInput.focus();
         titleInput.select();
       }
@@ -697,26 +707,6 @@
       });
     })();
 
-    panel.querySelector('#mine-export').addEventListener('click', function () {
-      if (!count()) { alert('还没有收藏可导出'); return; }
-      exportJson();
-    });
-    panel.querySelector('#mine-import').addEventListener('click', function () {
-      panel.querySelector('#mine-file').click();
-    });
-    panel.querySelector('#mine-file').addEventListener('change', function (e) {
-      var file = e.target.files && e.target.files[0];
-      e.target.value = '';
-      if (!file) return;
-      var mode = panel.querySelector('input[name="mine-mode"]:checked');
-      importFile(file, mode ? mode.value : 'merge').then(function (r) {
-        renderMineContent();
-        updateSwitchCount();
-        alert('导入完成:文件内 ' + r.added + ' 条,当前共 ' + r.total + ' 条');
-      }).catch(function (err) {
-        alert('导入失败(未写入任何数据):' + err.message);
-      });
-    });
     panel.addEventListener('click', function (e) {
       var btn = e.target.closest && e.target.closest('.fav-del');
       if (!btn) return;

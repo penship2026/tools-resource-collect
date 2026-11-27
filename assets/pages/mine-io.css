@@ -1,0 +1,34 @@
+/* 我的 · 导入导出页:只做版式,颜色/主题全部走 token */
+.page-mine-io .io-hero { padding: var(--layout-hero-pad) 0 10px; }
+.page-mine-io .io-hero h1 { font-size: clamp(26px, 4vw, 34px); line-height: 1.25; margin: 0 0 10px; }
+.page-mine-io .io-hero p { margin: 0; max-width: 640px; color: var(--text-sub); line-height: 1.75; }
+.page-mine-io .io-hero small { display: block; margin-top: 14px; color: var(--text-mute); }
+
+.page-mine-io .io-grid {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--layout-grid-gap); margin: 28px 0 var(--layout-section-gap);
+}
+.page-mine-io .io-card {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 12px;
+  padding: var(--layout-card-pad);
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); box-shadow: var(--shadow);
+}
+.page-mine-io .io-card h2 { margin: 0; font-size: 20px; }
+.page-mine-io .io-card p { margin: 0; color: var(--text-sub); line-height: 1.7; }
+.page-mine-io .io-mode {
+  display: flex; flex-direction: column; gap: 8px;
+  margin: 0; padding: 10px 12px; width: 100%;
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+}
+.page-mine-io .io-mode legend { padding: 0 4px; color: var(--text-mute); font-size: var(--fs-xs); }
+.page-mine-io .io-mode label { display: flex; align-items: center; gap: 8px; font-size: var(--fs-sm); }
+.page-mine-io .io-mode label span { color: var(--text-mute); font-size: var(--fs-xs); }
+.page-mine-io .io-warn { color: var(--text-mute); font-size: var(--fs-xs); line-height: 1.6; }
+.page-mine-io .io-status { min-height: 1.6em; font-size: var(--fs-xs); color: var(--text-mute); }
+.page-mine-io .io-status.is-bad { color: var(--text); }
+.page-mine-io .io-note { color: var(--text-mute); font-size: var(--fs-xs); line-height: 1.7; }
+
+@media (max-width: 720px) {
+  .page-mine-io .io-grid { grid-template-columns: minmax(0, 1fr); }
+}

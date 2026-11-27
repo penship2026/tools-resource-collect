@@ -59,6 +59,28 @@ class PagesContractTest(unittest.TestCase):
         self.assertIn('<h2 id="hero-title">', html)
         self.assertNotIn('<h1 id="hero-title">', html)
 
+    def test_mine_actions_use_independent_footer(self):
+        idx = read("index.html")
+        self.assertNotIn('id="mine-export"', idx)
+        self.assertNotIn('id="mine-import"', idx)
+        self.assertNotIn('name="mine-mode"', idx)
+        self.assertIn('id="public-footer"', idx)
+        self.assertIn('id="mine-footer"', idx)
+        mine_footer = idx[idx.index('id="mine-footer"'):idx.index('</footer>', idx.index('id="mine-footer"'))]
+        self.assertIn('mine-io.html', mine_footer)
+        self.assertIn('id="mine-settings"', mine_footer)
+        self.assertNotIn('采集入口', mine_footer)
+        self.assertTrue(os.path.exists(os.path.join(ROOT, "mine-io.html")))
+        io = read("mine-io.html")
+        self.assertIn('name="io-mode"', io)
+        self.assertIn('id="io-export"', io)
+        self.assertIn('id="io-import"', io)
+        self.assertIn('assets/personal.js', io)
+
+    def test_mine_footer_has_no_theme_or_layout_switch(self):
+        for asset in ("assets/theme.js", "assets/layout.js"):
+            self.assertIn(":not(.mine-footer)", read(asset), asset)
+
     def test_mine_view_keeps_section_navigation(self):
         js = read("assets/personal.js")
         self.assertIn("mineSection", js)

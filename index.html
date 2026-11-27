@@ -105,12 +105,6 @@
           <p class="mine-hero-sub" id="mine-sub">只保存在这台设备的收藏,不上传、不同步。</p>
           <small id="mine-stat" class="mine-hero-stat"></small>
         </div>
-        <div class="mine-tools">
-          <button type="button" id="mine-export" class="mine-btn">导出备份</button>
-          <button type="button" id="mine-import" class="mine-btn">导入</button>
-          <button type="button" id="mine-settings" class="mine-btn" aria-expanded="false" aria-controls="mine-settings-panel">设置</button>
-          <input type="file" id="mine-file" accept=".json,application/json" hidden>
-        </div>
       </div>
       <!-- 我的页设置:收藏页名称 + 只对本页生效的主题 -->
       <div class="mine-settings" id="mine-settings-panel" hidden>
@@ -169,19 +163,26 @@
           </div>
         </div>
       </div>
-      <div class="mine-mode">
-        <label><input type="radio" name="mine-mode" value="merge" checked> 合并(保留较新)</label>
-        <label><input type="radio" name="mine-mode" value="replace"> 替换(覆盖当前,慎用)</label>
-      </div>
       <div id="mine-body"></div>
     </section>
   </main>
 
-  <footer class="site-footer">
+  <footer class="site-footer" id="public-footer">
     <div class="wrap">
       <div>内容来自各平台公开内容,版权归原作者所有,本站仅做链接聚合与导航。</div>
       <div>页面为固定模板,采集只更新数据;新增主题请在 <a href="collect.html">采集入口</a> 操作 →</div>
       <div>个人收藏只存在本机浏览器,可随时<a href="index.html?view=mine">导出备份或导入恢复</a>。</div>
+    </div>
+  </footer>
+
+  <footer class="site-footer mine-footer" id="mine-footer" hidden>
+    <div class="wrap mine-footer-inner">
+      <div class="mine-footer-copy">我的收藏只保存在这台设备,不上传、不同步。</div>
+      <nav class="mine-footer-links" aria-label="我的页导航">
+        <a href="mine-io.html">导入导出</a>
+        <button type="button" id="mine-settings" class="mine-footer-link" aria-expanded="false" aria-controls="mine-settings-panel">设置</button>
+        <a href="index.html">回到公开页</a>
+      </nav>
     </div>
   </footer>
 

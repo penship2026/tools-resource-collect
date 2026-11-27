@@ -199,6 +199,7 @@ def compile_layout(spec, no_timestamp=True, approval="", timestamp=None):
         "}",
     ]
     sel = 'html[data-layout="%s"]' % key
+    lines.append("%s .topic-grid { grid-template-columns: repeat(%d, minmax(0, 1fr)); }" % (sel, cols))
     if not caps["nav"] or spec["nav"]["style"] == "none":
         lines.append("%s .section-nav { display: none; }" % sel)
     elif not spec["nav"]["sticky"]:

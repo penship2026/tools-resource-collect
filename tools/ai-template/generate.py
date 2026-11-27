@@ -117,17 +117,13 @@ def _strip_fence(text):
 
 def parse_candidates(text):
     text = _strip_fence(text)
-    start = text.find("[")
-    end = text.rfind("]")
-    obj_start = text.find("{")
-    if start >= 0 and end > start:
-        payload = text[start:end + 1]
-    elif obj_start >= 0:
-        payload = text[obj_start:]
-    else:
+    starts = [pos for pos in (text.find("["), text.find("{")) if pos >= 0]
+    if not starts:
         raise CandidateError("模型输出里没有 JSON 数组/对象")
+    start = min(starts)
     try:
-        data = json.loads(payload)
+        # 只取第一个完整 JSON 值，容忍模型在 JSON 后追加说明或第二个对象。
+        data, _end = json.JSONDecoder().raw_decode(text[start:])
     except json.JSONDecodeError as exc:
         raise CandidateError("模型输出不是合法 JSON:%s" % exc)
     if isinstance(data, dict):
@@ -386,12 +382,12 @@ def save_manual(spec_path, new_spec):
     errors = validate_candidates([new_spec], kind, expect=1)
     if errors:
         raise GenerationError(errors)
-    base_dir = path.parent.parent
+    key_dir = path.parents[1]
     base_candidate = path.parent.name
-    versions = [p for p in base_dir.glob(base_candidate + "-e*") if p.is_dir()]
+    versions = [p for p in key_dir.glob(base_candidate + "-e*") if p.is_dir()]
     n = max([int(p.name.split("-e", 1)[1]) for p in versions if p.name.split("-e", 1)[1].isdigit()] or [1]) + 1
     candidate_name = "%s-e%d" % (base_candidate, n)
-    candidate_dir, result = _write_compiled(base_dir, key, new_spec, kind, candidate_name)
+    candidate_dir, result = _write_compiled(key_dir.parent, key, new_spec, kind, candidate_name)
     return {
         "ok": True, "kind": kind, "key": key, "candidate": candidate_name,
         "spec_path": str(candidate_dir / "spec.json"),

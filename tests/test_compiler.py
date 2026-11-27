@@ -62,6 +62,7 @@ class CompilerTest(unittest.TestCase):
         self.assertIn('html[data-layout="news-dense"]', css)
         self.assertIn("--layout-band-cols: 4", css)
         self.assertIn("--layout-cover-ratio: 4 / 3", css)
+        self.assertIn(".topic-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }", css)
 
     def test_layout_registry(self):
         reg = compiler.layout_registry(self.layout)

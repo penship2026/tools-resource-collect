@@ -107,6 +107,16 @@ class PreviewHtmlTest(unittest.TestCase):
         self.assertEqual(codes["G4"], "G4_DOM")
         self.assertTrue(gates[0]["errors"])
 
+    def test_preview_recompiles_existing_css(self):
+        spec = load_mock("layout")
+        with tempfile.TemporaryDirectory() as tmp:
+            css_path = Path(tmp) / ("%s.css" % spec["key"])
+            css_path.write_text("/* stale */\n", encoding="utf-8")
+            preview.evaluate(spec, "layout", tmp, no_shot=True)
+            css = css_path.read_text(encoding="utf-8")
+        self.assertNotIn("/* stale */", css)
+        self.assertIn("--layout-band-cols: %d" % spec["bands"]["columns"], css)
+
     def test_no_shot_report_marks_visual_skipped(self):
         with tempfile.TemporaryDirectory() as tmp:
             report = preview.evaluate(load_mock("layout"), "layout", tmp, no_shot=True)

@@ -285,8 +285,7 @@ def evaluate(spec, kind, out_dir, no_shot=False, quick=False):
         return report
 
     css_path = out / ("%s.css" % spec["key"])
-    if not css_path.exists():
-        css_path.write_text(static["css"], encoding="utf-8")
+    css_path.write_text(static["css"], encoding="utf-8")
     html = build_preview(spec, kind, css_path, out / "preview" / "index.html")
     report["preview"] = str(html.relative_to(out))
 

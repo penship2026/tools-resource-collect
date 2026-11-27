@@ -265,6 +265,10 @@ class ManualAndArchiveTest(unittest.TestCase):
         self.assertTrue(result["ok"])
         self.assertEqual(result["candidate"], "candidate-1-e2")
         self.assertTrue((root / result["spec_path"]).exists())
+        self.assertEqual(
+            Path(result["spec_path"]).resolve(),
+            (root / "tools" / "ai-template" / "drafts" / "manual-a4" / "candidate-1-e2" / "spec.json").resolve(),
+        )
         self.assertEqual(spec_path.read_text(encoding="utf-8"), old)
 
     def test_archive_keeps_files_and_blocks_reupload(self):

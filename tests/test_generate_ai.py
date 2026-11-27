@@ -87,6 +87,24 @@ class GenerateAITest(unittest.TestCase):
         self.assertEqual(len(one["candidates"]), 1)
         self.assertEqual(len(five["candidates"]), 5)
 
+    def test_parse_single_object_with_inner_array_and_trailing_text(self):
+        raw = ('{"version":1,"kind":"layout","key":"single-a",'
+               '"responsive":{"breakpoints":[1080,720,390],"mobileColumns":1,"leadStack":true}}\n'
+               '以上是设计说明')
+        items = generate.parse_candidates(raw)
+        self.assertEqual(len(items), 1)
+        self.assertEqual(items[0]["key"], "single-a")
+        self.assertEqual(items[0]["responsive"]["breakpoints"], [1080, 720, 390])
+
+    def test_layout_prompt_covers_schema_required_fields(self):
+        schema = json.loads((ROOT / "spec" / "layout.schema.json").read_text(encoding="utf-8"))
+        text = (ROOT / "tools" / "ai-template" / "prompts" / "system-layout.md").read_text(encoding="utf-8")
+        for key in schema["required"]:
+            self.assertIn(key, text, key)
+        for key in ("sticky", "showDescription", "moreLink", "showTags", "leadStack"):
+            self.assertIn(key, text, key)
+        self.assertIn("禁止出现 `toc`", text)
+
     def test_regenerate_keeps_key_and_writes_new_version(self):
         with tempfile.TemporaryDirectory() as tmp:
             out = Path(tmp) / "out"

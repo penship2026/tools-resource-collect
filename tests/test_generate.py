@@ -303,6 +303,47 @@ class GenerateDataTest(unittest.TestCase):
             self.assertFalse(generate.valid_unit_id(bad))
         self.assertIsNone(generate.load_collection_data("../index"))
 
+    def test_remove_links_from_existing_unit(self):
+        """按链接重新采集时可把输入链接当作移除项;记录移除但不改原 intake"""
+        data = {
+            "id": "rmtest", "type": "series", "title": "待整理合集", "section": "tools",
+            "count": 2, "videos": [video(0), video(1)],
+            "intake": {"mode": "batch", "input": "旧输入", "at": "2026-11-20 10:00"},
+            "runs": [{"at": "2026-11-20 10:00", "mode": "batch", "total": 2}],
+        }
+        with open(os.path.join(generate.COLLECTIONS_DIR, "rmtest.js"), "w", encoding="utf-8") as fh:
+            fh.write("window.COLLECTION_DATA[\"rmtest\"] = %s;\n" % json.dumps(data, ensure_ascii=False))
+        generate.rebuild_index()
+        res = generate.remove_links(
+            "https://www.bilibili.com/video/BV1test0000/?share=1", "rmtest", mode="url")
+        self.assertTrue(res["ok"], res)
+        self.assertEqual(res["removed"], 1)
+        self.assertEqual(res["total"], 1)
+        got = generate.load_collection_data("rmtest")
+        self.assertEqual([v["key"] for v in got["videos"]], ["k1"])
+        self.assertEqual(got["intake"], data["intake"])
+        self.assertEqual(got["runs"][0]["mode"], "remove")
+        self.assertEqual(got["runs"][0]["removed"], 1)
+
+    def test_remove_links_batch_and_rejects_keyword(self):
+        data = {
+            "id": "rmtest2", "type": "series", "title": "待整理合集二", "section": "tools",
+            "count": 2, "videos": [video(0), video(1)],
+        }
+        with open(os.path.join(generate.COLLECTIONS_DIR, "rmtest2.js"), "w", encoding="utf-8") as fh:
+            fh.write("window.COLLECTION_DATA[\"rmtest2\"] = %s;\n" % json.dumps(data, ensure_ascii=False))
+        generate.rebuild_index()
+        res = generate.remove_links(
+            "https://www.bilibili.com/video/BV1test0000/\nhttps://www.bilibili.com/video/BV1test0001/",
+            "rmtest2", mode="batch")
+        self.assertTrue(res["ok"], res)
+        self.assertEqual(res["removed"], 2)
+        self.assertEqual(res["total"], 0)
+        self.assertEqual(generate.load_collection_data("rmtest2")["videos"], [])
+        bad = generate.remove_links("任意关键词", "rmtest2", mode="keyword")
+        self.assertFalse(bad["ok"])
+        self.assertIn("按主题采集不支持", bad["error"])
+
     def test_slugify_reuse_for_batch_rerun(self):
         uid = generate.slugify("bilibili:BV1|wechat:abc", None, set())
         self.assertEqual(generate.slugify("bilibili:BV1|wechat:abc", None, {uid}, reuse=True), uid)

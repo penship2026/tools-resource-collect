@@ -52,6 +52,7 @@
 | M9 | 我的卡片同构与详情视图延续 | ✅ 完成 | 收藏卡复用 `Render.topicCard` 与 `.topic-grid`，合集/单条右上角标记；`series/list/single` 透传 `view=mine`，面包屑回我的收藏；Python 83、视图 21、版式 15；CDP 实测合集→单条→板块链路 | 11-27 |
 | M10 | 筛选条吸顶与默认收缩 | ✅ 完成 | `.filter-bar` sticky；动态 `--layout-filter-top` 避开站点头/导航；吸顶自动收成一行可展开；简洁/门户/我的页 CDP 实测 50px 收缩态；Python 84、视图 21、版式 15 | 11-27 |
 | M11 | 导入导出页发布白名单修复 | ✅ 完成 | 本地 `STATIC_EXACT` 加 `/mine-io.html`；Pages artifact 加 `mine-io.html`；本地 200 实测；Docs 同步 | 11-27 |
+| M12 | 重新采集支持移除链接 | ✅ 完成 | 采集方式新增 `remove`；仅链接采集；本地匹配删除；记录 run 不改 intake；Python 用例与接口实测 | 11-27 |
 
 状态符号：⏸ 待开始 / ⏳ 进行中 / ✅ 完成 / ⚠️ 阻塞 / 🔁 返工。
 

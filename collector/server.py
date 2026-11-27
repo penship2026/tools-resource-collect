@@ -524,8 +524,9 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         keyword = (payload.get("keyword") or "").strip()
         mode = (payload.get("mode") or "keyword").strip()
         # 采集方式:append(默认,追加保留旧条目)| replace(覆盖,只保留本次结果)
+        # | remove(按填写的链接从已有单元移除条目,仅链接类采集可用)
         merge_mode = (payload.get("merge_mode") or "append").strip()
-        if merge_mode not in ("append", "replace"):
+        if merge_mode not in ("append", "replace", "remove"):
             self._json({"ok": False, "error": "不支持的采集方式: %s" % merge_mode}, 400)
             return
         # 覆盖只对已有单元有意义;新建时强制按追加处理,避免误传参数造成空结果
@@ -540,6 +541,23 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 hint = "主题关键词不能为空"
             self._json({"ok": False, "error": hint}, 400)
             return
+        # 移除链接:只按填写的链接做本地匹配,不重新抓取内容;主题采集没有单条链接可移除
+        if merge_mode == "remove":
+            if mode == "keyword":
+                self._json({"ok": False, "error": "按主题采集不支持移除链接,请切换到按链接或批量链接"}, 400)
+                return
+            if not unit_id_raw:
+                self._json({"ok": False, "error": "移除链接必须指定要操作的采集单元"}, 400)
+                return
+            logs = []
+            result = generate.remove_links(
+                text=keyword, unit_id=unit_id_raw, mode=mode,
+                dry_run=bool(payload.get("dry_run")), log=lambda m: logs.append(str(m)),
+            )
+            result["logs"] = logs
+            self._json(result, 200 if result.get("ok") else 400)
+            return
+
         # 批量采集的显示标题是必填项(前端已有默认值,这里再兜一层)
         if mode == "batch" and not (payload.get("title") or "").strip():
             self._json({"ok": False, "error": "请填写显示标题(批量采集必填,可用自动生成的默认值)"}, 400)

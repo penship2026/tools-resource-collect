@@ -2255,6 +2255,146 @@ def collect_batch(text, title=None, slug=None, slogan=None, dry_run=False,
     return result
 
 
+def _link_match_keys(text):
+    """把一条链接/分享文案拆成用于匹配既有条目的稳定键。
+
+    只做本地解析,不请求网络;支持 B站 BV/视频页、公众号文章、小红书笔记和普通原文地址。
+    """
+    keys = set()
+    urls = channels.extract_urls(text or "")
+    if not urls and (text or "").strip():
+        urls = [(text or "").strip()]
+    for raw in urls:
+        raw = (raw or "").strip()
+        if not raw:
+            continue
+        bv = re.search(r"(BV[0-9A-Za-z]{10})", raw)
+        if bv:
+            keys.add("b:" + bv.group(1).upper())
+        m = re.search(r"https?://[^\s\"'<>，。、；]+", raw)
+        if not m:
+            continue
+        url = m.group(0)
+        try:
+            parsed = urllib.parse.urlparse(url)
+        except ValueError:
+            continue
+        host = (parsed.hostname or "").lower()
+        path = urllib.parse.unquote(parsed.path or "").rstrip("/")
+        # 公众号文章短链末段 / 小红书笔记 ID:换域名、带查询参数也能命中
+        wx = re.search(r"/s/([A-Za-z0-9_-]{6,})", path)
+        if wx and ("weixin" in host or "qq.com" in host):
+            keys.add("w:" + wx.group(1).lower())
+        xhs = re.findall(r"([0-9a-fA-F]{24})", path)
+        if xhs and "xiaohongshu" in host:
+            keys.add("x:" + xhs[-1].lower())
+        keys.add("u:%s%s" % (host, path))
+    return keys
+
+
+def _video_match_keys(video):
+    """从已存条目里提取与 _link_match_keys 对应的键。"""
+    keys = set()
+    for value in ((video or {}).get("url"), (video or {}).get("key"), (video or {}).get("bv")):
+        value = str(value or "").strip()
+        if not value:
+            continue
+        if ":" in value and value.split(":", 1)[0] in ("bilibili", "wechat", "xhs"):
+            value = value.split(":", 1)[1]
+        if re.fullmatch(r"BV[0-9A-Za-z]{10}", value, re.I):
+            keys.add("b:" + value.upper())
+        elif re.fullmatch(r"[0-9a-fA-F]{24}", value) and "xiaohongshu" not in value:
+            keys.add("x:" + value.lower())
+        else:
+            keys.update(_link_match_keys(value))
+    return keys
+
+
+@serialized_collect
+def remove_links(text, unit_id, mode="url", dry_run=False, log=print):
+    """从已有采集单元移除指定链接对应的条目。
+
+    仅支持按链接 / 批量链接;按主题采集没有明确的单条链接可移除,直接拒绝。
+    只做本地匹配与写文件,不重新抓取内容,也不改写单元原有 intake(下次回填仍是原采集信息)。
+    """
+    result = {
+        "ok": False, "error": None, "removed": 0, "total": 0, "kept": 0,
+        "unit_id": unit_id or "", "links": 0, "unmatched": [], "removed_titles": [],
+        "data_file": "", "page_file": "", "dry_run": bool(dry_run),
+    }
+    if mode not in ("url", "batch"):
+        result["error"] = "按主题采集不支持移除链接,请切换到按链接或批量链接"
+        return result
+    if not valid_unit_id(unit_id or ""):
+        result["error"] = "单元 id 不合法"
+        return result
+    data = load_collection_data(unit_id)
+    if data is None:
+        result["error"] = "未找到采集单元: %s" % unit_id
+        return result
+    tokens = channels.extract_urls(text or "")
+    if not tokens and mode == "url" and (text or "").strip():
+        tokens = [(text or "").strip()]
+    if not tokens:
+        result["error"] = "请填写要移除的链接"
+        return result
+    result["links"] = len(tokens)
+    videos = list(data.get("videos") or [])
+    remove_idx, unmatched = set(), []
+    for token in tokens:
+        keys = _link_match_keys(token)
+        hit = False
+        for idx, video in enumerate(videos):
+            if keys & _video_match_keys(video):
+                remove_idx.add(idx)
+                hit = True
+        if not hit:
+            unmatched.append(token)
+    result["unmatched"] = unmatched
+    result["removed"] = len(remove_idx)
+    result["total"] = len(videos) - len(remove_idx)
+    result["kept"] = result["total"]
+    if not remove_idx:
+        result["error"] = "没有匹配到可移除的条目,请核对链接是否属于该单元"
+        return result
+    removed = [videos[i] for i in sorted(remove_idx)]
+    result["removed_titles"] = [v.get("title", "") for v in removed]
+    for video in removed:
+        log("  - 移除: %s" % (video.get("title") or video.get("url") or "未命名条目"))
+    if unmatched:
+        log("有 %d 条链接未匹配,已跳过:%s" % (len(unmatched), " / ".join(unmatched[:3])))
+    if dry_run:
+        log("[dry-run] 未写文件")
+        result["ok"] = True
+        return result
+
+    remaining = [v for i, v in enumerate(videos) if i not in remove_idx]
+    data["videos"] = remaining
+    data["count"] = len(remaining)
+    data["latest"] = (remaining[0].get("date", "") if remaining else "")
+    if remaining and (data.get("source") or {}).get("url"):
+        data["source"]["url"] = remaining[0].get("url", "") or data["source"]["url"]
+    plats = list(dict.fromkeys([v.get("platform") for v in remaining if v.get("platform")]))
+    if plats:
+        data["platforms"] = plats
+    runs = list(data.get("runs") or [])
+    runs.insert(0, {
+        "at": now_stamp(), "mode": "remove", "mode_label": "移除链接",
+        "input_count": len(tokens), "title": data.get("title", ""),
+        "added": 0, "updated": 0, "kept": len(remaining), "total": len(remaining),
+        "removed": len(remove_idx),
+    })
+    data["runs"] = runs[:20]
+    data["updated"] = datetime.date.today().isoformat()
+    write_collection_file(data)
+    rebuild_index()
+    page_path = "%s.html?id=%s" % ("series" if data.get("type") == "series" else "single", unit_id)
+    result.update(ok=True, data_file="assets/data/collections/%s.js" % unit_id,
+                  page_file=page_path)
+    log("已从单元 %s 移除 %d 条,剩余 %d 条" % (unit_id, len(remove_idx), len(remaining)))
+    return result
+
+
 def _collect_bilibili_single(url, title=None, slug=None, slogan=None, dry_run=False,
                              unit_id=None, log=print, intake=None, replace=False):
     """按 B站 视频链接采集单条视频,写入一个 single 单元。来源是视频详情 API。"""

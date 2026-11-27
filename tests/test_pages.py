@@ -196,6 +196,15 @@ class PagesContractTest(unittest.TestCase):
         for tool in ("collector/collect.html", "collector/settings.html"):
             self.assertNotIn("assets/layout.js", read(tool), tool)
 
+    def test_collect_remove_link_option(self):
+        """重新采集的采集方式里,链接类可选用「移除当前链接」,主题采集不提供"""
+        html = read("collector/collect.html")
+        self.assertIn('id="merge-remove-pick"', html)
+        self.assertIn('name="merge_mode" value="remove"', html)
+        self.assertIn("mergeMode() === 'remove'", html)
+        self.assertIn("按主题采集不支持移除链接", html)
+        self.assertIn("d.removed", html)
+
     def test_theme_loaded_in_every_page(self):
         for page in THEMED:
             self.assertIn("theme.js", read(page), page)

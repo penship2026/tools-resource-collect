@@ -203,8 +203,9 @@
             <div class="channel-picks">
               <label class="pick"><input type="radio" name="merge_mode" value="append" checked> 追加(保留已有条目)</label>
               <label class="pick"><input type="radio" name="merge_mode" value="replace"> 覆盖(只保留本次结果)</label>
+              <label class="pick" id="merge-remove-pick"><input type="radio" name="merge_mode" value="remove"> 移除当前链接</label>
             </div>
-            <div class="tip">覆盖会丢弃该单元里本次未采集到的旧条目,建议先点「预览模式」确认,或先导出备份。</div>
+            <div class="tip">覆盖会丢弃该单元里本次未采集到的旧条目,建议先点「预览模式」确认,或先导出备份。移除只对「按链接 / 批量链接」可用:输入框里填的链接会被当作要移除的条目,不会重新抓取,也不支持按主题采集。</div>
           </div>
           <!-- 必填项:按当前模式只显示对应的一个输入框 -->
           <div class="field hidden" id="field-keyword">
@@ -338,7 +339,11 @@
     let recollectEnabled = true; // 该单元当前是否在首页显示(重新采集态用于「下线 / 重新上线」)
     let siteCsrf = '';           // 站点外观写入需要 CSRF,token 由 GET /api/site 下发
 
+    function mergeMode() {
+      return (document.querySelector('input[name="merge_mode"]:checked') || {}).value || 'append';
+    }
     function submitLabel() {
+      if (recollectId && mergeMode() === 'remove') return '确认移除链接';
       if (recollectId) return '确认重新采集';
       if (mode === 'batch') return '开始批量采集';
       return mode === 'url' ? '采集这条内容' : '开始采集';
@@ -373,6 +378,12 @@
       $('field-channels').classList.toggle('hidden', !isKeyword);
       $('field-url').classList.toggle('hidden', m !== 'url');
       $('field-batch').classList.toggle('hidden', m !== 'batch');
+      // 移除只对链接类采集有意义;主题采集不提供该选项
+      const canRemove = m === 'url' || m === 'batch';
+      $('merge-remove-pick').classList.toggle('hidden', !canRemove);
+      if (!canRemove && mergeMode() === 'remove') {
+        document.querySelector('input[name="merge_mode"][value="append"]').checked = true;
+      }
       $('field-up').classList.toggle('hidden', !isKeyword);
       $('field-pages').classList.toggle('hidden', !isKeyword);
       $('field-manual').classList.toggle('hidden', isKeyword);
@@ -391,6 +402,9 @@
     $('tab-keyword').addEventListener('click', () => setMode('keyword'));
     $('tab-url').addEventListener('click', () => setMode('url'));
     $('tab-batch').addEventListener('click', () => setMode('batch'));
+    document.querySelectorAll('input[name="merge_mode"]').forEach(radio => {
+      radio.addEventListener('change', () => { $('submit').textContent = submitLabel(); });
+    });
 
     // 用相对路径调用接口,兼容站点部署在子目录下(根路径下也正常)
     const API_COLLECT = 'api/collect';
@@ -428,7 +442,7 @@
       [/mp\.weixin\.qq\.com|weixin\.qq\.com/i, '公众号'],
       [/xiaohongshu\.com|xhslink\.com/i, '小红书'],
     ];
-    const MODE_NAMES = { url: '按链接采集', batch: '批量链接采集', keyword: '按主题采集' };
+    const MODE_NAMES = { url: '按链接采集', batch: '批量链接采集', keyword: '按主题采集', remove: '移除链接' };
     const CHANNEL_NAMES = { bilibili: 'B站', wechat: '公众号', xhs: '小红书' };
     function modeName(m) { return MODE_NAMES[m] || m || '未知方式'; }
     // 按主题采集的多选渠道:顺序固定为 B站 / 公众号 / 小红书,便于回填和展示
@@ -515,6 +529,7 @@
         const label = r.mode_label || MODE_NAMES[r.mode] || r.mode;
         if (label) bits.push(label);
         if (r.input_count) bits.push(r.input_count + ' 条输入');
+        if (r.removed) bits.push('移除 ' + (r.removed || 0));
         if (r.added || r.updated) bits.push('新增 ' + (r.added || 0) + ' / 更新 ' + (r.updated || 0));
         return '<li><span>' + bits.join(' · ') + '</span><span class="run-at">' + fmtStamp(r.at) + '</span></li>';
       }).join('');
@@ -925,7 +940,7 @@
         pages: parseInt($('pages').value) || 30,
         channels: channels,
         dry_run: $('dry_run').checked,
-        merge_mode: (document.querySelector('input[name="merge_mode"]:checked') || {}).value || 'append',
+        merge_mode: mergeMode(),
         // 手工补录:公众号/小红书抓取被风控时,至少填标题即可建单元
         manual_title: $('manual_title').value.trim(),
         manual_author: $('manual_author').value.trim(),
@@ -937,12 +952,25 @@
           !confirm('确认覆盖采集?该单元里本次未采集到的旧条目会被删除。')) {
         return;
       }
+      if (payload.merge_mode === 'remove' && !payload.dry_run) {
+        if (mode === 'keyword') {
+          statusBox.className = 'status err';
+          statusBox.textContent = '按主题采集不支持移除链接,请切换到按链接或批量链接';
+          return;
+        }
+        const n = linksIn(keyword).length || 1;
+        if (!confirm('确认从当前单元移除这 ' + n + ' 条链接?\n\n只移除与输入链接匹配的条目,不会重新抓取内容。')) {
+          return;
+        }
+      }
       $('submit').disabled = true;
       $('submit').textContent = '采集中…';
       statusBox.className = 'status';
-      statusBox.textContent = mode === 'keyword'
-        ? '正在搜索 B站,请稍候(约需十几秒)…'
-        : '正在解析链接内容,请稍候…';
+      statusBox.textContent = payload.merge_mode === 'remove'
+        ? '正在从当前单元移除链接…'
+        : (mode === 'keyword'
+          ? '正在搜索 B站,请稍候(约需十几秒)…'
+          : '正在解析链接内容,请稍候…');
       logBox.textContent = '';
       reportBox.classList.remove('show');
 
@@ -957,8 +985,12 @@
         if (d.ok) {
           statusBox.className = 'status ok';
           statusBox.textContent = d.dry_run
-            ? '预览完成,未写入文件'
-            : '完成!新增 ' + d.added + ' / 更新 ' + d.updated + ' / 合计 ' + d.total + ' 期';
+            ? (payload.merge_mode === 'remove'
+              ? '预览完成:将移除 ' + (d.removed || 0) + ' 条,剩余 ' + (d.total || 0) + ' 条(未写入文件)'
+              : '预览完成,未写入文件')
+            : (payload.merge_mode === 'remove'
+              ? '已移除 ' + (d.removed || 0) + ' 条,剩余 ' + (d.total || 0) + ' 条'
+              : '完成!新增 ' + d.added + ' / 更新 ' + d.updated + ' / 合计 ' + d.total + ' 期');
           $('r-added').textContent = d.added;
           $('r-updated').textContent = d.updated;
           $('r-kept').textContent = d.kept;

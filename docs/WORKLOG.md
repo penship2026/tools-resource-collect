@@ -675,3 +675,10 @@ Chrome 无头截图三页面全部正常:首页卡片标签独立行两行截断
 - 现象:本地访问 `mine-io.html` 返回「未对外开放的路径」;Pages 发布产物也未包含该页。
 - 修复:`collector/server.py` 的 `STATIC_EXACT` 加入 `/mine-io.html`,404 提示同步;`.github/workflows/pages.yml` 的 artifact 清单加入 `mine-io.html`;GITHUB-PAGES/DEPLOY/README 页面清单同步。
 - 验证:本地 18087 端口实测 `/mine-io.html` 200、`/collector/settings.html` 仍 200;Python 85、视图 21、版式 15、`layout_lint`、`docs_check`、`--verify` 通过。线上需等 Pages 重新部署。
+
+## 二十三、重新采集支持移除当前链接(2026-11-27)
+
+- 采集方式增加「移除当前链接」(`merge_mode=remove`),只在按链接/批量链接显示;切到按主题采集自动回到追加。
+- 前端提交前二次确认,成功后显示「已移除 N 条,剩余 M 条」;预览模式只计算不写文件。
+- 后端新增 `generate.remove_links()`:按 B站 BV / 公众号短链末段 / 小红书笔记 ID / 原文地址本地匹配,只删除对应条目,不重新抓取,不改原 intake,另记一条 `runs`。
+- 验证:单链接、批量、主题拒绝用例通过;临时数据目录 `POST /api/collect` 实测 `removed=1,total=1`,数据文件 `count/latest` 同步。

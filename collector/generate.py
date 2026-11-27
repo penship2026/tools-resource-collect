@@ -120,6 +120,7 @@ THEME_KEYS = ("default", "dark", "tech", "campus", "classical", "anime")
 DEFAULT_VISIBLE_LAYOUTS = ("standard", "news", "magazine")
 DEFAULT_VISIBLE_THEMES = ("default", "dark", "tech", "campus", "classical")
 DISPLAY_MAX = 5
+DISPLAY_MAX_LIMIT = 20
 SITE_KEY_RE = re.compile(r"^[a-z0-9-]{3,24}$")
 # 每次采集是独立单元,数据单独存一个文件,便于局部更新与单独关闭显示
 COLLECTIONS_DIR = os.path.join(DATA_DIR, "collections")
@@ -562,7 +563,9 @@ def load_site_config(path=None):
     path = path or SITE_FILE
     config = {"version": 1, "default_layout": "standard", "editorial": {},
               "display": {"visible_layouts": list(DEFAULT_VISIBLE_LAYOUTS),
-                          "visible_themes": list(DEFAULT_VISIBLE_THEMES)}}
+                          "visible_themes": list(DEFAULT_VISIBLE_THEMES),
+                          "max_layouts": DISPLAY_MAX,
+                          "max_themes": DISPLAY_MAX}}
     if not os.path.exists(path):
         return config
     in_site = in_editorial = in_display = False
@@ -601,6 +604,12 @@ def load_site_config(path=None):
                     # 允许 `visible_themes: []` 显式清空
                     if raw.strip() == "[]":
                         config["display"][key] = []
+                elif indent == 2 and key in ("max_layouts", "max_themes"):
+                    display_list = ""
+                    try:
+                        config["display"][key] = int(_site_scalar(raw) or DISPLAY_MAX)
+                    except ValueError:
+                        config["display"][key] = DISPLAY_MAX
                 else:
                     display_list = ""
             elif in_editorial:
@@ -626,8 +635,8 @@ def _valid_hero_url(value):
     return parsed.scheme == "http" and parsed.hostname in ("127.0.0.1", "localhost")
 
 
-def _normalize_display_list(values, label, locked):
-    """展示清单:1–5 个合法 key,不重复,锁定项必须在。"""
+def _normalize_display_list(values, label, locked, max_items=DISPLAY_MAX):
+    """展示清单:1–当前上限个合法 key,不重复,锁定项必须在。"""
     if values is None:
         values = []
     if not isinstance(values, (list, tuple)):
@@ -642,11 +651,21 @@ def _normalize_display_list(values, label, locked):
         clean.append(key)
     if not clean:
         raise ValueError("display.%s 不能为空" % label)
-    if len(clean) > DISPLAY_MAX:
-        raise ValueError("display.%s 最多 %d 套" % (label, DISPLAY_MAX))
+    if len(clean) > max_items:
+        raise ValueError("display.%s 超过当前上限 %d 套" % (label, max_items))
     if locked not in clean:
         raise ValueError("display.%s 必须包含锁定项 %s" % (label, locked))
     return clean
+
+
+def _normalize_display_limit(value, label):
+    try:
+        limit = int(value if value is not None else DISPLAY_MAX)
+    except (TypeError, ValueError):
+        raise ValueError("display.%s 必须是整数" % label)
+    if limit < 1 or limit > DISPLAY_MAX_LIMIT:
+        raise ValueError("display.%s 必须在 1–%d 之间" % (label, DISPLAY_MAX_LIMIT))
+    return limit
 
 
 def normalize_site_config(raw, unit_ids=None):
@@ -659,10 +678,12 @@ def normalize_site_config(raw, unit_ids=None):
     display = raw.get("display") or {}
     if not isinstance(display, dict):
         raise ValueError("display 必须是对象")
+    max_layouts = _normalize_display_limit(display.get("max_layouts"), "max_layouts")
+    max_themes = _normalize_display_limit(display.get("max_themes"), "max_themes")
     visible_layouts = _normalize_display_list(
-        display.get("visible_layouts", DEFAULT_VISIBLE_LAYOUTS), "visible_layouts", "standard")
+        display.get("visible_layouts", DEFAULT_VISIBLE_LAYOUTS), "visible_layouts", "standard", max_layouts)
     visible_themes = _normalize_display_list(
-        display.get("visible_themes", DEFAULT_VISIBLE_THEMES), "visible_themes", "default")
+        display.get("visible_themes", DEFAULT_VISIBLE_THEMES), "visible_themes", "default", max_themes)
     if layout not in visible_layouts:
         raise ValueError("default_layout 必须出现在 display.visible_layouts 中")
     editorial = raw.get("editorial") or {}
@@ -701,7 +722,9 @@ def normalize_site_config(raw, unit_ids=None):
     return {"version": 1, "default_layout": layout,
             "editorial": dict(sorted(clean.items())),
             "display": {"visible_layouts": visible_layouts,
-                        "visible_themes": visible_themes}}
+                        "visible_themes": visible_themes,
+                        "max_layouts": max_layouts,
+                        "max_themes": max_themes}}
 
 
 def build_site_payload(config):
@@ -709,7 +732,9 @@ def build_site_payload(config):
     display = config.get("display") or {}
     return {"default_layout": config.get("default_layout", "standard"),
             "display": {"visible_layouts": list(display.get("visible_layouts") or DEFAULT_VISIBLE_LAYOUTS),
-                        "visible_themes": list(display.get("visible_themes") or DEFAULT_VISIBLE_THEMES)},
+                        "visible_themes": list(display.get("visible_themes") or DEFAULT_VISIBLE_THEMES),
+                        "max_layouts": display.get("max_layouts", DISPLAY_MAX),
+                        "max_themes": display.get("max_themes", DISPLAY_MAX)},
             "editorial": config.get("editorial") or {}}
 
 
@@ -720,6 +745,8 @@ def dump_site_yaml(config):
         lines.append("  %s:" % key)
         for value in display.get(key) or []:
             lines.append("    - %s" % value)
+    lines.append("  max_layouts: %d" % display.get("max_layouts", DISPLAY_MAX))
+    lines.append("  max_themes: %d" % display.get("max_themes", DISPLAY_MAX))
     lines.append("")
     editorial = config.get("editorial") or {}
     if not editorial:

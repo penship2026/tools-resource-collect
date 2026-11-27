@@ -10,6 +10,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 DISPLAY_MAX = 5
+MAX_LIMIT = 20
 LOCKED = {"layout": "standard", "theme": "default"}
 DEFAULTS = {
     "layout": ["standard", "news", "magazine"],
@@ -32,7 +33,8 @@ def _indent(line):
 def read_display(root=ROOT):
     path = _site_file(root)
     out = {"visible_layouts": list(DEFAULTS["layout"]),
-           "visible_themes": list(DEFAULTS["theme"])}
+           "visible_themes": list(DEFAULTS["theme"]),
+           "max_layouts": DISPLAY_MAX, "max_themes": DISPLAY_MAX}
     if not path.exists():
         return out
     lines = path.read_text(encoding="utf-8").splitlines()
@@ -56,6 +58,15 @@ def read_display(root=ROOT):
             if raw.strip() == "[]":
                 current = None
             continue
+        if key in ("max_layouts", "max_themes"):
+            current = None
+            try:
+                value = int(str(raw).strip())
+                if 1 <= value <= MAX_LIMIT:
+                    out[key] = value
+            except ValueError:
+                pass
+            continue
         if content.startswith("- ") and current:
             value = content[2:].strip().strip("'\"")
             if value:
@@ -69,19 +80,27 @@ def read_display(root=ROOT):
     return out
 
 
-def _display_block(layouts, themes):
+def _display_block(layouts, themes, max_layouts=DISPLAY_MAX, max_themes=DISPLAY_MAX):
     lines = ["display:", "  visible_layouts:"]
     lines.extend("    - %s" % key for key in layouts)
+    lines.append("  max_layouts: %d" % int(max_layouts))
     lines.append("  visible_themes:")
     lines.extend("    - %s" % key for key in themes)
+    lines.append("  max_themes: %d" % int(max_themes))
     return lines
 
 
-def validate_display(kind, keys):
+def validate_display(kind, keys, max_items=DISPLAY_MAX):
     if not isinstance(keys, list) or not keys:
         raise ValueError("display 不能为空")
-    if len(keys) > DISPLAY_MAX:
-        raise ValueError("display 最多 %d 套" % DISPLAY_MAX)
+    try:
+        max_items = int(max_items)
+    except (TypeError, ValueError):
+        raise ValueError("display 上限必须是整数")
+    if max_items < 1 or max_items > MAX_LIMIT:
+        raise ValueError("display 上限必须在 1–%d 之间" % MAX_LIMIT)
+    if len(keys) > max_items:
+        raise ValueError("display 最多 %d 套" % max_items)
     if len(keys) != len(set(keys)):
         raise ValueError("display 含重复 key")
     if LOCKED[kind] not in keys:
@@ -92,7 +111,7 @@ def validate_display(kind, keys):
     return keys
 
 
-def _replace_display_block(text, layouts, themes):
+def _replace_display_block(text, layouts, themes, max_layouts=DISPLAY_MAX, max_themes=DISPLAY_MAX):
     lines = text.splitlines()
     start = None
     end = None
@@ -105,7 +124,7 @@ def _replace_display_block(text, layouts, themes):
                     break
                 end += 1
             break
-    block = _display_block(layouts, themes)
+    block = _display_block(layouts, themes, max_layouts, max_themes)
     if start is not None:
         lines[start:end] = block + [""]
     else:
@@ -132,9 +151,14 @@ def _atomic_write(path, text):
             tmp.unlink()
 
 
-def write_display(visible_layouts, visible_themes, root=ROOT):
-    validate_display("layout", list(visible_layouts))
-    validate_display("theme", list(visible_themes))
+def write_display(visible_layouts, visible_themes, root=ROOT, max_layouts=None, max_themes=None):
+    current = read_display(root)
+    if max_layouts is None:
+        max_layouts = current["max_layouts"]
+    if max_themes is None:
+        max_themes = current["max_themes"]
+    validate_display("layout", list(visible_layouts), max_layouts)
+    validate_display("theme", list(visible_themes), max_themes)
     path = _site_file(root)
     old_yaml = path.read_bytes() if path.exists() else None
     old_js = _site_js(root).read_bytes() if _site_js(root).exists() else None
@@ -145,9 +169,12 @@ def write_display(visible_layouts, visible_themes, root=ROOT):
         default_layout = m.group(1) if m else "standard"
         if default_layout not in visible_layouts:
             raise ValueError("default_layout %s 必须出现在 visible_layouts" % default_layout)
-        _atomic_write(path, _replace_display_block(text, list(visible_layouts), list(visible_themes)))
+        _atomic_write(path, _replace_display_block(
+            text, list(visible_layouts), list(visible_themes), max_layouts, max_themes))
         _write_site_js(root, {"visible_layouts": list(visible_layouts),
-                              "visible_themes": list(visible_themes)})
+                              "visible_themes": list(visible_themes),
+                              "max_layouts": int(max_layouts),
+                              "max_themes": int(max_themes)})
     except Exception:
         if old_yaml is not None:
             _atomic_write(path, old_yaml.decode("utf-8"))

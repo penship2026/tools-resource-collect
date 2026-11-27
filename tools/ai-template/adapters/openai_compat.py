@@ -6,6 +6,28 @@ import json
 import os
 import urllib.error
 import urllib.request
+from pathlib import Path
+
+
+ENV_FILE = Path(__file__).resolve().parent.parent / ".env"
+
+
+def load_env_file(path=None):
+    """读取本机 .env（git 忽略）；只补未设置的变量，不覆盖 shell。"""
+    path = Path(path) if path else ENV_FILE
+    if not path.exists():
+        return
+    for raw in path.read_text(encoding="utf-8").splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        if line.startswith("export "):
+            line = line[7:].strip()
+        key, value = line.split("=", 1)
+        key = key.strip()
+        value = value.strip().strip("'\"")
+        if key and value and key not in os.environ:
+            os.environ[key] = value
 
 
 class AdapterError(RuntimeError):
@@ -65,6 +87,7 @@ class OpenAICompat:
 
 def from_env():
     """按环境变量决定适配器；没有完整配置时返回 None，由调用方降级 mock。"""
+    load_env_file()
     base = os.environ.get("AI_BASE_URL", "")
     key = os.environ.get("AI_API_KEY", "")
     model = os.environ.get("AI_MODEL", "")

@@ -189,7 +189,13 @@ def cmd_revise(args):
 
 def cmd_display(args):
     try:
-        result = display.set_visible(args.kind, args.key, bool(args.on), root=ROOT)
+        if args.max is not None:
+            result = display.set_limit(args.kind, args.max, root=ROOT)
+        else:
+            if not args.key:
+                print("上架/下架必须提供 --key", file=sys.stderr)
+                return 1
+            result = display.set_visible(args.kind, args.key, bool(args.on), root=ROOT)
     except display.DisplayError as exc:
         return _print_result(exc.as_dict())
     return _print_result(result)
@@ -258,12 +264,13 @@ def main(argv=None):
     p.add_argument("--reviewer", default="")
     p.set_defaults(func=cmd_revise)
 
-    p = sub.add_parser("display", help="管理处上下架展示项")
+    p = sub.add_parser("display", help="管理处上下架展示项或设置最大上架数")
     p.add_argument("--kind", required=True, choices=("layout", "theme"))
-    p.add_argument("--key", required=True)
+    p.add_argument("--key", help="上架/下架时必填")
     group = p.add_mutually_exclusive_group(required=True)
     group.add_argument("--on", action="store_true", help="上架")
     group.add_argument("--off", action="store_true", help="下架")
+    group.add_argument("--max", type=int, help="设置该类型的最大上架数")
     p.set_defaults(func=cmd_display)
 
     args = ap.parse_args(argv)

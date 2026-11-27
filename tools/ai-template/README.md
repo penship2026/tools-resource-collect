@@ -25,7 +25,9 @@ python3 tools/ai-template/cli.py lint --file /tmp/ai-theme/mist.css
 # 离线 mock：无 Key 也能产出 3 个候选，只用于链路验证
 python3 tools/ai-template/cli.py generate --kind layout --request "3 列门户，移动端不溢出" --mock
 
-# 有模型：先配置环境变量，Key 只留本机
+# 有模型：复制 .env.example 为 .env 并填写，Key 只留本机
+cp tools/ai-template/.env.example tools/ai-template/.env
+# 或直接 export（二选一；.env 不覆盖已 export 的值）
 export AI_BASE_URL="https://your-endpoint/v1"
 export AI_API_KEY="..."
 export AI_MODEL="..."
@@ -79,5 +81,5 @@ python3 tools/ai-template/cli.py display --kind theme --key anime --on
 - 批准按 CSS → docs → review → 注册表 → `published.json` 顺序原子写，失败回滚；草稿保留；批准只写工作区，**不自动 git commit**。
 - 发布产物：`assets/layouts|themes/<key>.css`、`docs/templates/<key>.{json,md}`、`tools/ai-template/reviews/<date>-<key>.json`，并在 `assets/templates.js` / `assets/theme.js` 的 `AI_*` 标记前插入注册表条目。
 - 驳回记录到 `reviews/<date>-<key>-reject.json`，原因固定四类；迭代最多 2 轮，第 3 轮返回 `REVISE_LIMIT` 转人工。
-- 管理处只写 `site.yml` 的 `display.visible_layouts` / `display.visible_themes` 与 `assets/site.js`，不动 `editorial`；版式/主题各最多 5 套，`standard` / `default` 锁定；上架第 6 套返回 `DISPLAY_FULL`，下架锁定项返回 `DISPLAY_LOCKED`。
+- 管理处只写 `site.yml` 的 `display.visible_layouts` / `display.visible_themes` / `display.max_layouts` / `display.max_themes` 与 `assets/site.js`，不动 `editorial`；默认版式/主题各最多 5 套，可在管理页把上限调到 1–20；`standard` / `default` 锁定；超过上限上架返回 `DISPLAY_FULL`，下架锁定项返回 `DISPLAY_LOCKED`。
 - 设计库可多于 5 套；未展示的设计仍留在管理页，可预览或换入。运行时只读 `site.js` 过滤，不调用模型，不需要 `tools/`。

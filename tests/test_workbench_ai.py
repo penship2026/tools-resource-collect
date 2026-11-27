@@ -203,6 +203,21 @@ class RejectReviseTest(unittest.TestCase):
 
 
 class DisplayTest(unittest.TestCase):
+    def test_limit_can_expand_to_show_more_than_five(self):
+        tmp, root = make_root()
+        self.addCleanup(tmp.cleanup)
+        result = display.set_limit("theme", 8, root=root)
+        self.assertTrue(result["ok"])
+        self.assertEqual(site_store.read_display(root)["max_themes"], 8)
+        self.assertIn('"max_themes": 8', (root / "assets" / "site.js").read_text(encoding="utf-8"))
+        self.assertTrue(display.set_visible("theme", "anime", True, root=root)["changed"])
+        visible = site_store.read_display(root)
+        self.assertEqual(len(visible["visible_themes"]), 6)
+        self.assertIn("anime", visible["visible_themes"])
+        with self.assertRaises(display.DisplayError) as ctx:
+            display.set_limit("theme", 3, root=root)
+        self.assertEqual(ctx.exception.code, "DISPLAY_LIMIT_TOO_SMALL")
+
     def test_five_slot_lock_and_editorial_preserved(self):
         tmp, root = make_root()
         self.addCleanup(tmp.cleanup)
@@ -257,11 +272,18 @@ class HttpSmokeTest(unittest.TestCase):
         manage = json.loads(urllib.request.urlopen(base + "/api/manage", timeout=3).read().decode("utf-8"))
         self.assertEqual(manage["kinds"]["theme"]["count"], 5)
 
+        req = urllib.request.Request(base + "/api/display/limit", method="POST",
+                                     data=json.dumps({"kind": "theme", "max": 8}).encode("utf-8"),
+                                     headers={"Content-Type": "application/json"})
+        result = json.loads(urllib.request.urlopen(req, timeout=3).read().decode("utf-8"))
+        self.assertTrue(result["ok"])
+        self.assertEqual(result["max"], 8)
+
         req = urllib.request.Request(base + "/api/display", method="POST",
                                      data=json.dumps({"kind": "theme", "key": "anime", "on": True}).encode("utf-8"),
                                      headers={"Content-Type": "application/json"})
         result = json.loads(urllib.request.urlopen(req, timeout=3).read().decode("utf-8"))
-        self.assertEqual(result["code"], "DISPLAY_FULL")
+        self.assertTrue(result["ok"])
 
 
 if __name__ == "__main__":

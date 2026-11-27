@@ -230,6 +230,8 @@ class Handler(BaseHTTPRequestHandler):
             elif path == "/api/display":
                 result = display.set_visible(body.get("kind"), body.get("key"),
                                              bool(body.get("on")), root=self.root)
+            elif path == "/api/display/limit":
+                result = display.set_limit(body.get("kind"), body.get("max"), root=self.root)
             elif path == "/api/reorder":
                 result = display.reorder(body.get("kind"), body.get("key"),
                                          int(body.get("direction") or 0), root=self.root)

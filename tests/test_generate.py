@@ -70,7 +70,8 @@ class GenerateDataTest(unittest.TestCase):
         self.assertEqual(generate.build_site_payload(cfg), {
             "default_layout": "magazine",
             "display": {"visible_layouts": ["standard", "news", "magazine"],
-                        "visible_themes": ["default", "dark", "tech", "campus", "classical"]},
+                        "visible_themes": ["default", "dark", "tech", "campus", "classical"],
+                        "max_layouts": 5, "max_themes": 5},
             "editorial": cfg["editorial"]})
         empty = generate.normalize_site_config({"default_layout": "standard", "editorial": {}})
         with open(path, "w", encoding="utf-8") as fh:

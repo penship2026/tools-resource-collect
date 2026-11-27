@@ -6,8 +6,9 @@
 > 前置：一期 3 套版式、布局 token 白名单、`templates.js` 注册表已就绪；截图脚本与基线由 A0 新建，不再假设已存在
 > 核心定位：**AI 是可选增强，不是运行时依赖**——生成在离线/本机完成，线上仍是零构建纯静态
 
+> **v1.5 修订**：展示上限改为可配置 `display.max_layouts` / `display.max_themes`（1–20，默认 5）；管理页可改上限、`cli display --max`、`POST /api/display/limit`；A5 试点主题上限先设 8，使 5 套内置 + 3 个 AI 主题全部展示；版式 3+3 超 5 时需先下架一套内置或同步提高版式上限。
 > **v1.4 修订**：A4 落地为 `registry / site_store / publish / display / server` 五个本机模块与两个工作台页面；批准按 CSS→docs→review→注册表→sidecar 事务写，管理处只写 `site.yml` display 与 `assets/site.js`。
-> **v1.3 修订**：AI 支持两类产物（版式模板 / 主题）；前端每类最多展示 5 套，内置也计入名额；展示清单由本机「AI 设计管理处」控制，设计库可多于展示位。
+> **v1.3 修订**：AI 支持两类产物（版式模板 / 主题）；前端默认每类展示 5 套，内置也计入名额；展示清单由本机「AI 设计管理处」控制，设计库可多于展示位。
 > **v1.2 修订**：补充「无 AI 基线」硬约束与降级表；删除 AI 模板后，全部一期功能仍须可用。
 > **v1.1 修订**：Spec 只保留渲染层已落地的 `nav / lead / bands / toc` 四类能力；删除主题绑定与 `rails / timeline / rail`；补齐 draft 目录、原子发布、`status` 与回退；G3/G4/G6 改用本机 Chrome/CDP + 固定 fixture；增加 6 套版式切换容量策略；工期改为 12–15 人日 + 2–3 人日评审。
 
@@ -26,7 +27,7 @@
 v1.3 追加两条：
 
 6. **AI 不只产版式，也产主题**：主题只填 29 个既有 token，独立成 CSS，不与版式绑定。
-7. **设计库与展示位分离**：库可多套，前端版式/主题各最多展示 5 套（内置占名额）；展示清单由本机「AI 设计管理处」写入 `site.yml`，运行时只读 `site.js`。
+7. **设计库与展示位分离**：库可多套，前端默认版式/主题各展示 5 套（内置占名额），可在管理页把上限调至 1–20；展示清单由本机「AI 设计管理处」写入 `site.yml`，运行时只读 `site.js`。
 
 ---
 
@@ -36,7 +37,7 @@ v1.3 追加两条：
 
 1. 用自然语言（可附参考截图）描述想要的版式，产出一条可直接上线的版式模板。
 2. 用自然语言描述色彩、字体与气质，产出一套只改 token 的主题，不绑定任何版式。
-3. 设计库可以同时存在多套版式与主题；前端每类最多展示 5 套，内置也占名额，展示清单由「AI 设计管理处」控制。
+3. 设计库可以同时存在多套版式与主题；前端默认版式/主题各展示 5 套，内置也占名额，展示清单与上限由「AI 设计管理处」控制。
 4. 产物必须**结构可控**：不出现外链资源、不出现 `!important`、不改 DOM/JS、不引入依赖。
 5. 产物必须**可评审**：候选对比、指标量化、审批留痕、一条命令回滚。
 6. 产物必须**可维护**：有设计说明与来源 prompt，后来的人知道它为什么长这样。
@@ -55,7 +56,7 @@ v1.3 追加两条：
 
 无 AI 时必须保持的能力：
 
-- 3 套内置版式与当前 5 套展示主题正常切换（第 6 套内置主题默认不展示，可在管理页换入）；
+- 3 套内置版式与当前 5 套展示主题正常切换（第 6 套内置主题默认不展示，提高主题上限后可在管理页上架）；
 - 首页、合集、列表、详情、`?view=mine`、`mine-io.html` 正常打开；
 - 板块导航、`?section=`、置顶、画册大图、统计条、筛选吸顶正常；
 - 个人收藏、导入导出、我的设置、我的版式正常；
@@ -73,7 +74,7 @@ v1.3 追加两条：
 
 | 场景 | 仍可用 | 不可用 | 处置 |
 |---|---|---|---|
-| 无 API Key / 断网 | 全部一期功能 + 5 套展示版式/主题 | AI 生成、AI 候选评审 | 工坊提示“未配置模型”；站点不受影响 |
+| 无 API Key / 断网 | 全部一期功能 + 当前展示清单（默认 5+5） | AI 生成、AI 候选评审 | 工坊提示“未配置模型”；站点不受影响 |
 | 无 `tools/` 目录 | 全部一期功能 | 工坊、编译器、设计管理处 | 正常发布，不产生 404 或控制台报错 |
 | 模型连续失败 | 全部一期功能 | 新模板/主题生成 | 保留上一版；不写注册表 |
 | AI 版式/主题下线 | 其余展示项 + 回退默认 | 已下线设计 | 清理本地偏好，不白屏 |
@@ -187,7 +188,7 @@ docs/templates/<key>.json       Spec 原文件（可复现）
 
 画册首篇大图不由 Spec 决定：`hero_image` 属于编辑数据（`site.yml`），模板只定义容器比例与"大图 → 封面 → 占位"的回退规则；Spec 中不得出现任何图片 URL。
 
-主题只用于预览：`?theme=tech` 是临时参数，不进 Spec、不进审批记录、不影响发布 CSS。同一版式 Spec 在 5 套展示主题下结构必须一致。
+主题只用于预览：`?theme=tech` 是临时参数，不进 Spec、不进审批记录、不影响发布 CSS。同一版式 Spec 在当前展示主题（默认 5 套）下结构必须一致。
 
 ### 4.2 示例 Spec（门户·紧凑）
 
@@ -348,7 +349,7 @@ docs/templates/<key>.json       Spec 原文件（可复现）
 | **G5 性能** | 版式 CSS ≤8KB、主题 CSS ≤4KB、无外部字体/图片、无固定定位遮挡 | 静态统计 | 超预算改字段，不改闸门 |
 | **G6 辨识度** | 版式：固定 fixture 截图 dHash ≥10 且结构指纹至少 2 项不同；主题：主色/背景/字体/圆角至少 2 项与当前展示主题明显不同 | Chrome 截图 + 结构指纹 + token 差异 | 视为重复，退回 |
 
-主题的 G3/G4 必须用“同一 fixture 分别套 5 套展示主题”跑；不能只看单一浅色/深色。G6 的对比对象是**当前展示清单**，不是全部库内设计。
+主题的 G3/G4 必须用“同一 fixture 分别套当前展示主题（默认 5 套，A5 为 8 套）”跑；不能只看单一浅色/深色。G6 的对比对象是**当前展示清单**，不是全部库内设计。
 
 截图依赖：`scripts/shot_matrix.py` 由 A0 新建，复用本机 Chrome 与 CDP；不引入 Playwright。基线存 `tests/baselines/*.json`，只存尺寸、溢出、dHash 与结构指纹，不把大图提交进仓库。G3/G4/G6 任一无法运行时，评审标记“未过视觉闸门”，不得批准。
 
@@ -391,22 +392,23 @@ docs/templates/<key>.json       Spec 原文件（可复现）
 
 展示名额：
 
-- **版式最多 5 套、主题最多 5 套**，内置占名额；`standard` 版式与 `default` 主题锁定，不可隐藏，保证回退。
-- 设计库可以多于 5 套；只有展示清单里的进入页脚切换器。未展示的设计仍可在管理页预览。
-- 首版主题展示清单：`default / dark / tech / campus / classical`；`anime` 暂不展示，可在管理页换入。
-- 超过 5 套时「上架」按钮禁用，提示先下架一套；不允许静默截断。
-- 保存后写 `site.yml` 的 `display.visible_layouts` / `display.visible_themes`，再跑 `generate.py` 生成 `assets/site.js`；不自动 git commit。
+- **默认版式最多 5 套、主题最多 5 套**，内置占名额；`standard` 版式与 `default` 主题锁定，不可隐藏，保证回退。
+- 管理处可分别设置 `display.max_layouts` / `display.max_themes`（1–20，默认 5）；A5 试点期主题上限设为 8，容纳 5 套内置 + 3 个 AI 主题，先全部展示。
+- 设计库可以多于当前上限；只有展示清单里的进入页脚切换器。未展示的设计仍可在管理页预览。
+- 首版主题展示清单：`default / dark / tech / campus / classical`；`anime` 暂不展示，提高主题上限后可在管理页上架。
+- 超过当前上限时「上架」按钮禁用，提示先下架或提高上限；不允许静默截断。
+- 保存后写 `site.yml` 的 `display.visible_*` / `display.max_*`，再生成 `assets/site.js`；不自动 git commit。
 - 运行时只读 `site.js` 过滤，不调用模型，不需要 `tools/`。
 
 保存后的布局/主题切换器：
 
 ```text
-页脚：只渲染 visible_* 中的 key；数量 ≤5。
+页脚：只渲染 visible_* 中的 key；数量 ≤ 当前上限，5 套即切换为下拉。
 个人设置：下拉只列 visible_*，并保留「跟随公开」。
 本地偏好指向已隐藏/下线 key：回退到 standard / default，清掉无效值。
 ```
 
-管理页验收：5 个版式 + 5 个主题时无“第 6 个”入口；上架第 6 个被拒绝；下架 `standard` 或 `default` 被拒绝；刷新页面后展示清单与 `site.js` 一致。
+管理页验收：默认 5+5 时无“第 6 个”入口；提高上限后可继续上架，超过上限仍被拒绝；下架 `standard` 或 `default` 被拒绝；刷新页面后展示清单、上限与 `site.js` 一致。
 
 审批记录：
 
@@ -428,11 +430,11 @@ docs/templates/<key>.json       Spec 原文件（可复现）
 
 ### 8.2 A4 落地边界
 
-- 本机模块：`registry.py`（内置 + `published.json` 合并、JS 标记插入）、`site_store.py`（display 块与 `site.js` 原子读写）、`publish.py`（批准/驳回/迭代）、`display.py`（上下架/排序/5 套校验）、`server.py`（127.0.0.1 API）。
+- 本机模块：`registry.py`（内置 + `published.json` 合并、JS 标记插入）、`site_store.py`（display 块与 `site.js` 原子读写）、`publish.py`（批准/驳回/迭代）、`display.py`（上下架/排序/可配置上限校验）、`server.py`（127.0.0.1 API）。
 - 批准前只读候选：检查 `reviewer`、`metrics.json` 的 `ok=true` 与 `visual=checked`，再编译；不写 `assets/`、`site.yml`、`site.js`。
 - 批准事务顺序：CSS → `docs/templates/*.json` / `*.md` → `reviews/*.json` → `templates.js` / `theme.js` 注册表 → `published.json` sidecar；任一步失败按备份回滚，草稿保留。批准不自动 git commit。
 - 驳回写 `reviews/<date>-<key>-reject.json`，原因是固定四类；迭代记录 `*-revise-N.json`，第 3 轮返回 `REVISE_LIMIT`。
-- 管理处只写 `site.yml` 的 `display.visible_layouts` / `display.visible_themes` 与 `assets/site.js`，保留 `site.default_layout`、`editorial` 与 `window.EDITORIAL`；版式/主题各 5 套，`standard` / `default` 锁定，第 6 套上架返回 `DISPLAY_FULL`。
+- 管理处只写 `site.yml` 的 `display.visible_layouts` / `display.visible_themes` / `display.max_layouts` / `display.max_themes` 与 `assets/site.js`，保留 `site.default_layout`、`editorial` 与 `window.EDITORIAL`；默认上限 5，管理页可设 1–20，`standard` / `default` 锁定，超过当前上限返回 `DISPLAY_FULL`。
 - 工作台只监听 `127.0.0.1`，页面不发布到 Pages；运行时仍只读 `site.js`，不需要 `tools/`。
 
 ---
@@ -445,7 +447,7 @@ docs/templates/<key>.json       Spec 原文件（可复现）
 | 注册表最小化 | `templates.js` / `theme.js` 只存 `label/desc/file/能力声明/status`；provenance 放 `docs/templates/*.json` |
 | 草稿隔离 | 候选只写 `tools/ai-template/drafts/<key>/`；批准前不碰 `assets/`、`templates.js`、`theme.js` |
 | 原子发布 | 先写 CSS 与 docs，再原子替换对应注册表；任一步失败不留半成品 |
-| 展示上限 | 版式最多 5 套、主题最多 5 套，内置占名额；设计库可多于 5 套，只有展示清单进入前端 |
+| 展示上限 | 默认版式/主题各 5 套，可在管理页按类调到 1–20；内置占名额；设计库可多于上限，只有展示清单进入前端 |
 | 锁定回退 | `standard` 版式与 `default` 主题锁定，不可下架；保证任何本地偏好都能回退 |
 | 季度复审 | 每季度检查：是否仍被使用、是否与新版式/主题重复、移动端是否仍达标；不用则标 `status:"deprecated"` |
 | 下线回退 | `deprecated` / 已隐藏 key 不进入切换器；本地偏好指向它时回退 `standard` / `default`，并清理无效值 |
@@ -457,11 +459,11 @@ docs/templates/<key>.json       Spec 原文件（可复现）
 
 当前 `assets/layout.js` / `theme.js` 会把注册表里的每个 key 都渲染成按钮。P2 改为先读 `site.js` 的 `display.visible_layouts / visible_themes`，再渲染：
 
-- 版式/主题各自最多 5 套；内置占名额，`standard` / `default` 锁定；
+- 版式/主题默认各自 5 套，可分别配置上限（1–20）；内置占名额，`standard` / `default` 锁定；
 - 展示清单为空或字段缺失时，按注册表顺序取前 5 套（保证旧站升级后不空）；
-- **≤4 套**：页脚按钮；**5 套**：页脚下拉（6 套按钮在 390px 会溢出）；
+- **≤4 套**：页脚按钮；**≥5 套**：页脚下拉（6 套按钮在 390px 会溢出）；
 - 个人设置始终下拉，只列展示清单 + 「跟随公开」；
-- 管理页可上架/下架，但不得突破 5；第 6 个上架操作直接拒绝；
+- 管理页可上架/下架，但不得突破当前上限；达到上限时上架按钮禁用，API 返回 `DISPLAY_FULL`；
 - 新增/下线 key 自动同步；未知/已隐藏/已下线 key 回退 `standard` / `default`，不白屏。
 
 切换器与展示清单改造属于 A0，不是 A5 的收尾项。
@@ -530,7 +532,7 @@ AI_TIMEOUT=60
 | **A1 双编译器（4–5d）** | `spec/layout.schema.json`、`spec/theme.schema.json`、`compiler.py`、主题 lint、`cli.py compile` | 同 Spec 两次编译字节一致；版式拒绝 `rails/sidebar`；主题拒绝缺 token/多 token；手工 Spec 可编译 |
 | **A2 生成管线（2–3d）** | `cli.py generate`（kind=layout/theme）、适配器、缓存、两类合成样例 | 一条命令产 3 候选；`mock` 双类型离线全通；请求体不含真实收藏 |
 | **A3 预览与闸门（2–3d）** | `preview.py`、`metrics.py`、六道闸门、Chrome/CDP 截图 | 每个失败有错误码；版式三档、主题跨 5 套展示主题跑通；G3/G4/G6 可复现 |
-| **A4 工作台与设计管理处（2–2.5d）** | 候选对比、批准/驳回/迭代、草稿转正式、`manage.html` 展示清单 | 单次评审 ≤10 分钟；批准前运行目录零变化；上架第 6 套被拒；`standard/default` 不可下架 |
+| **A4 工作台与设计管理处（2–2.5d）** | 候选对比、批准/驳回/迭代、草稿转正式、`manage.html` 展示清单与最大上架数 | 单次评审 ≤10 分钟；批准前运行目录零变化；默认 5 套时上架第 6 套被拒、提高上限后可继续；`standard/default` 不可下架 |
 | **A5 试点与治理（3–4d）** | 3 个 AI 版式 + 3 个 AI 主题入库、说明、展示清单、下线/回滚演练 | 设计均过 G1–G6；前端版式/主题各 ≤5；下线回退 `standard/default`；断网/无 Key 下一期功能全可用；CI 全绿 |
 
 **总计 15–19 人日**，另计 3–4 人日评审/验收。A0 未通过不得进 A1；A1 未通过不得进 A2；A3 未通过不得批准任何设计。
@@ -561,5 +563,5 @@ AI_TIMEOUT=60
 1. 模型与端点（国内兼容 / 海外 / 本地），影响成本与稳定性。
 2. 是否接受"参考截图"输入（多模态），会提高还原度也提高成本。
 3. 审批人是谁（单人还是双人复核）。
-4. 5 套展示位是否长期固定，还是后续允许按设备/场景分组（本期只做单套全局清单）。
+4. 默认 5 套展示位是否长期保留，还是按设备/场景分组（本期只做单套全局清单，上限可配置）。
 5. 是否给 AI 设计加 `origin:"ai"` 标记（运行时无用途，仅治理；本文倾向只放 docs，不进注册表）。

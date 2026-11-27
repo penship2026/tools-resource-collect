@@ -1004,6 +1004,10 @@
         } else {
           statusBox.className = 'status err';
           statusBox.textContent = '失败: ' + (d.error || '未知错误');
+          // 旧版服务不认识 remove:直接提示重启,避免误以为链接或单元有问题
+          if (payload.merge_mode === 'remove' && (d.error || '').indexOf('不支持的采集方式') >= 0) {
+            statusBox.textContent = '失败: 当前采集服务还是旧版,未加载「移除链接」。请重启 collector/server.py 后刷新页面再试。';
+          }
           // 抓取失败多半是风控,自动展开可选设置方便手工补录
           $('field-advanced').open = true;
         }

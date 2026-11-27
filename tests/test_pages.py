@@ -204,6 +204,7 @@ class PagesContractTest(unittest.TestCase):
         self.assertIn("mergeMode() === 'remove'", html)
         self.assertIn("按主题采集不支持移除链接", html)
         self.assertIn("d.removed", html)
+        self.assertIn("当前采集服务还是旧版", html)
 
     def test_theme_loaded_in_every_page(self):
         for page in THEMED:

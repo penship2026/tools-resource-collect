@@ -123,16 +123,24 @@
   }
 
   // 板块一级导航:全部 + 启用板块;少于 2 个板块时整条不渲染(D66)
-  function sectionNav(sections, activeId) {
+  function sectionNav(sections, activeId, opts) {
+    opts = opts || {};
     var list = enabledSections(sections);
     if (list.length < 2) return '';
     var active = activeId || 'all';
+    var view = opts.view ? 'view=' + encodeURIComponent(opts.view) : '';
+    function href(id) {
+      var q = [];
+      if (view) q.push(view);
+      if (id && id !== 'all') q.push('section=' + encodeURIComponent(id));
+      return 'index.html' + (q.length ? '?' + q.join('&') : '');
+    }
     var html = '<div class="wrap nav-scroll">';
-    html += '<a class="section-tab' + (active === 'all' ? ' active' : '') + '" href="index.html"' +
+    html += '<a class="section-tab' + (active === 'all' ? ' active' : '') + '" href="' + href('all') + '"' +
       (active === 'all' ? ' aria-current="page"' : '') + '>全部</a>';
     list.forEach(function (s) {
       html += '<a class="section-tab' + (active === s.id ? ' active' : '') +
-        '" href="index.html?section=' + encodeURIComponent(s.id) + '"' +
+        '" href="' + href(s.id) + '"' +
         (active === s.id ? ' aria-current="page"' : '') + '>' + esc(s.title) +
         '<span class="tab-count">' + esc(s.count || 0) + '</span></a>';
     });

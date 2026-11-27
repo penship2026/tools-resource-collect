@@ -227,7 +227,12 @@
     }
     var EDITORIAL = window.EDITORIAL || {};
     var routeParam = '';
-    try { routeParam = new URLSearchParams(location.search).get('section') || ''; } catch (e) {}
+    var mineView = false;
+    try {
+      var pageParams = new URLSearchParams(location.search);
+      routeParam = pageParams.get('section') || '';
+      mineView = pageParams.get('view') === 'mine';
+    } catch (e) {}
     var routeSection = routeParam && routeParam !== 'all'
       ? SECTION_LIST.filter(function (s) { return s.id === routeParam; })[0] || null
       : null;
@@ -440,12 +445,35 @@
     var sectionNavBox = document.getElementById('section-nav');
     var tocBox = document.getElementById('magazine-toc');
 
+    function mineSectionList() {
+      var counts = {};
+      var items = window.Personal ? Personal.list() : [];
+      items.forEach(function (it) {
+        var sec = it.section;
+        if (!sec) {
+          var unit = all.filter(function (t) { return t.id === it.unit; })[0];
+          sec = unit && unit.section;
+        }
+        if (sec) counts[sec] = (counts[sec] || 0) + 1;
+      });
+      return SECTION_LIST.map(function (s) {
+        var copy = {};
+        Object.keys(s).forEach(function (k) { copy[k] = s[k]; });
+        copy.count = counts[s.id] || 0;
+        return copy;
+      });
+    }
+
     function renderSectionNav() {
       if (!sectionNavBox) return;
-      var on = cap('nav') && SECTION_LIST.length >= 2;
+      var list = mineView ? mineSectionList() : SECTION_LIST;
+      var on = cap('nav') && list.length >= 2;
       sectionNavBox.hidden = !on;
+      var activeSection = mineView
+        ? ((routeSection && routeSection.enabled !== false) ? routeSection.id : 'all')
+        : (routeInvalid ? '__none' : (routeSection ? routeSection.id : 'all'));
       sectionNavBox.innerHTML = on
-        ? Render.sectionNav(SECTION_LIST, routeInvalid ? '__none' : (routeSection ? routeSection.id : 'all'))
+        ? Render.sectionNav(list, activeSection, mineView ? { view: 'mine' } : null)
         : '';
     }
 

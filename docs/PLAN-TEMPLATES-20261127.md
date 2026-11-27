@@ -5,7 +5,7 @@
 > v1.1 变更：确认板块视图链接用 `?section=`；版式切换器文案定为「简洁 / 门户 / 画册」
 > 性质：**只做分析与方案**，不改代码、不改数据、不动排期与台账
 > 关联：`docs/PLAN-20261126.md`（D21–D26 表现层分离、D43 布局 token 化清单）、`docs/REVIEW-20261126.md`、`docs/REQUIREMENTS-SECTIONS-SCHEDULE-20261126.md`
-> 决策编号：本文新增 **D64–D80**，按 D35「只增不改」追加，不回写、不重排原文
+> 决策编号：本文新增 **D64–D81**，按 D35「只增不改」追加，不回写、不重排原文
 
 ---
 
@@ -217,7 +217,7 @@ Design Spec（JSON Schema 校验）
 
 ---
 
-## 八、决策记录（D64–D80，追加）
+## 八、决策记录（D64–D81，追加）
 
 | 编号 | 决策 | 落点 |
 |---|---|---|
@@ -238,6 +238,7 @@ Design Spec（JSON Schema 校验）
 | D78 | 首页专属样式补入页面层：`assets/pages/index.css`（D76 清单原漏 index）。门户首页头条固定「1 主 + 3 副」，空板块在分节保留紧凑占位，板块导航为「全部 + 启用板块」；T1 导航项数口径按 enabled+1 | `assets/pages/index.css`、`assets/layouts/news.css`、`index.html`、P1 10.2 |
 | D79 | 画册首页的空章节不排正文,只在目录保留 0 计数入口,并在板块视图显示空态;章节编号始终按启用板块全序计算,不因隐藏空章而重排错号 | `assets/layouts/magazine.css`、`index.html`、P1 6.4/T3 |
 | D80 | 一期验收评审后的签收前整改：子页面包屑补板块层（`Render.breadcrumb` + `sections.js`）；`sidebar` 能力位统一关闭，避免声明空转；四页补「跳到主要内容」与首页视觉隐藏 `h1`；导航项最小高度 44px；内容宽与断点以代码实拍为准（news 1180 / magazine 960 / 头条 ≤1080 下移）；未使用的 `--layout-band-cols` / `--layout-lead-cols` 接入实际栅格 | `assets/render.js`、4 页、`assets/style.css`、`assets/pages/index.css`、`assets/layouts/news.css`、`docs/DESIGN-TEMPLATES-P1-20261127.md` |
+| D81 | 个人视图的板块导航不得离开 `?view=mine`：`Render.sectionNav` 支持 `view` 参数，导航链接写成 `index.html?view=mine[&section=id]`；「我的」页按收藏所属 `section`（优先快照字段，旧数据回退索引）过滤，导航计数改为本地收藏数；公开页链接不受影响 | `assets/render.js`、`assets/personal.js`、`index.html` |
 
 ---
 
@@ -245,7 +246,7 @@ Design Spec（JSON Schema 校验）
 
 | 文档 | 内容 | 状态 |
 |---|---|---|
-| 本文 | 两期总体方案、现状分析、决策 D64–D80 | 本次交付 |
+| 本文 | 两期总体方案、现状分析、决策 D64–D81 | 本次交付 |
 | `docs/DESIGN-TEMPLATES-P1-20261127.md` | 一期详细设计（契约、版式规格、文件级改动、验收矩阵） | 本次交付 |
 | `docs/DESIGN-TEMPLATES-P2-20261127.md` | 二期详细设计（Spec schema、编译器、闸门、工坊、治理） | 本次交付 |
 

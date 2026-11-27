@@ -637,3 +637,11 @@ Chrome 无头截图三页面全部正常:首页卡片标签独立行两行截断
 - 规格对齐：设计内容宽改为 news 1180 / magazine 960；头条断点按设计 ≤1080 下移；`--layout-band-cols` 接入门户分节，`--layout-lead-cols` 接入头条主栏。
 - 补测试：breadcrumb/sectionMeta、站点默认版式优先级、skip link/main、首页标题层级、导航 44px。
 - 验证：Python 78 例、Node 视图 19 例、版式 15 例、`layout_lint`、`docs_check` 通过；CDP 实测三子页包屑、Tab 聚焦、44px、18 组宽度无溢出；1280 首页/门户/子页截图复核。
+
+## 十八、我的页板块导航修复(2026-11-27)
+
+- 问题：`?view=mine` 下板块导航链接只有 `?section=`，点后丢视图参数回公开首页。
+- 修复：`Render.sectionNav` 支持 `view` 选项，我的视图生成 `index.html?view=mine[&section=id]`；公开链接保持原样。
+- 我的页按板块过滤收藏：新增 `mineSection` / `mineScoped` / `unitSection`，优先读快照 `section`，旧收藏回退索引；导航计数改为本地收藏数。
+- 空态与统计：无收藏板块显示「该板块还没有收藏。」，有收藏时显示「该板块 N / 共 M 条收藏」。
+- 验证：CDP 造 AI/K12 两条收藏，切换后均停留在我的页并各显示 1 条，工具与效率显示空态；Python 79、视图 20、版式 15、`layout_lint`、`docs_check` 通过。

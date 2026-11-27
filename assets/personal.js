@@ -140,6 +140,7 @@
       unit: String(it.unit || ''),
       key: String(it.key || ''),
       unitTitle: String(it.unitTitle || ''),
+      section: String(it.section || ''),
       title: String(it.title || ''),
       url: isHttp(it.url) ? String(it.url) : '',
       cover: isHttp(it.cover) ? String(it.cover) : '',
@@ -394,6 +395,14 @@
   var mineFilter = 'all';
   var mineTag = '';
   var mineKeyword = '';
+  var mineSection = (function () {
+    var raw = '';
+    try { raw = new URLSearchParams(location.search).get('section') || ''; } catch (e) {}
+    if (!raw || raw === 'all') return 'all';
+    var list = global.SECTIONS || [];
+    if (!list.length) return raw;
+    return list.filter(function (s) { return s.id === raw && s.enabled !== false; }).length ? raw : 'all';
+  })();
 
   function unitMeta(id) {
     var idx = (global.COLLECTION_INDEX || global.TOPIC_INDEX || []);
@@ -411,6 +420,17 @@
   function unitType(id) {
     var meta = unitMeta(id);
     return (meta && meta.type) || 'series';
+  }
+
+  function unitSection(id) {
+    var meta = unitMeta(id);
+    return (meta && meta.section) || '';
+  }
+
+  // 板块导航只切换本机收藏的板块子集,不离开 ?view=mine
+  function mineScoped(items) {
+    if (mineSection === 'all') return items;
+    return items.filter(function (it) { return (it.section || unitSection(it.unit)) === mineSection; });
   }
 
   function filterMine(items) {
@@ -493,15 +513,23 @@
     var items = list();
     var allCount = items.length;
     var units = unitsEnabledMap();
-    renderMineTags(items);
-    var shown = filterMine(items);
+    var scoped = mineScoped(items);
+    renderMineTags(scoped);
+    var shown = filterMine(scoped);
+    var emptyText = allCount
+      ? (mineSection !== 'all'
+        ? (scoped.length ? '该板块没有匹配的收藏,试试换个标签或清空搜索。' : '该板块还没有收藏。')
+        : '没有匹配的收藏,试试换个标签或清空搜索。')
+      : '还没有收藏。到合集页点条目右上角的 ☆ 即可收藏。';
     body.innerHTML = shown.length
       ? '<div class="fav-grid">' + shown.map(function (it) { return snapshotCard(it, { units: units }); }).join('') + '</div>'
-      : '<div class="empty">' + (allCount ? '没有匹配的收藏,试试换个标签或清空搜索。' : '还没有收藏。到合集页点条目右上角的 ☆ 即可收藏。') + '</div>';
+      : '<div class="empty">' + emptyText + '</div>';
     var stat = panel.querySelector('#mine-stat');
     if (stat) {
       stat.textContent = allCount
-        ? (shown.length === allCount ? '共 ' + allCount + ' 条收藏' : '筛选出 ' + shown.length + ' / ' + allCount + ' 条收藏') +
+        ? (mineSection !== 'all'
+          ? '该板块 ' + shown.length + ' / 共 ' + allCount + ' 条收藏'
+          : (shown.length === allCount ? '共 ' + allCount + ' 条收藏' : '筛选出 ' + shown.length + ' / ' + allCount + ' 条收藏')) +
           (allCount >= LIMIT ? ' · 已达软上限' : '')
         : '';
     }

@@ -59,6 +59,14 @@ class PagesContractTest(unittest.TestCase):
         self.assertIn('<h2 id="hero-title">', html)
         self.assertNotIn('<h1 id="hero-title">', html)
 
+    def test_mine_view_keeps_section_navigation(self):
+        js = read("assets/personal.js")
+        self.assertIn("mineSection", js)
+        self.assertIn("mineScoped", js)
+        self.assertIn("unitSection", js)
+        idx = read("index.html")
+        self.assertIn("mineView ? { view: 'mine' } : null", idx)
+
     def test_nav_items_min_touch_height(self):
         css = read("assets/pages/index.css")
         block = re.search(r"\.section-tab \{([^}]*)\}", css)

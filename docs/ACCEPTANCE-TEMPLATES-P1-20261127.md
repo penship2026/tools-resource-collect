@@ -69,3 +69,16 @@
 **复核结论**：原「有条件通过」的 3 个签收前问题已闭合，低优先项同步处理；18 组 390/768/1280 页面组合仍 `scrollWidth == innerWidth`，`layout_lint`、`docs_check`、`--verify` 均通过。可提交用户做最终签收确认。
 
 **遗留（不阻塞签收）**：`dump_site_yaml` 的引号转义与 `site.yml`/`site.js` 双文件写入仍未做事务化；独立侧栏能力留待后续版式扩展。
+
+## 六、我的页板块导航修复（2026-11-27）
+
+**现象**：`index.html?view=mine` 下点板块导航，会跳到 `index.html?section=<id>`，丢失 `view=mine`，回到公开首页。
+
+**根因**：`Render.sectionNav()` 固定生成 `index.html?section=<id>`，没有携带当前视图参数；`Personal.mountMineView()` 只按 `view=mine` 判断，导航后自然回到公开态。
+
+**处理**：
+- `Render.sectionNav` 新增可选 `view` 参数，我的视图链接统一为 `index.html?view=mine` 与 `index.html?view=mine&section=<id>`；公开链接保持原样。
+- 「我的」页按收藏所属板块过滤：优先使用快照 `section`，旧收藏回退索引 `section`；导航计数改为本地收藏数，避免显示公开计数。
+- 无收藏的板块给明确空态「该板块还没有收藏。」，统计显示「该板块 N / 共 M 条收藏」。
+
+**验证**：CDP 造 2 条收藏（AI、K12），`?view=mine` 显示 2 条；点 K12 后 URL 保持 `view=mine&section=k12`，面板仍为我的页、显示 1 条；点 AI 显示 1 条；点工具与效率显示空态。Python 79 例、视图 20 例、版式 15 例、`layout_lint`、`docs_check` 通过。

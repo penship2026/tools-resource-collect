@@ -161,6 +161,20 @@ ok('sectionNav 只列启用板块并按 order 排序', () => {
   assert(html.includes('1</span>'));
 });
 
+ok('sectionNav 保留我的视图参数', () => {
+  const sections = [
+    { id: 'a', title: 'A', order: 1, enabled: true, count: 1 },
+    { id: 'b', title: 'B', order: 2, enabled: true, count: 2 }
+  ];
+  const html = R.sectionNav(sections, 'a', { view: 'mine' });
+  assert(html.includes('href="index.html?view=mine"'));
+  assert(html.includes('href="index.html?view=mine&amp;section=a"') ||
+    html.includes('href="index.html?view=mine&section=a"'));
+  assert(html.includes('aria-current="page"'));
+  assert(html.includes('href="index.html?view=mine&amp;section=b"') ||
+    html.includes('href="index.html?view=mine&section=b"'));
+});
+
 ok('lead 渲染 1 主 + 3 副且标题转义', () => {
   const items = [
     topic,

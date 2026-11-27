@@ -725,3 +725,13 @@ Chrome 无头截图三页面全部正常:首页卡片标签独立行两行截断
 - 调整 5 个公开页脚本顺序为 `site.js` → `theme.js`,避免首屏按全量 6 套主题渲染。
 - 新增 `tools/ai-template/drafts/`(草稿仅本机、`.gitignore`),无 AI 时 `tools/`、Key、网络都不参与运行。
 - 验收:Python 101 例、版式 34、主题 12、视图 21、`layout_lint`、基线 45 张、5+5 容量、`unset AI_*` 与移除 `tools/` 回归全过。
+
+## 二十九、二期 A1 双编译器(2026-11-27)
+
+- `tools/ai-template/compiler.py`：手写 JSON Schema 子集校验，覆盖版式/主题全部字段；拒绝 `sidebar / rails / timeline / theme`、未知字段、越界值、缺/多 token。
+- 版式编译：选定 archetype 基座改写为新 key，叠加密度、列数、封面比、首屏比例、副卡数、导航吸顶、描述/标签/更多链接开关与 3 段响应式；输出不带直接颜色，`!important` / `@import` / `url()` 一律拒绝。
+- 主题编译：固定 29 token 白名单顺序，只输出 `:root` + `color-scheme`；同一 Spec 默认不写时间戳，两次编译字节一致。
+- `tools/ai-template/theme_lint.py`：只允许一个 `:root` 块、29 token 齐全、无 `--layout-*`、无外链；检查 `text/bg ≥4.5`、`text-sub/surface ≥4.5`、`brand/bg ≥3`。
+- `tools/ai-template/cli.py`：`validate` / `compile` / `lint`；`compile` 输出 `<key>.css` + `<key>.registry.json`，默认写 `drafts/<key>/`；`--timestamp` 才写生成时间。
+- 示例 Spec：`tests/fixtures/specs/layout-news-dense.json`、`theme-mist.json`；手动编译分别产出约 3.3KB / 1KB。
+- 验收：Python 110 例（新增 9 例编译器）、版式 34、主题 12、视图 21、`layout_lint`、基线 45 张、5+5 容量全过；`validate` / `compile` / `lint` CLI 冒烟通过。

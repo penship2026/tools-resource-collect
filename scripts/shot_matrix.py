@@ -198,16 +198,23 @@ class CDP:
         })
         self.call("Page.navigate", {"url": url})
         time.sleep(0.55)
-        metrics = self.eval("""(() => {
-          const d = document.documentElement, b = document.body;
-          return {
-            viewport: window.innerWidth,
-            scrollWidth: Math.max(d.scrollWidth, b.scrollWidth),
-            overflowX: Math.max(d.scrollWidth, b.scrollWidth) - d.clientWidth,
-            layout: d.getAttribute('data-layout'),
-            theme: d.getAttribute('data-theme')
-          };
-        })()""")
+        metrics = structure = None
+        for _ in range(4):
+            metrics = self.eval("""(() => {
+              const d = document.documentElement, b = document.body;
+              return {
+                viewport: window.innerWidth,
+                scrollWidth: Math.max(d.scrollWidth, b.scrollWidth),
+                overflowX: Math.max(d.scrollWidth, b.scrollWidth) - d.clientWidth,
+                layout: d.getAttribute('data-layout'),
+                theme: d.getAttribute('data-theme')
+              };
+            })()""")
+            if isinstance(metrics, dict):
+                break
+            time.sleep(0.2)
+        if not isinstance(metrics, dict):
+            raise RuntimeError("页面指标读取失败:%s" % url)
         structure = self.eval("""(() => {
           const tags = {}, classes = {};
           document.querySelectorAll('*').forEach(el => {
@@ -216,7 +223,7 @@ class CDP:
             el.classList.forEach(c => { classes[c] = (classes[c] || 0) + 1; });
           });
           return {tags, classes};
-        })()""")
+        })()""") or {}
         png = self.call("Page.captureScreenshot", {"format": "png", "captureBeyondViewport": False})["data"]
         raw = base64.b64decode(png)
         image = Image.open(io.BytesIO(raw))

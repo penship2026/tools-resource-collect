@@ -11,7 +11,7 @@
 | 里程碑 | 内容 | 工期 | 依赖 | 出口验收 | 状态 |
 |---|---|---|---|---|---|
 | **A0 契约与基线** | 版式/主题 schema 骨架、能力矩阵、固定 fixture、`shot_matrix.py`、三档基线、展示清单 schema、切换器容量、`drafts/`、无 AI 基线 | 1.5d | 无 | 5+5 展示不溢出；6 套主题只显示 5；`unset AI_*` + 删 `tools/` 后一期回归全过 | 完成，待验收 |
-| **A1 双编译器** | `spec/layout.schema.json`、`spec/theme.schema.json`、`compiler.py`、主题 lint、`cli.py compile` | 4–5d | A0 | 两次编译字节一致；版式拒绝 `rails/sidebar`；主题拒绝缺/多 token；手工 Spec 可编译 | 待开始 |
+| **A1 双编译器** | `spec/layout.schema.json`、`spec/theme.schema.json`、`compiler.py`、主题 lint、`cli.py compile` | 4–5d | A0 | 两次编译字节一致；版式拒绝 `rails/sidebar`；主题拒绝缺/多 token；手工 Spec 可编译 | 完成，待验收 |
 | **A2 生成管线** | `cli.py generate`（kind=layout/theme）、适配器、缓存、两类合成样例 | 2–3d | A1 | 一条命令产 3 候选；`mock` 双类型离线全通；请求体无真实收藏 | 待开始 |
 | **A3 预览与闸门** | `preview.py`、`metrics.py`、G1–G6、Chrome/CDP 截图 | 2–3d | A2 | 失败有错误码；版式三档、主题跨 5 套展示主题跑通；G3/G4/G6 可复现 | 待开始 |
 | **A4 工作台与设计管理处** | 对比页、批准/驳回/迭代、草稿转正式、`manage.html` 展示清单 | 2–2.5d | A3 | 单次评审 ≤10 分钟；批准前运行目录零变化；上架第 6 套被拒；`standard/default` 不可下架 | 待开始 |

@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "kind": "layout",
+  "key": "news-dense",
+  "name": "门户 · 紧凑",
+  "intent": "科技类门户场景：首屏信息密度更高，头条区给 3 张副卡，板块单行即收口",
+  "archetype": "news",
+  "density": "compact",
+  "nav": { "style": "tabs", "sticky": true, "maxItems": 7 },
+  "hero": { "type": "lead", "mainRatio": 0.66, "subCards": 3 },
+  "bands": { "columns": 4, "rows": 1, "showDescription": false, "moreLink": true },
+  "cards": { "coverRatio": "4:3", "showTags": true },
+  "responsive": { "breakpoints": [1080, 720, 390], "mobileColumns": 2, "leadStack": true },
+  "limits": { "maxCssKb": 8, "maxRules": 120 },
+  "rationale": [
+    "4 列 + 单行，让 6 个板块在一屏内可扫完",
+    "4:3 封面比 16:9 更适合竖屏截图类内容",
+    "紧凑密度压缩分节间距，但保留 44px 点击区"
+  ]
+}

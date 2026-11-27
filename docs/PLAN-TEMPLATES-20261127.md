@@ -1,11 +1,12 @@
 # 集页 · 页面模板体系两期方案计划
 
-> 版本 v1.2 · 2026-11-27 · 状态：待评审
+> 版本 v1.3 · 2026-11-27 · 状态：待评审
+> v1.3 变更：二期设计评审后新增 D92–D95（能力矩阵、草稿原子发布、Chrome/CDP 截图闸门、6 套切换器容量），二期工期改为 12–15 人日 + 2–3 人日评审
 > v1.2 变更：新增 D75（置顶 / 画册大图 / 默认版式走 site.yml）；一期工期调为 9–11 人日
 > v1.1 变更：确认板块视图链接用 `?section=`；版式切换器文案定为「简洁 / 门户 / 画册」
 > 性质：**只做分析与方案**，不改代码、不改数据、不动排期与台账
 > 关联：`docs/PLAN-20261126.md`（D21–D26 表现层分离、D43 布局 token 化清单）、`docs/REVIEW-20261126.md`、`docs/REQUIREMENTS-SECTIONS-SCHEDULE-20261126.md`
-> 决策编号：本文新增 **D64–D82**，按 D35「只增不改」追加，不回写、不重排原文
+> 决策编号：本文新增 **D64–D95**，按 D35「只增不改」追加，不回写、不重排原文
 
 ---
 
@@ -14,8 +15,8 @@
 1. **现状不是"没有模板"，而是"模板写死在页面里"**：5 个页面各自带一份内联 `<style>`（合计 417 行），组件样式在 `style.css` 与页面内联重复定义 10 处且取值不同；版式无法替换，主题只能换色。
 2. **一期做"版式层"，把布局从页面里抽出来**：新增 `assets/layouts/*.css` + `data-layout` + `assets/templates.js`，交付 **简洁 / 门户 / 画册** 3 套版式（代码 key 仍为 `standard` / `news` / `magazine`）；门户版式以 `sections.yml` 的 7 个板块作为一级导航栏目，并支持 `?section=` 板块视图。
 3. **一期成败取决于"先归一、再抽层"**：页面内联样式优先级高于外部 CSS，不先合并 10 处重复声明，`layout.css` 写了也不生效——这是顺序问题，不是工作量问题。
-4. **二期做"AI 模板工坊"，但明确不做运行时 AI**：AI 只产出**受限的 Design Spec（JSON）**，由确定性编译器生成 CSS，过六道闸门 + 人工审批后才进注册表。AI 是生产工具，不是线上依赖。
-5. **两期合计 19–23 人日**（一期 9–11，二期 10–12，含试点与验收），不改变采集端契约、不新增页面文件、不引入构建步骤，`file://` 仍可直接打开。
+4. **二期做"AI 模板工坊"，但明确不做运行时 AI**：AI 只产出**受限的 Design Spec（JSON）**，由确定性编译器生成 CSS，过六道闸门 + 人工审批后才进注册表；Spec 只允许已落地的 `nav / lead / bands / toc` 四类能力，不绑定主题（D92）。
+5. **两期合计 21–26 人日**（一期 9–11，二期工程 12–15 + 评审 2–3），不改变采集端契约、不新增页面文件、不引入构建步骤，`file://` 仍可直接打开。
 6. **一期是二期的前置**：没有版式枚举、布局 token 白名单、截图基线与注册表，AI 生成物就没有可校验的落地形态。
 
 ---
@@ -217,7 +218,7 @@ Design Spec（JSON Schema 校验）
 
 ---
 
-## 八、决策记录（D64–D91，追加）
+## 八、决策记录（D64–D95，追加）
 
 | 编号 | 决策 | 落点 |
 |---|---|---|
@@ -249,6 +250,10 @@ Design Spec（JSON Schema 校验）
 | D89 | 采集单元体验收口：默认每页 5 条；新增本地搜索（标题 / ID / 作者 / 平台 / 关键词 / 页面），过滤后重排分页并回到第 1 页；单条操作按钮由右侧竖排改为信息底部一排；说明文字改用 `--fs-xs` + 1.85 行距、三条粗体导语，与采集页面板字体一致 | `collector/collect.html`、`tests/test_pages.py` |
 | D90 | 「我的」页增加独立版式偏好：设置面板新增「我的版式」（跟随公开 / 简洁 / 门户 / 画册），存 `jiye.mine.layout.v1`，只在 `?view=mine` 生效；优先级 `?layout` 预览 > 我的版式 > `jiye.layout` > 站点默认；选「跟随公开版式」删除本键，不改公开页 | `assets/layout.js`、`assets/personal.js`、`index.html`、`tests/test_layout.js`、`tests/test_pages.py` |
 | D91 | 首页与合集/列表子页共用 `facts-hero` 统计条：数字与日期分字号（`fact-date`），顶部细线 + 竖向分隔，宽度按内容收缩并保底 540px；简洁左对齐、门户用品牌色 2px 线宽 620px、画册居中并保底 540px；窄屏取消分隔并换行，日期字号降级 | `assets/style.css`、`assets/layouts/news.css`、`assets/layouts/magazine.css`、`index.html`、`series.html`、`list.html`、`tests/test_pages.py` |
+| D92 | 二期 Spec 只允许已落地的 `nav / lead / bands / toc` 四类能力；`rail`、`timeline`、`rails/sidebar`、`titleLines` 等未落地字段不进 schema。`archetype` 与能力位共用一张矩阵，模型不得自行增结构 | `tools/ai-template/spec_schema.json`、`assets/templates.js`、`assets/render.js` |
+| D93 | AI 产物先写 `tools/ai-template/drafts/<key>/`，批准后才原子发布 CSS、`templates.js` 与 `docs/templates/*`；注册表加可选 `status`，`deprecated` 不显示，未知/下线 key 回退 `standard` | `tools/ai-template/`、`assets/templates.js`、`assets/layout.js` |
+| D94 | G3/G4/G6 复用本机 Chrome/CDP + 固定 fixture + 三档截图；基线存 `tests/baselines/*.json`，G6 用截图 dHash + 结构指纹；不新增 Playwright 依赖 | `scripts/shot_matrix.py`、`tests/fixtures/`、`tests/baselines/` |
+| D95 | 版式切换器容量：≤4 套用按钮，≥5 套用下拉；个人设置始终下拉；6 套为内置上限；新增/下线 key 自动同步，不手工改页脚 | `assets/layout.js`、`assets/style.css`、`index.html` |
 
 ---
 
@@ -256,8 +261,10 @@ Design Spec（JSON Schema 校验）
 
 | 文档 | 内容 | 状态 |
 |---|---|---|
-| 本文 | 两期总体方案、现状分析、决策 D64–D91 | 本次交付 |
+| 本文 | 两期总体方案、现状分析、决策 D64–D95 | 本次交付 |
 | `docs/DESIGN-TEMPLATES-P1-20261127.md` | 一期详细设计（契约、版式规格、文件级改动、验收矩阵） | 本次交付 |
-| `docs/DESIGN-TEMPLATES-P2-20261127.md` | 二期详细设计（Spec schema、编译器、闸门、工坊、治理） | 本次交付 |
+| `docs/DESIGN-TEMPLATES-P2-20261127.md` | 二期详细设计 v1.1（Spec schema、编译器、闸门、工坊、治理） | 本次交付 |
+| `docs/REVIEW-TEMPLATES-P2-20261127.md` | 二期设计评审（阻断项、范围收敛、验收增量） | 本次交付 |
+| `docs/SCHEDULE-TEMPLATES-P2-20261127.md` | 二期排期与进度（A0–A5、开工顺序、台账） | 本次交付 |
 
 代码与数据已按一期 M1 起实施（进度见 `docs/SCHEDULE-TEMPLATES-P1-20261127.md`），实施按 D34「改动即落档」同步更新 README / TODO / WORKLOG。

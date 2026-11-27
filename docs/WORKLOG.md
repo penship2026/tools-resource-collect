@@ -703,3 +703,10 @@ Chrome 无头截图三页面全部正常:首页卡片标签独立行两行截断
 - 共用样式放 `assets/style.css`,新增 `--layout-facts-pad` 控制列间距;宽度按内容收缩,保底 540px,避免四项统计在窄容器里掉行。
 - 版式适配:简洁 1px 线左对齐;门户 2px 品牌色线、620px 基线;画册居中、540px 基线;≤600px 取消分隔并换行,数字/日期降为 20/16px。
 - 验证:Python 92 例、Node 版式 27、视图 21;CDP 无缓存复核首页三版式、合集三版式与列表页统计条。
+
+## 二十七、二期设计评审与范围收敛(2026-11-27)
+
+- 新增 `docs/REVIEW-TEMPLATES-P2-20261127.md`：对照 `templates.js` / `render.js` / `layout.js` / `layout_lint.py` / `pages.yml` 评审二期 v1.0，列出能力漂移、主题回耦合、截图基线缺失、draft 无落点、6 套切换器溢出五个阻断项。
+- `DESIGN-TEMPLATES-P2` 升至 v1.1：Spec 只保留 `nav / lead / bands / toc`，删除 `rails / timeline / theme`；补 draft 目录、原子发布、`status` 与下线回退；G3/G4/G6 改用本机 Chrome/CDP + 固定 fixture；工期改 12–15 人日 + 2–3 人日评审。
+- `PLAN-TEMPLATES` 追加 D92–D95；新增 `docs/SCHEDULE-TEMPLATES-P2-20261127.md`（A0–A5 与进度台账）。
+- 本轮只改文档，未动业务代码；基线 Python 92 例、版式 27、视图 21、`layout_lint`、`docs_check` 通过。

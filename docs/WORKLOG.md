@@ -709,4 +709,5 @@ Chrome 无头截图三页面全部正常:首页卡片标签独立行两行截断
 - 新增 `docs/REVIEW-TEMPLATES-P2-20261127.md`：对照 `templates.js` / `render.js` / `layout.js` / `layout_lint.py` / `pages.yml` 评审二期 v1.0，列出能力漂移、主题回耦合、截图基线缺失、draft 无落点、6 套切换器溢出五个阻断项。
 - `DESIGN-TEMPLATES-P2` 升至 v1.1：Spec 只保留 `nav / lead / bands / toc`，删除 `rails / timeline / theme`；补 draft 目录、原子发布、`status` 与下线回退；G3/G4/G6 改用本机 Chrome/CDP + 固定 fixture；工期改 12–15 人日 + 2–3 人日评审。
 - `PLAN-TEMPLATES` 追加 D92–D95；新增 `docs/SCHEDULE-TEMPLATES-P2-20261127.md`（A0–A5 与进度台账）。
+- 用户确认二期定位为「AI 增强」：补充 D96 与设计 1.3「无 AI 基线」，明确无 Key / 无 `tools/` / 断网时一期全部功能仍可用；`DESIGN-TEMPLATES-P2` 升至 v1.2。
 - 本轮只改文档，未动业务代码；基线 Python 92 例、版式 27、视图 21、`layout_lint`、`docs_check` 通过。

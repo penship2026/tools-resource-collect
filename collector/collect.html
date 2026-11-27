@@ -89,22 +89,28 @@
     .topic-actions { display: flex; flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: flex-start; gap: 6px; margin-top: 10px; }
     .unit-row { border-bottom: 1px solid var(--border); }
     .unit-row .topic-item { display: block; border-bottom: none; }
-    .hero-editor { padding: 0 0 14px; }
-    .hero-editor label { display: block; font-size: 11px; color: var(--text-mute); margin-bottom: 6px; }
-    .hero-editor .hero-line { display: flex; gap: 6px; flex-wrap: wrap; }
-    .hero-editor input { flex: 1 1 320px; min-width: 0; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 7px 9px; color: var(--text); font-size: 12px; }
-    .hero-editor .toggle-btn { flex: 0 0 auto; }
-    .hero-editor img { display: block; width: 210px; max-width: 100%; aspect-ratio: 3 / 2; object-fit: cover; border-radius: 8px; margin-top: 8px; background: var(--bg); }
-    .hero-editor img[hidden] { display: none; }
-    .meta-editor { padding: 2px 0 16px; border-top: 1px dashed var(--border); margin-bottom: 12px; }
-    .meta-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 12px; }
-    .meta-grid .field { margin-bottom: 10px; }
-    .meta-grid .field label { font-size: 11px; color: var(--text-mute); }
-    .meta-grid .field input[type=text], .meta-grid .field select { padding: 7px 9px; font-size: 12px; }
-    .meta-checks { display: flex; gap: 16px; align-items: center; padding: 3px 0 8px; font-size: 12px; color: var(--text-sub); }
-    .meta-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-    .meta-actions .tip { margin: 0 0 0 4px; }
-    @media (max-width: 620px) { .meta-grid { grid-template-columns: 1fr; } }
+    /* 单元信息编辑:独立弹层,避免在列表行内堆字段 */
+    .meta-modal {
+      position: fixed; inset: 0; z-index: 1000; background: rgba(20, 28, 40, .45);
+      display: flex; align-items: center; justify-content: center; padding: 20px;
+    }
+    .meta-modal[hidden] { display: none; }
+    .meta-card {
+      width: min(560px, 100%); max-height: calc(100vh - 40px); overflow: auto;
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 22px 24px; box-shadow: 0 18px 60px rgba(20, 28, 40, .22);
+    }
+    .meta-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
+    .meta-head h3 { margin: 0; font-size: 16px; font-weight: 600; }
+    .meta-close {
+      border: 0; background: transparent; color: var(--text-mute); font-size: 22px;
+      line-height: 1; cursor: pointer; padding: 2px 6px;
+    }
+    .meta-close:hover { color: var(--text); }
+    .meta-checks { display: flex; gap: 16px; align-items: center; padding: 2px 0 10px; font-size: 12px; color: var(--text-sub); }
+    .meta-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+    .meta-actions .tip { margin: 0; }
+    @media (max-width: 620px) { .meta-card { padding: 18px; } .meta-card .grid2 { grid-template-columns: 1fr; } }
     .unit-pager {
       display: flex; align-items: center; justify-content: space-between; gap: 12px;
       margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border);
@@ -354,6 +360,47 @@
       </div>
     </div>
   </main>
+
+  <!-- 单元信息编辑弹层:只改元数据,不触发采集 -->
+  <div class="meta-modal" id="meta-modal" hidden>
+    <div class="meta-card" role="dialog" aria-modal="true" aria-labelledby="meta-title-head">
+      <div class="meta-head">
+        <h3 id="meta-title-head">编辑单元信息</h3>
+        <button type="button" class="meta-close" id="meta-close" aria-label="关闭">×</button>
+      </div>
+      <form id="meta-form">
+        <input type="hidden" id="meta-id">
+        <div class="grid2">
+          <div class="field">
+            <label for="meta-title">标题 *</label>
+            <input type="text" id="meta-title" required autocomplete="off">
+          </div>
+          <div class="field">
+            <label for="meta-section">板块</label>
+            <select id="meta-section"></select>
+          </div>
+        </div>
+        <div class="field">
+          <label for="meta-tags">标签(逗号分隔)</label>
+          <input type="text" id="meta-tags" placeholder="例如:AI, 工具, 教程" autocomplete="off">
+        </div>
+        <div class="field">
+          <label for="meta-hero">画册大图 URL</label>
+          <input type="text" id="meta-hero" placeholder="https://… 只在画册版式生效,留空用封面" autocomplete="off">
+          <div class="tip">画册大图不在采集单元列表里维护,统一放在本弹层。</div>
+        </div>
+        <div class="meta-checks">
+          <label class="pick"><input type="checkbox" id="meta-enabled"> 显示中</label>
+          <label class="pick"><input type="checkbox" id="meta-pin"> 置顶</label>
+        </div>
+        <div class="meta-actions">
+          <button type="submit" class="btn" id="meta-save">保存信息</button>
+          <button type="button" class="btn ghost" id="meta-cancel">取消</button>
+          <div class="tip">只改元数据,不会重新抓取内容。</div>
+        </div>
+      </form>
+    </div>
+  </div>
 
   <footer class="site-footer">
     <div class="wrap">
@@ -938,6 +985,77 @@
       return unitCache.filter(t => unitMatches(t, terms));
     }
 
+    // 编辑信息:独立弹层,字段从当前单元回填;保存只走元数据接口
+    function openMetaModal(id) {
+      const item = unitCache.find(t => t.id === id);
+      if (!item) return;
+      $('meta-id').value = item.id;
+      $('meta-title').value = item.title || '';
+      $('meta-section').innerHTML = sectionOptionsHtml(item.section || '');
+      $('meta-tags').value = (item.tags || []).join(', ');
+      $('meta-hero').value = item.hero_image || '';
+      $('meta-enabled').checked = item.enabled !== false;
+      $('meta-pin').checked = !!item.pin;
+      $('meta-modal').hidden = false;
+      document.body.style.overflow = 'hidden';
+      $('meta-title').focus();
+    }
+
+    function closeMetaModal() {
+      $('meta-modal').hidden = true;
+      document.body.style.overflow = '';
+      $('meta-form').reset();
+      $('meta-id').value = '';
+      $('meta-save').disabled = false;
+    }
+
+    $('meta-form').addEventListener('submit', async e => {
+      e.preventDefault();
+      const id = $('meta-id').value;
+      const title = $('meta-title').value.trim();
+      const tags = $('meta-tags').value.split(/[,，\n]/).map(x => x.trim()).filter(Boolean);
+      if (!title) {
+        statusBox.className = 'status err';
+        statusBox.textContent = '标题不能为空';
+        return;
+      }
+      const btn = $('meta-save');
+      btn.disabled = true;
+      try {
+        const resp = await apiFetch(API_UNIT_META, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': siteCsrf },
+          body: JSON.stringify({
+            id: id,
+            title: title,
+            section: $('meta-section').value,
+            tags: tags,
+            enabled: $('meta-enabled').checked,
+            pin: $('meta-pin').checked,
+            hero_image: $('meta-hero').value.trim(),
+          }),
+        });
+        const r = await readJSON(resp);
+        if (!r.ok) throw new Error((r.error && r.error.message) || r.error || '保存失败');
+        closeMetaModal();
+        statusBox.className = 'status ok';
+        statusBox.textContent = '「' + (r.title || title) + '」信息已保存,未重新采集';
+        loadTopics();
+      } catch (err) {
+        statusBox.className = 'status err';
+        statusBox.textContent = '保存信息失败: ' + err.message;
+        btn.disabled = false;
+      }
+    });
+    $('meta-close').addEventListener('click', closeMetaModal);
+    $('meta-cancel').addEventListener('click', closeMetaModal);
+    $('meta-modal').addEventListener('click', e => {
+      if (e.target === $('meta-modal')) closeMetaModal();
+    });
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && !$('meta-modal').hidden) closeMetaModal();
+    });
+
     function renderUnitPage() {
       const box = $('topics');
       const countEl = $('unit-search-count');
@@ -969,7 +1087,6 @@
         const last = t.last_at
           ? `<small title="${esc(t.last_mode_label || '')}">上次采集 ${esc(fmtStamp(t.last_at))}</small>`
           : '';
-        const hero = t.hero_image || '';
         return `
         <div class="unit-row">
         <div class="topic-item ${enabled ? '' : 'off'}">
@@ -983,47 +1100,8 @@
               ${enabled ? '显示中' : '已关闭'}
             </button>
             <button class="toggle-btn ${t.pin ? 'pin-on' : ''}" data-pin-id="${esc(t.id)}">${t.pin ? '取消置顶' : '置顶'}</button>
-            <button class="toggle-btn" data-hero-id="${esc(t.id)}">画册大图${hero ? ' ✓' : ''}</button>
             <button class="toggle-btn" data-meta-id="${esc(t.id)}">编辑信息</button>
             <button class="toggle-btn" data-fill-id="${esc(t.id)}">重新采集</button>
-          </div>
-        </div>
-        <div class="hero-editor" data-hero-editor="${esc(t.id)}" hidden>
-          <label>画册大图 URL(只在画册版式生效;留空则用封面)</label>
-          <div class="hero-line">
-            <input type="text" data-hero-input value="${esc(hero)}" placeholder="https://… 3:2 横图效果最好" autocomplete="off">
-            <button class="toggle-btn" data-hero-save="${esc(t.id)}">保存</button>
-            <button class="toggle-btn" data-hero-clear="${esc(t.id)}">用封面</button>
-          </div>
-          <img data-hero-preview alt="" ${hero ? '' : 'hidden'} src="${esc(hero)}">
-        </div>
-        <div class="meta-editor" data-meta-editor="${esc(t.id)}" hidden>
-          <div class="meta-grid">
-            <div class="field">
-              <label>标题</label>
-              <input type="text" data-meta-title value="${esc(t.title || '')}" autocomplete="off">
-            </div>
-            <div class="field">
-              <label>板块</label>
-              <select data-meta-section>${sectionOptionsHtml(t.section)}</select>
-            </div>
-            <div class="field">
-              <label>标签(逗号分隔)</label>
-              <input type="text" data-meta-tags value="${esc((t.tags || []).join(', '))}" placeholder="例如:AI, 工具, 教程" autocomplete="off">
-            </div>
-            <div class="field">
-              <label>画册大图 URL</label>
-              <input type="text" data-meta-hero value="${esc(hero)}" placeholder="https://… 留空则用封面" autocomplete="off">
-            </div>
-          </div>
-          <div class="meta-checks">
-            <label class="pick"><input type="checkbox" data-meta-enabled ${enabled ? 'checked' : ''}> 显示中</label>
-            <label class="pick"><input type="checkbox" data-meta-pin ${t.pin ? 'checked' : ''}> 置顶</label>
-          </div>
-          <div class="meta-actions">
-            <button class="toggle-btn" type="button" data-meta-save="${esc(t.id)}">保存信息</button>
-            <button class="toggle-btn" type="button" data-meta-cancel="${esc(t.id)}">取消</button>
-            <div class="tip">只改元数据,不会重新抓取内容。</div>
           </div>
         </div>
         </div>`;
@@ -1092,124 +1170,9 @@
         });
       });
 
-      // 画册大图:展开单元下方编辑区,保存/清除都走 /api/site
-      box.querySelectorAll('[data-hero-id]').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const id = btn.getAttribute('data-hero-id');
-          const editor = box.querySelector('[data-hero-editor="' + id + '"]');
-          if (!editor) return;
-          editor.hidden = !editor.hidden;
-          const input = editor.querySelector('[data-hero-input]');
-          const preview = editor.querySelector('[data-hero-preview]');
-          const show = () => {
-            const v = input.value.trim();
-            preview.hidden = !v;
-            if (v) preview.src = v;
-          };
-          input.oninput = show;
-          show();
-          if (!editor.hidden) input.focus();
-        });
-      });
-      box.querySelectorAll('[data-hero-save]').forEach(btn => {
-        btn.addEventListener('click', async () => {
-          const id = btn.getAttribute('data-hero-save');
-          const editor = box.querySelector('[data-hero-editor="' + id + '"]');
-          const input = editor ? editor.querySelector('[data-hero-input]') : null;
-          if (!input) return;
-          btn.disabled = true;
-          try {
-            await saveSitePatch({ id: id, hero_image: input.value.trim() }, input.value.trim() ? '画册大图已保存' : '已改为使用封面');
-            const item = unitCache.find(x => x.id === id);
-            if (item) item.hero_image = input.value.trim();
-            renderUnitPage();
-          } catch (err) {
-            statusBox.className = 'status err';
-            statusBox.textContent = '保存大图失败: ' + err.message;
-            btn.disabled = false;
-          }
-        });
-      });
-      box.querySelectorAll('[data-hero-clear]').forEach(btn => {
-        btn.addEventListener('click', async () => {
-          const id = btn.getAttribute('data-hero-clear');
-          btn.disabled = true;
-          try {
-            await saveSitePatch({ id: id, hero_image: '' }, '已改为使用封面');
-            const item = unitCache.find(x => x.id === id);
-            if (item) item.hero_image = '';
-            renderUnitPage();
-          } catch (err) {
-            statusBox.className = 'status err';
-            statusBox.textContent = '清除大图失败: ' + err.message;
-            btn.disabled = false;
-          }
-        });
-      });
-
-      // 「重新采集」:带出上次采集信息并切到重新采集状态,不自动采集,等用户确认
-      // 编辑信息:只改元数据(标题/板块/标签/显示/置顶/大图),不触发采集
+      // 编辑信息:统一在弹层维护,列表行内不再展开字段
       box.querySelectorAll('[data-meta-id]').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const id = btn.getAttribute('data-meta-id');
-          const editor = box.querySelector('[data-meta-editor="' + id + '"]');
-          if (!editor) return;
-          const heroEditor = box.querySelector('[data-hero-editor="' + id + '"]');
-          if (heroEditor) heroEditor.hidden = true;
-          editor.hidden = !editor.hidden;
-          if (!editor.hidden) {
-            const input = editor.querySelector('[data-meta-title]');
-            if (input) input.focus();
-          }
-        });
-      });
-      box.querySelectorAll('[data-meta-cancel]').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const id = btn.getAttribute('data-meta-cancel');
-          const editor = box.querySelector('[data-meta-editor="' + id + '"]');
-          if (editor) editor.hidden = true;
-        });
-      });
-      box.querySelectorAll('[data-meta-save]').forEach(btn => {
-        btn.addEventListener('click', async () => {
-          const id = btn.getAttribute('data-meta-save');
-          const editor = box.querySelector('[data-meta-editor="' + id + '"]');
-          if (!editor) return;
-          const title = (editor.querySelector('[data-meta-title]').value || '').trim();
-          const tags = (editor.querySelector('[data-meta-tags]').value || '')
-            .split(/[,，\n]/).map(x => x.trim()).filter(Boolean);
-          const payload = {
-            id: id,
-            title: title,
-            section: editor.querySelector('[data-meta-section]').value,
-            tags: tags,
-            enabled: editor.querySelector('[data-meta-enabled]').checked,
-            pin: editor.querySelector('[data-meta-pin]').checked,
-            hero_image: (editor.querySelector('[data-meta-hero]').value || '').trim(),
-          };
-          if (!title) {
-            statusBox.className = 'status err';
-            statusBox.textContent = '标题不能为空';
-            return;
-          }
-          btn.disabled = true;
-          try {
-            const resp = await apiFetch(API_UNIT_META, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': siteCsrf },
-              body: JSON.stringify(payload),
-            });
-            const r = await readJSON(resp);
-            if (!r.ok) throw new Error((r.error && r.error.message) || r.error || '保存失败');
-            statusBox.className = 'status ok';
-            statusBox.textContent = '「' + (r.title || title) + '」信息已保存,未重新采集';
-            loadTopics();
-          } catch (err) {
-            statusBox.className = 'status err';
-            statusBox.textContent = '保存信息失败: ' + err.message;
-            btn.disabled = false;
-          }
-        });
+        btn.addEventListener('click', () => openMetaModal(btn.getAttribute('data-meta-id')));
       });
 
       box.querySelectorAll('[data-fill-id]').forEach(btn => {

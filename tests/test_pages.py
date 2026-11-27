@@ -46,11 +46,15 @@ class PagesContractTest(unittest.TestCase):
                      "renderSectionOptions", "renderTargetOptions",
                      "merge_mode: targetId ? 'append' : mergeMode()",
                      "section: $('section-id').value.trim()",
-                     "data-meta-id", "data-meta-title", "data-meta-section",
-                     "data-meta-tags", "data-meta-enabled", "data-meta-pin",
-                     "API_UNIT_META", "onSectionChange",
+                     "data-meta-id", 'id="meta-modal"', 'id="meta-title"',
+                     'id="meta-section"', 'id="meta-tags"', 'id="meta-hero"',
+                     'id="meta-enabled"', 'id="meta-pin"',
+                     "openMetaModal", "API_UNIT_META", "onSectionChange",
                      ".filter(t => !section || (t.section || '') === section)"):
             self.assertIn(text, html, text)
+        # 画册大图不再在列表行内维护
+        self.assertNotIn("data-hero-id", html)
+        self.assertNotIn("hero-editor", html)
 
     def test_public_pages_have_skip_link_and_main_anchor(self):
         for page in ["index.html", "series.html", "list.html", "single.html"]:

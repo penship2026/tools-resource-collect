@@ -784,3 +784,11 @@ Chrome 无头截图三页面全部正常:首页卡片标签独立行两行截断
 - 新增 `workbench/review.html`、`workbench/manage.html`、`server.py` 与 `published.json`、`docs/templates/`、`reviews/`；`cli.py` 增 `serve / approve / reject / revise / display`，工作台只监听 `127.0.0.1`，不发布 Pages。
 - 新增 `tests/test_workbench_ai.py` 8 例：批准前资产零变化、闸门/审批人校验、版式+主题发布、事务回滚、驳回/迭代上限、5 套与锁定、HTTP 冒烟。全量 Python 141 例通过。
 - 本次按阶段提交 A4 代码；批准与展示管理运行时仍不自动 git commit，`site.yml`、`assets/site.js` 与采集数据不并入 A4 提交。
+
+## 三十五、采集页编辑信息改为弹层(2026-11-27)
+
+- 已采集单元列表移除行内编辑区,也移除「画册大图」按钮和行内大图编辑器;统一从「编辑信息」打开独立弹层。
+- 弹层字段:标题、板块、标签、画册大图、显示状态、置顶;保存仍走 `POST /api/unit/meta`,只改元数据,不触发抓取。
+- 画册大图只在弹层维护,列表行不再出现大图入口;置顶/显示开关的快捷按钮保留。
+- 弹层支持遮罩点击、取消、ESC 关闭,打开时锁定背景滚动。
+- 验收:全量 Python 141 例、`--verify`、`docs_check`、`layout_lint` 通过;无头 Chrome 实测列表中 `data-hero-id` 为 0,弹层正确回填标题/板块/标签/显示/置顶,取消后关闭并恢复页面滚动。

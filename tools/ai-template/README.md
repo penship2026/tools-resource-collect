@@ -40,3 +40,21 @@ python3 tools/ai-template/cli.py lint --file tools/ai-template/drafts/clay/candi
 - 默认只发 `synthetic-preview-v1` 合成样例；不读取 `jiye.mine.v1`、采集正文、作者、来源链接。
 - 缓存键 `sha256(kind + system + user + model)`，命中不调用模型；非法 JSON/校验失败重试 1 次，候选同质直接报错。
 - 无 `AI_BASE_URL / AI_API_KEY / AI_MODEL` 时自动降级 mock，`source=mock` 的产物不得当可上线模板。
+
+## A3 预览与闸门
+
+```text
+# 完整：5 套展示主题 × 1280/768/390 截图 + G1–G6
+python3 tools/ai-template/cli.py preview --spec tools/ai-template/drafts/<key>/candidate-N/spec.json
+
+# 冒烟：只跑 default 主题
+python3 tools/ai-template/cli.py preview --spec ... --quick
+
+# 无 Chrome：只跑静态 G1/G2/G4 token/G5/G6 token，视觉标记 skipped
+python3 tools/ai-template/cli.py preview --spec ... --no-shot
+```
+
+- 输出写在候选目录：`preview/index.html`、`metrics.json`；截图在临时 Chrome profile，不提交大图。
+- 失败返回非 0，`metrics.json` 的 `gates` 逐项带 `G1_SCHEMA` / `G2_FORBIDDEN` / `G3_RENDER` / `G4_CONTRAST` / `G6_DHASH` 等错误码。
+- 版式：5 套展示主题 × 三档；主题：同一 fixture 套 5 套展示主题 × 三档；每候选 15 张。
+- G6 版式对比基座 archetype，结构与截图 dHash 双指标；主题对比当前 5 套展示主题的主色/背景/字体/圆角。

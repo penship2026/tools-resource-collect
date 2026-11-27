@@ -754,3 +754,14 @@ Chrome 无头截图三页面全部正常:首页卡片标签独立行两行截断
 - `section` 已贯通 `/api/collect` 与 `collect_by_url / collect_batch / collect_topic`;批量或单链接追加到既有 series 时保留 series 类型,不会因为只采到一条而被降成 single。
 - 重新采集态隐藏「加入已有主题」,回填原单元板块;退出重新采集/重置时恢复新建态。
 - 实测:8765 旧进程已重启;`/api/topics` 返回 7 板块、13 单元及 `section/section_title`;预览追加 `topic-35bc9a90` 返回 `type=series`、`unit_id` 正确、`added`/`updated` 正常。全量 Python 132 例、`--verify`、`docs_check`、`layout_lint` 通过。
+
+## 三十一、二期 A3 预览与闸门(2026-11-27)
+
+- 新增 `tools/ai-template/metrics.py`：G1 手写 schema、G2 CSS 白名单/预算、G5 性能预算、G6 结构/token 辨识度；每个失败带 `G1_SCHEMA`、`G2_FORBIDDEN`、`G4_CONTRAST`、`G6_STRUCTURE` 等错误码。
+- 新增 `tools/ai-template/preview.py`：把 `tests/fixtures/preview.html` 改造成候选预览；版式候选移除 `layout.js`、注入候选能力断言，主题候选在基础主题 CSS 之后追加候选 token。
+- 截图矩阵：版式 5 套展示主题 × 1280/768/390，主题同一 fixture 套 5 套展示主题 × 三档；每个候选 15 张，单张失败自动重试 1 次。
+- G3 断言横向溢出、可见卡片 ≥6、导航可点、控制台/样式加载 0 错误；G4 断言卡片点击区 ≥44px、标题层级、键盘 `Tab` 焦点可见与 token 对比度；G5 断言无外链/固定遮挡；G6 版式要求结构与基座差 ≥2 项且 dHash ≥10，主题要求与 5 套展示主题各差 ≥2 项。
+- `cli.py` 新增 `preview --spec ... --out ... --no-shot --quick`，写 `metrics.json`；失败返回非 0，报告逐项列错误码。
+- 调整 mock 版式候选（方图改 4 列、文字首屏、舒适密度）与 mock 雾青圆角 18px，使 3 个版式 + 3 个主题候选均能过 G1–G6，同时保留 A2 的 2 项差异约束。
+- 新增 `tests/test_preview_ai.py` 11 例：静态双类型、G1/G6 错误码、预览 HTML、DOM 失败码、no-shot、CLI 冒烟、Chrome quick 冒烟。
+- 验收：Python 132 例全过；6 个 mock 候选各 15 张截图全过；Node 版式 34、主题 12、视图 21、`layout_lint`、45 张基线、5+5 容量全过。

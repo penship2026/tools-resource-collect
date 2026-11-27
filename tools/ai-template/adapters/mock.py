@@ -22,7 +22,7 @@ def layout_candidates():
     base = _load(LAYOUT_FIXTURE)
     variants = [
         ("news-dense", "门户 · 紧凑", "4 列紧凑门户，适合一屏扫完 6 个板块", 4, "4:3", "lead", "compact", 3),
-        ("news-tiles", "门户 · 方图", "3 列方图，适合截图类内容", 3, "1:1", "lead", "comfortable", 2),
+        ("news-tiles", "门户 · 方图", "4 列方图，适合截图类内容", 4, "1:1", "text", "comfortable", 2),
         ("news-brief", "门户 · 简讯", "2 列简讯，窄屏优先", 2, "16:9", "text", "compact", 0),
     ]
     out = []
@@ -55,7 +55,7 @@ def theme_candidates():
         ("mist", "雾青", "低饱和青绿，浅色阅读", "light", {
             "--bg": "#f6f8f4", "--surface": "#ffffff", "--text": "#1f2a24",
             "--text-sub": "#4d5d54", "--brand": "#2f6f4e", "--brand-soft": "#e6f1ea",
-            "--brand-2": "#7aa98d", "--radius": "14px",
+            "--brand-2": "#7aa98d", "--radius": "18px",
         }),
         ("clay", "陶土", "暖陶土色，纸张质感", "light", {
             "--bg": "#fbf7f1", "--surface": "#fffdf9", "--text": "#2c2620",

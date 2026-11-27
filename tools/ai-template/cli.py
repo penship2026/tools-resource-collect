@@ -23,19 +23,19 @@ import compiler  # noqa: E402
 import theme_lint  # noqa: E402
 
 
-def _load_generate():
-    """按文件路径加载，避免与仓库根 generate.py 同名冲突。"""
-    name = "ai_template_generate"
+def _load_local(name, filename):
+    """按文件路径加载，避免与仓库根同名模块冲突。"""
     if name in sys.modules:
         return sys.modules[name]
-    spec = importlib.util.spec_from_file_location(name, HERE / "generate.py")
+    spec = importlib.util.spec_from_file_location(name, HERE / filename)
     module = importlib.util.module_from_spec(spec)
     sys.modules[name] = module
     spec.loader.exec_module(module)
     return module
 
 
-generate = _load_generate()
+generate = _load_local("ai_template_generate", "generate.py")
+preview = _load_local("ai_template_preview", "preview.py")
 
 
 def _load(path):
@@ -108,6 +108,33 @@ def cmd_generate(args):
     return 0
 
 
+def cmd_preview(args):
+    spec_path = Path(args.spec)
+    try:
+        spec = compiler.load_json(spec_path)
+    except FileNotFoundError:
+        print("找不到 Spec:%s" % spec_path, file=sys.stderr)
+        return 1
+    kind = args.kind or spec.get("kind")
+    if kind not in ("layout", "theme"):
+        print("Spec kind 无效:%s" % kind, file=sys.stderr)
+        return 1
+    out = Path(args.out) if args.out else spec_path.parent
+    report = preview.evaluate(spec, kind, out, no_shot=args.no_shot, quick=args.quick)
+    preview.metrics.write_report(out / "metrics.json", report)
+    summary = {
+        "ok": report["ok"],
+        "key": report["key"],
+        "visual": report.get("visual"),
+        "errors": [{"gate": g["gate"], "code": g["code"], "message": g["message"]}
+                   for g in report["gates"] if not g.get("ok")],
+        "metrics": report.get("metrics"),
+        "report": str(out / "metrics.json"),
+    }
+    print(json.dumps(summary, ensure_ascii=False, indent=2))
+    return 0 if report["ok"] else 1
+
+
 def cmd_lint(args):
     path = Path(args.file)
     errors = theme_lint.lint_theme_file(path)
@@ -142,6 +169,14 @@ def main(argv=None):
     p.add_argument("--no-cache", action="store_true", help="不复用同 prompt 的缓存")
     p.add_argument("--attempts", type=int, default=2, help="JSON/schema 失败重试次数，默认 2")
     p.set_defaults(func=cmd_generate)
+
+    p = sub.add_parser("preview", help="固定 fixture 预览 + 六道闸门")
+    p.add_argument("--spec", required=True, help="候选 spec.json 路径")
+    p.add_argument("--kind", choices=("layout", "theme"), help="默认读取 spec.kind")
+    p.add_argument("--out", help="候选目录；默认 spec 所在目录")
+    p.add_argument("--no-shot", action="store_true", help="只跑静态闸门，视觉标记 skipped")
+    p.add_argument("--quick", action="store_true", help="只跑 default 主题，用于冒烟")
+    p.set_defaults(func=cmd_preview)
 
     p = sub.add_parser("lint")
     p.add_argument("--file", required=True, help="主题 CSS 路径")

@@ -1,0 +1,74 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://jiye.local/spec/theme.schema.json",
+  "title": "集页 · 主题 Design Spec",
+  "description": "主题只换 29 个既有 token；不得新增 --layout-*、不得写选择器/页面覆盖/外链字体。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "kind", "key", "name", "intent", "mode", "tokens", "rationale", "limits"],
+  "properties": {
+    "version": {"const": 1},
+    "kind": {"const": "theme"},
+    "key": {"type": "string", "pattern": "^[a-z0-9-]{3,24}$"},
+    "name": {"type": "string", "minLength": 1, "maxLength": 12},
+    "intent": {"type": "string", "minLength": 1, "maxLength": 120},
+    "mode": {"enum": ["light", "dark"]},
+    "tokens": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "--bg", "--surface", "--text", "--text-sub", "--text-mute", "--border",
+        "--brand", "--brand-soft", "--shadow", "--radius", "--radius-sm", "--radius-pill",
+        "--font-sans", "--font-display", "--fs-hero", "--fs-title", "--fs-body", "--fs-sm",
+        "--fs-xs", "--gap-card", "--pad-card", "--shadow-hover", "--brand-2", "--hero-wash",
+        "--header-bg", "--plat-bilibili", "--plat-wechat", "--plat-xhs", "--plat-multi"
+      ],
+      "properties": {
+        "--bg": {"type": "string", "minLength": 1, "maxLength": 160, "pattern": "^(?!.*(?:url\\(|@import|;|\\{|\\}|--layout-)).+$"},
+        "--surface": {"type": "string", "minLength": 1, "maxLength": 160, "pattern": "^(?!.*(?:url\\(|@import|;|\\{|\\}|--layout-)).+$"},
+        "--text": {"type": "string", "minLength": 1, "maxLength": 160, "pattern": "^(?!.*(?:url\\(|@import|;|\\{|\\}|--layout-)).+$"},
+        "--text-sub": {"type": "string", "minLength": 1, "maxLength": 160, "pattern": "^(?!.*(?:url\\(|@import|;|\\{|\\}|--layout-)).+$"},
+        "--text-mute": {"type": "string", "minLength": 1, "maxLength": 160, "pattern": "^(?!.*(?:url\\(|@import|;|\\{|\\}|--layout-)).+$"},
+        "--border": {"type": "string", "minLength": 1, "maxLength": 160, "pattern": "^(?!.*(?:url\\(|@import|;|\\{|\\}|--layout-)).+$"},
+        "--brand": {"type": "string", "minLength": 1, "maxLength": 160, "pattern": "^(?!.*(?:url\\(|@import|;|\\{|\\}|--layout-)).+$"},
+        "--brand-soft": {"type": "string", "minLength": 1, "maxLength": 160, "pattern": "^(?!.*(?:url\\(|@import|;|\\{|\\}|--layout-)).+$"},
+        "--shadow": {"type": "string", "minLength": 1, "maxLength": 160, "pattern": "^(?!.*(?:url\\(|@import|;|\\{|\\}|--layout-)).+$"},
+        "--radius": {"type": "string", "minLength": 1, "maxLength": 160, "pattern": "^(?!.*(?:url\\(|@import|;|\\{|\\}|--layout-)).+$"},
+        "--radius-sm": {"type": "string", "minLength": 1, "maxLength": 160, "pattern": "^(?!.*(?:url\\(|@import|;|\\{|\\}|--layout-)).+$"},
+        "--radius-pill": {"type": "string", "minLength": 1, "maxLength": 160, "pattern": "^(?!.*(?:url\\(|@import|;|\\{|\\}|--layout-)).+$"},
+        "--font-sans": {"type": "string", "minLength": 1, "maxLength": 160, "pattern": "^(?!.*(?:url\\(|@import|;|\\{|\\}|--layout-)).+$"},
+        "--font-display": {"type": "string", "minLength": 1, "maxLength": 160, "pattern": "^(?!.*(?:url\\(|@import|;|\\{|\\}|--layout-)).+$"},
+        "--fs-hero": {"type": "string", "minLength": 1, "maxLength": 160, "pattern": "^(?!.*(?:url\\(|@import|;|\\{|\\}|--layout-)).+$"},
+        "--fs-title": {"type": "string", "minLength": 1, "maxLength": 160, "pattern": "^(?!.*(?:url\\(|@import|;|\\{|\\}|--layout-)).+$"},
+        "--fs-body": {"type": "string", "minLength": 1, "maxLength": 160, "pattern": "^(?!.*(?:url\\(|@import|;|\\{|\\}|--layout-)).+$"},
+        "--fs-sm": {"type": "string", "minLength": 1, "maxLength": 160, "pattern": "^(?!.*(?:url\\(|@import|;|\\{|\\}|--layout-)).+$"},
+        "--fs-xs": {"type": "string", "minLength": 1, "maxLength": 160, "pattern": "^(?!.*(?:url\\(|@import|;|\\{|\\}|--layout-)).+$"},
+        "--gap-card": {"type": "string", "minLength": 1, "maxLength": 160, "pattern": "^(?!.*(?:url\\(|@import|;|\\{|\\}|--layout-)).+$"},
+        "--pad-card": {"type": "string", "minLength": 1, "maxLength": 160, "pattern": "^(?!.*(?:url\\(|@import|;|\\{|\\}|--layout-)).+$"},
+        "--shadow-hover": {"type": "string", "minLength": 1, "maxLength": 160, "pattern": "^(?!.*(?:url\\(|@import|;|\\{|\\}|--layout-)).+$"},
+        "--brand-2": {"type": "string", "minLength": 1, "maxLength": 160, "pattern": "^(?!.*(?:url\\(|@import|;|\\{|\\}|--layout-)).+$"},
+        "--hero-wash": {"type": "string", "minLength": 1, "maxLength": 160, "pattern": "^(?!.*(?:url\\(|@import|;|\\{|\\}|--layout-)).+$"},
+        "--header-bg": {"type": "string", "minLength": 1, "maxLength": 160, "pattern": "^(?!.*(?:url\\(|@import|;|\\{|\\}|--layout-)).+$"},
+        "--plat-bilibili": {"type": "string", "minLength": 1, "maxLength": 160, "pattern": "^(?!.*(?:url\\(|@import|;|\\{|\\}|--layout-)).+$"},
+        "--plat-wechat": {"type": "string", "minLength": 1, "maxLength": 160, "pattern": "^(?!.*(?:url\\(|@import|;|\\{|\\}|--layout-)).+$"},
+        "--plat-xhs": {"type": "string", "minLength": 1, "maxLength": 160, "pattern": "^(?!.*(?:url\\(|@import|;|\\{|\\}|--layout-)).+$"},
+        "--plat-multi": {"type": "string", "minLength": 1, "maxLength": 160, "pattern": "^(?!.*(?:url\\(|@import|;|\\{|\\}|--layout-)).+$"}
+      }
+    },
+    "rationale": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 5,
+      "items": {"type": "string", "minLength": 1, "maxLength": 60}
+    },
+    "limits": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["maxCssKb", "maxRules"],
+      "properties": {
+        "maxCssKb": {"type": "number", "minimum": 2, "maximum": 4},
+        "maxRules": {"type": "integer", "minimum": 30, "maximum": 40}
+      }
+    }
+  }
+}

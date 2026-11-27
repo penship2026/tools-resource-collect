@@ -55,17 +55,23 @@ class GenerateDataTest(unittest.TestCase):
     def test_site_config_validate_and_roundtrip(self):
         cfg = generate.normalize_site_config({
             "default_layout": "magazine",
+            "display": {"visible_layouts": ["standard", "news", "magazine"],
+                        "visible_themes": ["default", "dark", "tech", "campus", "classical"]},
             "editorial": {"u1": {"pin": True, "pin_at": "2026-11-27 10:00",
                                  "hero_image": "https://example.com/a.jpg"}}
         }, {"u1"})
         self.assertEqual(cfg["default_layout"], "magazine")
         self.assertTrue(cfg["editorial"]["u1"]["pin"])
+        self.assertEqual(cfg["display"]["visible_themes"][-1], "classical")
         path = os.path.join(TMP, "site.yml")
         with open(path, "w", encoding="utf-8") as fh:
             fh.write(generate.dump_site_yaml(cfg))
         self.assertEqual(generate.load_site_config(path), cfg)
         self.assertEqual(generate.build_site_payload(cfg), {
-            "default_layout": "magazine", "editorial": cfg["editorial"]})
+            "default_layout": "magazine",
+            "display": {"visible_layouts": ["standard", "news", "magazine"],
+                        "visible_themes": ["default", "dark", "tech", "campus", "classical"]},
+            "editorial": cfg["editorial"]})
         empty = generate.normalize_site_config({"default_layout": "standard", "editorial": {}})
         with open(path, "w", encoding="utf-8") as fh:
             fh.write(generate.dump_site_yaml(empty))
@@ -78,6 +84,11 @@ class GenerateDataTest(unittest.TestCase):
             {"default_layout": "standard", "editorial": {"u1": {"pin": True, "pin_at": "2026-11-27"}}},
             {"default_layout": "standard", "editorial": {"u1": {"hero_image": "javascript:alert(1)"}}},
             {"default_layout": "standard", "editorial": {"u1": {"pin": "yes", "pin_at": "2026-11-27 10:00"}}},
+            {"default_layout": "standard", "display": {"visible_layouts": []}},
+            {"default_layout": "standard", "display": {"visible_layouts": ["news"]}},
+            {"default_layout": "standard", "display": {"visible_layouts": ["standard", "standard"]}},
+            {"default_layout": "standard", "display": {"visible_themes": ["default", "dark", "tech", "campus", "classical", "anime"]}},
+            {"default_layout": "news", "display": {"visible_layouts": ["standard"]}},
         ):
             with self.assertRaises(ValueError):
                 generate.normalize_site_config(raw, {"u1"})

@@ -21,6 +21,9 @@ html[data-layout="magazine"] .facts-hero {
 }
 html[data-layout="magazine"] .facts-hero .fact { align-items: center; }
 html[data-layout="magazine"] .facts-hero .fact-date b { font-size: 18px; }
+@media (max-width: 600px) {
+  html[data-layout="magazine"] .facts-hero { min-width: 0; width: 100%; max-width: 540px; }
+}
 
 /* 刊头目录:像杂志目录页,两列/三列自适应 */
 .mag-toc-wrap[hidden] { display: none; }

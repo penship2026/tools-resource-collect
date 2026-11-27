@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <base href="../../">
+  <title>预览 fixture · 集页</title>
+  <link rel="stylesheet" href="assets/style.css">
+  <link rel="stylesheet" href="assets/pages/index.css">
+  <link rel="stylesheet" id="theme-css" href="assets/themes/default.css">
+  <script src="assets/templates.js"></script>
+  <script src="assets/theme.js"></script>
+  <script src="assets/layout.js"></script>
+</head>
+<body class="page-index">
+  <header class="site-header">
+    <div class="wrap header-inner">
+      <a class="brand" href="index.html"><b>集页</b><span>一集一页</span></a>
+      <nav class="header-nav" aria-label="主导航">
+        <a href="index.html" aria-current="page">首页</a>
+        <a href="list.html">全部内容</a>
+        <a href="index.html?view=mine">我的</a>
+      </nav>
+      <div class="header-meta">fixture · 虚构数据</div>
+    </div>
+  </header>
+
+  <nav class="section-nav" id="section-nav" aria-label="板块导航" hidden>
+    <a href="#sec-ai" class="section-link active">AI 与工具</a>
+    <a href="#sec-design" class="section-link">设计</a>
+    <a href="#sec-photo" class="section-link">摄影</a>
+    <a href="#sec-study" class="section-link">学习</a>
+    <a href="#sec-life" class="section-link">生活</a>
+    <a href="#sec-dev" class="section-link">开发</a>
+    <a href="#sec-empty" class="section-link">空板块</a>
+  </nav>
+
+  <main class="wrap" id="main-content">
+    <section class="hero" id="hero">
+      <h2>预览 fixture：结构、主题与容量的固定样本</h2>
+      <p class="sub">用于截图基线与版式/主题预览。全部标题、作者、数据均为虚构，不包含真实收藏。</p>
+      <div class="facts facts-hero">
+        <div class="fact"><b>7</b><span>主题系列</span></div>
+        <div class="fact"><b>5</b><span>来源渠道</span></div>
+        <div class="fact fact-date"><b>2026-11-27</b><span>最近更新</span></div>
+      </div>
+    </section>
+
+    <section class="lead" id="lead" hidden>
+      <div class="lead-main">
+        <a class="topic-card" href="#">
+          <div class="topic-cover"><div class="topic-ph">AI</div><span class="type-tag">合集</span><span class="badge">B站</span></div>
+          <div class="topic-body"><h3>AI 工具工作流：从提示到交付</h3><p class="slogan">固定样本 · 头条区</p><div class="foot"><span class="count">12 条内容 →</span><span>2026-11-26</span></div></div>
+        </a>
+      </div>
+      <div class="lead-mini">
+        <a class="topic-card" href="#"><div class="topic-cover"><div class="topic-ph">设</div></div><div class="topic-body"><h3>版式设计基础</h3></div></a>
+        <a class="topic-card" href="#"><div class="topic-cover"><div class="topic-ph">摄</div></div><div class="topic-body"><h3>街头摄影 8 讲</h3></div></a>
+        <a class="topic-card" href="#"><div class="topic-cover"><div class="topic-ph">学</div></div><div class="topic-body"><h3>学习方法整理</h3></div></a>
+      </div>
+    </section>
+
+    <div class="mag-toc-wrap" id="magazine-toc" hidden>
+      <div class="mag-toc">
+        <div class="mag-toc-title">本期目录</div>
+        <a href="#sec-ai"><span>01</span>AI 与工具 <b>12</b></a>
+        <a href="#sec-design"><span>02</span>设计 <b>9</b></a>
+        <a href="#sec-photo"><span>03</span>摄影 <b>7</b></a>
+        <a href="#sec-study"><span>04</span>学习 <b>6</b></a>
+        <a href="#sec-life"><span>05</span>生活 <b>4</b></a>
+        <a href="#sec-dev"><span>06</span>开发 <b>8</b></a>
+        <a href="#sec-empty"><span>07</span>空板块 <b>0</b></a>
+      </div>
+    </div>
+
+    <div class="section-title">
+      <h2>全部主题</h2>
+      <span class="hint">固定 fixture · 7 个板块</span>
+    </div>
+
+    <div class="filter-bar" id="filter-bar">
+      <div class="filter-group"><span class="filter-label">类型</span><div class="filter-opts"><button class="chip active">全部</button><button class="chip">系列合集</button><button class="chip">单条精选</button></div></div>
+      <div class="filter-group"><span class="filter-label">平台</span><div class="filter-opts"><button class="chip">B站</button><button class="chip">公众号</button><button class="chip">小红书</button></div></div>
+      <div class="filter-group search-group"><span class="filter-label">搜索</span><div class="filter-opts"><input class="search-input" placeholder="搜索主题名称或发布者…"></div></div>
+    </div>
+
+    <div class="topic-grid" id="topic-grid">
+      <a class="topic-card" href="#"><div class="topic-cover"><div class="topic-ph">AI</div><span class="type-tag">合集</span><span class="badge">B站</span></div><div class="topic-body"><h3>AI 工具工作流</h3><p class="slogan">提示词、工作流与交付</p><div class="tag-line"><span class="mini-tag">AI</span><span class="mini-tag">效率</span></div><div class="foot"><span class="count">12 条内容 →</span><span>2026-11-26</span></div></div></a>
+      <a class="topic-card" href="#"><div class="topic-cover"><div class="topic-ph">设</div><span class="type-tag">合集</span><span class="badge">公众号</span></div><div class="topic-body"><h3>版式设计基础</h3><p class="slogan">留白、层级与网格</p><div class="tag-line"><span class="mini-tag">设计</span></div><div class="foot"><span class="count">9 条内容 →</span><span>2026-11-25</span></div></div></a>
+      <a class="topic-card" href="#"><div class="topic-cover"><div class="topic-ph">摄</div><span class="type-tag single">单条</span><span class="badge">B站</span></div><div class="topic-body"><h3>街头摄影 8 讲</h3><p class="slogan">观察与构图</p><div class="foot"><span class="count">1 条内容 →</span><span>2026-11-24</span></div></div></a>
+      <a class="topic-card" href="#"><div class="topic-cover"><div class="topic-ph">学</div><span class="type-tag">合集</span><span class="badge">小红书</span></div><div class="topic-body"><h3>学习方法整理</h3><p class="slogan">可执行的周计划</p><div class="tag-line"><span class="mini-tag">学习</span></div><div class="foot"><span class="count">6 条内容 →</span><span>2026-11-23</span></div></div></a>
+      <a class="topic-card" href="#"><div class="topic-cover"><div class="topic-ph">生</div><span class="type-tag">合集</span><span class="badge">公众号</span></div><div class="topic-body"><h3>生活整理术</h3><p class="slogan">从桌面到日程</p><div class="foot"><span class="count">4 条内容 →</span><span>2026-11-22</span></div></div></a>
+      <a class="topic-card" href="#"><div class="topic-cover"><div class="topic-ph">开</div><span class="type-tag">合集</span><span class="badge">B站</span></div><div class="topic-body"><h3>前端开发笔记</h3><p class="slogan">CSS、性能与调试</p><div class="tag-line"><span class="mini-tag">开发</span><span class="mini-tag">CSS</span></div><div class="foot"><span class="count">8 条内容 →</span><span>2026-11-21</span></div></div></a>
+      <a class="topic-card" href="#"><div class="topic-cover"><div class="topic-ph">空</div><span class="type-tag">合集</span><span class="badge">多平台</span></div><div class="topic-body"><h3>空板块占位</h3><p class="slogan">用于验证空态不塌陷</p><div class="foot"><span class="count">0 条内容 →</span><span>—</span></div></div></a>
+    </div>
+
+    <div id="section-bands">
+      <section class="section-band" id="sec-ai"><div class="band-title"><span class="band-no">01</span><h2>AI 与工具</h2><span class="band-hint">12 条</span></div><div class="band-grid"><a class="topic-card" href="#"><div class="topic-cover"><div class="topic-ph">AI</div></div><div class="topic-body"><h3>AI 工具工作流</h3></div></a><a class="topic-card" href="#"><div class="topic-cover"><div class="topic-ph">提</div></div><div class="topic-body"><h3>提示词手册</h3></div></a><a class="topic-card" href="#"><div class="topic-cover"><div class="topic-ph">自</div></div><div class="topic-body"><h3>自动化脚本</h3></div></a><a class="topic-card" href="#"><div class="topic-cover"><div class="topic-ph">模</div></div><div class="topic-body"><h3>模型选型</h3></div></a></div></section>
+      <section class="section-band" id="sec-design"><div class="band-title"><span class="band-no">02</span><h2>设计</h2><span class="band-hint">9 条</span></div><div class="band-grid"><a class="topic-card" href="#"><div class="topic-cover"><div class="topic-ph">版</div></div><div class="topic-body"><h3>版式设计基础</h3></div></a><a class="topic-card" href="#"><div class="topic-cover"><div class="topic-ph">色</div></div><div class="topic-body"><h3>配色方法</h3></div></a><a class="topic-card" href="#"><div class="topic-cover"><div class="topic-ph">字</div></div><div class="topic-body"><h3>字体层级</h3></div></a></div></section>
+      <section class="section-band" id="sec-photo"><div class="band-title"><span class="band-no">03</span><h2>摄影</h2><span class="band-hint">7 条</span></div><div class="band-grid"><a class="topic-card" href="#"><div class="topic-cover"><div class="topic-ph">街</div></div><div class="topic-body"><h3>街头摄影 8 讲</h3></div></a><a class="topic-card" href="#"><div class="topic-cover"><div class="topic-ph">光</div></div><div class="topic-body"><h3>自然光练习</h3></div></a></div></section>
+      <section class="section-band" id="sec-study"><div class="band-title"><span class="band-no">04</span><h2>学习</h2><span class="band-hint">6 条</span></div><div class="band-grid"><a class="topic-card" href="#"><div class="topic-cover"><div class="topic-ph">学</div></div><div class="topic-body"><h3>学习方法整理</h3></div></a><a class="topic-card" href="#"><div class="topic-cover"><div class="topic-ph">记</div></div><div class="topic-body"><h3>笔记系统</h3></div></a></div></section>
+      <section class="section-band" id="sec-life"><div class="band-title"><span class="band-no">05</span><h2>生活</h2><span class="band-hint">4 条</span></div><div class="band-grid"><a class="topic-card" href="#"><div class="topic-cover"><div class="topic-ph">生</div></div><div class="topic-body"><h3>生活整理术</h3></div></a></div></section>
+      <section class="section-band" id="sec-dev"><div class="band-title"><span class="band-no">06</span><h2>开发</h2><span class="band-hint">8 条</span></div><div class="band-grid"><a class="topic-card" href="#"><div class="topic-cover"><div class="topic-ph">前</div></div><div class="topic-body"><h3>前端开发笔记</h3></div></a><a class="topic-card" href="#"><div class="topic-cover"><div class="topic-ph">调</div></div><div class="topic-body"><h3>调试清单</h3></div></a></div></section>
+      <section class="section-band" id="sec-empty"><div class="band-title"><span class="band-no">07</span><h2>空板块</h2><span class="band-hint">0 条</span></div><div class="section-empty">这个板块还没有内容，用于验证空态。</div></section>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <p class="footer-note">fixture 仅用于截图与预览，不含真实收藏。</p>
+    </div>
+  </footer>
+
+  <script>
+  (function () {
+    var caps = window.TEMPLATE_CAPABILITIES;
+    var key = document.documentElement.getAttribute('data-layout') || 'standard';
+    var c = caps.byArchetype[key] || caps.byArchetype.standard;
+    var nav = document.getElementById('section-nav');
+    var lead = document.getElementById('lead');
+    var toc = document.getElementById('magazine-toc');
+    var bands = document.getElementById('section-bands');
+    if (nav) nav.hidden = !c.nav;
+    if (lead) lead.hidden = !c.lead;
+    if (toc) toc.hidden = !c.toc;
+    if (bands) bands.hidden = !c.bands;
+  })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,89 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://jiye.local/spec/layout.schema.json",
+  "title": "集页 · 版式 Design Spec",
+  "description": "AI 只产出受限版式参数；能力位仅 nav / lead / bands / toc，拒绝 sidebar / rail / timeline。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "kind", "key", "name", "intent", "archetype", "density", "nav", "hero", "bands", "cards", "responsive", "limits", "rationale"],
+  "properties": {
+    "version": {"const": 1},
+    "kind": {"const": "layout"},
+    "key": {"type": "string", "pattern": "^[a-z0-9-]{3,24}$"},
+    "name": {"type": "string", "minLength": 1, "maxLength": 12},
+    "intent": {"type": "string", "minLength": 1, "maxLength": 120},
+    "archetype": {"enum": ["standard", "news", "magazine"]},
+    "density": {"enum": ["comfortable", "compact"]},
+    "nav": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["style", "sticky", "maxItems"],
+      "properties": {
+        "style": {"enum": ["none", "tabs"]},
+        "sticky": {"type": "boolean"},
+        "maxItems": {"type": "integer", "minimum": 4, "maximum": 8}
+      }
+    },
+    "hero": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "mainRatio", "subCards"],
+      "properties": {
+        "type": {"enum": ["none", "text", "lead"]},
+        "mainRatio": {"type": "number", "minimum": 0.5, "maximum": 0.7},
+        "subCards": {"type": "integer", "minimum": 0, "maximum": 3}
+      }
+    },
+    "bands": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["columns", "rows", "showDescription", "moreLink"],
+      "properties": {
+        "columns": {"type": "integer", "minimum": 2, "maximum": 4},
+        "rows": {"type": "integer", "minimum": 1, "maximum": 3},
+        "showDescription": {"type": "boolean"},
+        "moreLink": {"type": "boolean"}
+      }
+    },
+    "cards": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["coverRatio", "showTags"],
+      "properties": {
+        "coverRatio": {"enum": ["16:9", "4:3", "3:2", "1:1"]},
+        "showTags": {"type": "boolean"}
+      }
+    },
+    "responsive": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["breakpoints", "mobileColumns", "leadStack"],
+      "properties": {
+        "breakpoints": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {"enum": [1080, 720, 390]},
+          "uniqueItems": true
+        },
+        "mobileColumns": {"type": "integer", "minimum": 1, "maximum": 2},
+        "leadStack": {"type": "boolean"}
+      }
+    },
+    "limits": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["maxCssKb", "maxRules"],
+      "properties": {
+        "maxCssKb": {"type": "number", "minimum": 6, "maximum": 10},
+        "maxRules": {"type": "integer", "minimum": 60, "maximum": 160}
+      }
+    },
+    "rationale": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 5,
+      "items": {"type": "string", "minLength": 1, "maxLength": 60}
+    }
+  }
+}

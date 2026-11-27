@@ -139,6 +139,28 @@ eq('跟随公开删除我的键', env.store['jiye.mine.layout.v1'], undefined);
 env = makeEnv('?view=mine&layout=news', { 'jiye.mine.layout.v1': 'magazine' });
 eq('预览覆盖我的版式', env.window.JiyeLayout.current(), 'news');
 
+// 15) 展示清单过滤:隐藏 magazine 后,旧存储回退 standard
+env = makeEnv('', { 'jiye.layout': 'magazine' },
+  { default_layout: 'standard', display: { visible_layouts: ['standard', 'news'] } });
+eq('隐藏版式回退', env.window.JiyeLayout.current(), 'standard');
+eq('展示清单长度', env.window.JiyeLayout.list().length, 2);
+eq('展示清单不含 magazine', env.window.JiyeLayout.visible().indexOf('magazine'), -1);
+
+// 16) 隐藏版式的 ?layout 预览也不生效
+env = makeEnv('?layout=magazine', null,
+  { default_layout: 'standard', display: { visible_layouts: ['standard', 'news'] } });
+eq('隐藏版式预览回退', env.window.JiyeLayout.current(), 'standard');
+
+// 17) 非法展示清单回退全部内置,不白屏
+env = makeEnv('', null, { default_layout: 'standard', display: { visible_layouts: ['nope'] } });
+eq('非法展示清单回退', env.window.JiyeLayout.list().length, 3);
+
+// 18) 5 套展示清单:default 必须在,且可见
+env = makeEnv('', null, { default_layout: 'standard',
+  display: { visible_layouts: ['standard', 'news', 'magazine', 'a1', 'a2'] } });
+eq('5 套展示清单长度', env.window.JiyeLayout.list().length, 3);
+eq('未注册 key 被过滤', env.window.JiyeLayout.visible().indexOf('a1'), -1);
+
 if (process.exitCode) {
   console.error('版式逻辑用例失败');
 } else {

@@ -3,4 +3,16 @@ version: 1
 site:
   default_layout: standard
 
+display:
+  visible_layouts:
+    - standard
+    - news
+    - magazine
+  visible_themes:
+    - default
+    - dark
+    - tech
+    - campus
+    - classical
+
 editorial: {}

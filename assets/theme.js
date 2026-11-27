@@ -24,10 +24,22 @@
   var AUTO_LABEL = '跟随系统';
   var INHERIT = 'inherit';
 
+  // 展示清单由 site.yml display.visible_themes 控制;旧部署缺字段时退回全部内置
+  function visibleThemes() {
+    var cfg = window.SITE_CONFIG && window.SITE_CONFIG.display;
+    var keys = cfg && Array.isArray(cfg.visible_themes) ? cfg.visible_themes : [];
+    keys = keys.filter(function (key) { return !!THEMES[key]; });
+    return keys.length ? keys : Object.keys(THEMES);
+  }
+
+  function valid(key) {
+    return !!THEMES[key] && visibleThemes().indexOf(key) >= 0;
+  }
+
   function storedChoice() {
     try {
       var v = localStorage.getItem(KEY);
-      return v === 'auto' || THEMES[v] ? v : 'auto';
+      return v === 'auto' || valid(v) ? v : 'auto';
     } catch (e) {
       return 'auto';
     }
@@ -44,7 +56,7 @@
   function storedMineChoice() {
     try {
       var v = localStorage.getItem(MINE_KEY);
-      return v === 'auto' || THEMES[v] ? v : INHERIT;
+      return v === 'auto' || valid(v) ? v : INHERIT;
     } catch (e) {
       return INHERIT;
     }
@@ -52,17 +64,19 @@
 
   function systemTheme() {
     try {
-      return matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'default';
+      var dark = matchMedia('(prefers-color-scheme: dark)').matches;
+      if (dark && valid('dark')) return 'dark';
+      return valid('default') ? 'default' : visibleThemes()[0];
     } catch (e) {
-      return 'default';
+      return valid('default') ? 'default' : visibleThemes()[0];
     }
   }
 
   function previewParam() {
     var q = new URLSearchParams(location.search).get('theme');
     if (!q) return '';
-    if (q === 'light') return 'default';   // 预览别名:light ⇄ default
-    return THEMES[q] ? q : '';
+    if (q === 'light') return valid('default') ? 'default' : '';   // 预览别名:light ⇄ default
+    return valid(q) ? q : '';
   }
 
   function resolve() {
@@ -109,15 +123,33 @@
   function renderSwitch() {
     var footer = document.querySelector('.site-footer:not(.mine-footer) .wrap');
     if (!footer || footer.querySelector('.theme-switch')) return;
+    var keys = visibleThemes();
     var wrap = document.createElement('div');
     wrap.className = 'theme-switch';
     var html = '<span>主题</span>';
-    ['auto'].concat(Object.keys(THEMES)).forEach(function (key) {
-      var label = key === 'auto' ? AUTO_LABEL : THEMES[key].label;
-      html += '<button type="button" class="theme-btn" data-theme-choice="' + key + '">' + label + '</button>';
-    });
+    var choices = ['auto'].concat(keys);
+    if (keys.length >= 5) {
+      // 5 套时 390px 按钮会溢出,改为下拉;auto 作为第一项
+      html += '<select class="theme-select" aria-label="主题">';
+      choices.forEach(function (key) {
+        var label = key === 'auto' ? AUTO_LABEL : THEMES[key].label;
+        html += '<option value="' + key + '">' + label + '</option>';
+      });
+      html += '</select>';
+    } else {
+      choices.forEach(function (key) {
+        var label = key === 'auto' ? AUTO_LABEL : THEMES[key].label;
+        html += '<button type="button" class="theme-btn" data-theme-choice="' + key + '">' + label + '</button>';
+      });
+    }
     wrap.innerHTML = html;
     footer.appendChild(wrap);
+    wrap.addEventListener('change', function (ev) {
+      var sel = ev.target.closest && ev.target.closest('.theme-select');
+      if (!sel) return;
+      try { localStorage.setItem(KEY, sel.value); } catch (e) {}
+      apply();
+    });
     wrap.addEventListener('click', function (ev) {
       var btn = ev.target.closest && ev.target.closest('.theme-btn');
       if (!btn) return;
@@ -126,6 +158,17 @@
       apply();
     });
     updateSwitch();
+  }
+
+  function updateSwitch() {
+    var wrap = document.querySelector('.theme-switch');
+    if (!wrap) return;
+    var choice = storedChoice();
+    var sel = wrap.querySelector('.theme-select');
+    if (sel) sel.value = choice;
+    wrap.querySelectorAll('.theme-btn').forEach(function (btn) {
+      btn.classList.toggle('active', btn.getAttribute('data-theme-choice') === choice);
+    });
   }
 
   function updateSwitch() {
@@ -162,7 +205,7 @@
   function setMineChoice(choice) {
     try {
       if (!choice || choice === INHERIT) localStorage.removeItem(MINE_KEY);
-      else if (choice === 'auto' || THEMES[choice]) localStorage.setItem(MINE_KEY, choice);
+      else if (choice === 'auto' || valid(choice)) localStorage.setItem(MINE_KEY, choice);
     } catch (e) { /* 隐私模式忽略 */ }
     apply();
   }
@@ -171,6 +214,7 @@
     THEMES: THEMES,
     AUTO_LABEL: AUTO_LABEL,
     INHERIT: INHERIT,
+    visible: visibleThemes,
     apply: apply,
     current: resolve,
     mineChoice: storedMineChoice,

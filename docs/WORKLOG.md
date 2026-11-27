@@ -712,3 +712,16 @@ Chrome 无头截图三页面全部正常:首页卡片标签独立行两行截断
 - 用户确认二期定位为「AI 增强」：补充 D96 与设计 1.3「无 AI 基线」，明确无 Key / 无 `tools/` / 断网时一期全部功能仍可用；`DESIGN-TEMPLATES-P2` 升至 v1.2。
 - 追加 D97–D98：AI 可设计版式与主题；前端每类最多展示 5 套、内置占名额；新增「AI 设计管理处」控制展示清单，设计库可多于 5 套；设计升至 v1.3、排期升至 v1.2。
 - 本轮只改文档，未动业务代码；基线 Python 92 例、版式 27、视图 21、`layout_lint`、`docs_check` 通过。
+
+## 二十八、二期 A0 契约与基线落地(2026-11-27)
+
+- 新增 `spec/layout.schema.json` / `spec/theme.schema.json`:版式只允许 `nav / lead / bands / toc`,拒绝 `sidebar / rail / timeline`;主题锁定 29 个既有 token,拒绝 `--layout-*`、选择器、外链与 `url()`。
+- `assets/templates.js` 增加 `TEMPLATE_CAPABILITIES` 能力矩阵;`tests/test_spec_schema.py` 校验 schema、29 token 与 `default.css` 一一对应。
+- 新增 `tests/fixtures/preview.html`(7 个板块、6 启用 + 1 空、虚构数据)与 `switch-5.html`(5+5 切换器容量样本),均不读取个人收藏。
+- 新增 `scripts/shot_matrix.py`:本机 Chrome/CDP,45 张(3 版式 × 5 主题 × 1280/768/390),记录溢出、dHash、结构指纹到 `tests/baselines/p2-preview.json`;`--check` 用 4bit 容差防字体抖动。
+- `site.yml` 增 `display.visible_layouts` / `visible_themes`;`generate.py` 解析、校验 1–5 套与锁定项,写入 `assets/site.js`;`layout.js` / `theme.js` 只读快照过滤,隐藏/下线 key 回退默认。
+- 5 套版式或主题时页脚改下拉,≤4 套保持按钮;个人设置继续用下拉;`scripts/check_switch_fit.py` 在 390px 验证 5+5 为 0 溢出。
+- 修复画册版 390px 统计条 540px 固定宽度导致的 166px 横向溢出;`magazine.css` 在 ≤600px 改为 100% / max 540px。
+- 调整 5 个公开页脚本顺序为 `site.js` → `theme.js`,避免首屏按全量 6 套主题渲染。
+- 新增 `tools/ai-template/drafts/`(草稿仅本机、`.gitignore`),无 AI 时 `tools/`、Key、网络都不参与运行。
+- 验收:Python 101 例、版式 34、主题 12、视图 21、`layout_lint`、基线 45 张、5+5 容量、`unset AI_*` 与移除 `tools/` 回归全过。

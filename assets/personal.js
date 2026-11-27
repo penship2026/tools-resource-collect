@@ -630,7 +630,8 @@
       var theme = global.JiyeTheme;
       var layout = global.JiyeLayout;
       if (theme && theme.THEMES) {
-        Object.keys(theme.THEMES).forEach(function (key) {
+        var themeKeys = theme.visible ? theme.visible() : Object.keys(theme.THEMES);
+        themeKeys.forEach(function (key) {
           var op = document.createElement('option');
           op.value = key;
           op.textContent = theme.THEMES[key].label;

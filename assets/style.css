@@ -475,3 +475,11 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 }
 .theme-btn.active, .layout-btn.active { border-color: var(--brand); color: var(--brand); }
 .layout-btn:hover { border-color: var(--brand); color: var(--brand); }
+.theme-switch select, .layout-switch select {
+  border: 1px solid var(--border); background: var(--surface); color: var(--text-sub);
+  border-radius: 14px; padding: 4px 26px 4px 10px; font-size: 12px; cursor: pointer;
+  max-width: 42vw;
+}
+.theme-switch select:focus-visible, .layout-switch select:focus-visible {
+  outline: 2px solid var(--brand); outline-offset: 1px;
+}

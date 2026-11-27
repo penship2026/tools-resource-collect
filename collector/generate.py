@@ -115,6 +115,12 @@ TOPICS_FILE = os.path.join(ROOT, "topics.yml")
 SITE_FILE = os.path.join(ROOT, "site.yml")
 SITE_JS = os.path.join(ASSETS, "site.js")
 LAYOUT_KEYS = ("standard", "news", "magazine")
+# 内置主题注册表;AI 主题入库后由 A1 扩展到动态清单
+THEME_KEYS = ("default", "dark", "tech", "campus", "classical", "anime")
+DEFAULT_VISIBLE_LAYOUTS = ("standard", "news", "magazine")
+DEFAULT_VISIBLE_THEMES = ("default", "dark", "tech", "campus", "classical")
+DISPLAY_MAX = 5
+SITE_KEY_RE = re.compile(r"^[a-z0-9-]{3,24}$")
 # 每次采集是独立单元,数据单独存一个文件,便于局部更新与单独关闭显示
 COLLECTIONS_DIR = os.path.join(DATA_DIR, "collections")
 # 覆盖索引前的自动快照目录(仅本地保留,已在 .gitignore 中排除)
@@ -554,10 +560,13 @@ def _site_scalar(raw):
 def load_site_config(path=None):
     """读取 site.yml;缺失返回安全默认(不抛错,保证老部署可用)。"""
     path = path or SITE_FILE
-    config = {"version": 1, "default_layout": "standard", "editorial": {}}
+    config = {"version": 1, "default_layout": "standard", "editorial": {},
+              "display": {"visible_layouts": list(DEFAULT_VISIBLE_LAYOUTS),
+                          "visible_themes": list(DEFAULT_VISIBLE_THEMES)}}
     if not os.path.exists(path):
         return config
-    in_site = in_editorial = False
+    in_site = in_editorial = in_display = False
+    display_list = ""
     unit = ""
     with open(path, encoding="utf-8") as fh:
         for line in fh:
@@ -565,6 +574,11 @@ def load_site_config(path=None):
                 continue
             indent = len(line) - len(line.lstrip(" "))
             content = line.strip()
+            if in_display and content.startswith("- "):
+                value = _site_scalar(content[2:])
+                if display_list and value:
+                    config["display"][display_list].append(str(value))
+                continue
             if ":" not in content:
                 continue
             key, raw = content.split(":", 1)
@@ -572,12 +586,23 @@ def load_site_config(path=None):
             if indent == 0:
                 in_site = key == "site"
                 in_editorial = key == "editorial"
+                in_display = key == "display"
+                display_list = ""
                 unit = ""
                 if key == "version":
                     config["version"] = int(_site_scalar(raw) or 1)
                 continue
             if in_site and key == "default_layout":
                 config["default_layout"] = str(_site_scalar(raw) or "standard")
+            elif in_display:
+                if indent == 2 and key in ("visible_layouts", "visible_themes"):
+                    display_list = key
+                    config["display"][key] = []
+                    # 允许 `visible_themes: []` 显式清空
+                    if raw.strip() == "[]":
+                        config["display"][key] = []
+                else:
+                    display_list = ""
             elif in_editorial:
                 if indent <= 2:
                     unit = key
@@ -601,6 +626,29 @@ def _valid_hero_url(value):
     return parsed.scheme == "http" and parsed.hostname in ("127.0.0.1", "localhost")
 
 
+def _normalize_display_list(values, label, locked):
+    """展示清单:1–5 个合法 key,不重复,锁定项必须在。"""
+    if values is None:
+        values = []
+    if not isinstance(values, (list, tuple)):
+        raise ValueError("display.%s 必须是数组" % label)
+    clean = []
+    for value in values:
+        key = str(value or "").strip()
+        if not SITE_KEY_RE.match(key):
+            raise ValueError("display.%s 含非法 key:%s" % (label, key or "(空)"))
+        if key in clean:
+            raise ValueError("display.%s 重复 key:%s" % (label, key))
+        clean.append(key)
+    if not clean:
+        raise ValueError("display.%s 不能为空" % label)
+    if len(clean) > DISPLAY_MAX:
+        raise ValueError("display.%s 最多 %d 套" % (label, DISPLAY_MAX))
+    if locked not in clean:
+        raise ValueError("display.%s 必须包含锁定项 %s" % (label, locked))
+    return clean
+
+
 def normalize_site_config(raw, unit_ids=None):
     """校验 site.yml 配置,返回只含已知字段的干净结构;不合法抛 ValueError。"""
     if not isinstance(raw, dict):
@@ -608,6 +656,15 @@ def normalize_site_config(raw, unit_ids=None):
     layout = str(raw.get("default_layout") or "standard").strip()
     if layout not in LAYOUT_KEYS:
         raise ValueError("default_layout 必须是 %s 之一" % " / ".join(LAYOUT_KEYS))
+    display = raw.get("display") or {}
+    if not isinstance(display, dict):
+        raise ValueError("display 必须是对象")
+    visible_layouts = _normalize_display_list(
+        display.get("visible_layouts", DEFAULT_VISIBLE_LAYOUTS), "visible_layouts", "standard")
+    visible_themes = _normalize_display_list(
+        display.get("visible_themes", DEFAULT_VISIBLE_THEMES), "visible_themes", "default")
+    if layout not in visible_layouts:
+        raise ValueError("default_layout 必须出现在 display.visible_layouts 中")
     editorial = raw.get("editorial") or {}
     if not isinstance(editorial, dict):
         raise ValueError("editorial 必须是对象")
@@ -642,17 +699,28 @@ def normalize_site_config(raw, unit_ids=None):
         if entry:
             clean[uid] = entry
     return {"version": 1, "default_layout": layout,
-            "editorial": dict(sorted(clean.items()))}
+            "editorial": dict(sorted(clean.items())),
+            "display": {"visible_layouts": visible_layouts,
+                        "visible_themes": visible_themes}}
 
 
 def build_site_payload(config):
     """site.js 的纯数据部分,供写入与 --verify 比对。"""
+    display = config.get("display") or {}
     return {"default_layout": config.get("default_layout", "standard"),
+            "display": {"visible_layouts": list(display.get("visible_layouts") or DEFAULT_VISIBLE_LAYOUTS),
+                        "visible_themes": list(display.get("visible_themes") or DEFAULT_VISIBLE_THEMES)},
             "editorial": config.get("editorial") or {}}
 
 
 def dump_site_yaml(config):
-    lines = ["version: 1", "", "site:", "  default_layout: %s" % config["default_layout"], ""]
+    lines = ["version: 1", "", "site:", "  default_layout: %s" % config["default_layout"], "", "display:"]
+    display = config.get("display") or {}
+    for key in ("visible_layouts", "visible_themes"):
+        lines.append("  %s:" % key)
+        for value in display.get(key) or []:
+            lines.append("    - %s" % value)
+    lines.append("")
     editorial = config.get("editorial") or {}
     if not editorial:
         lines.append("editorial: {}")
@@ -674,7 +742,10 @@ def write_site_js(config):
     lines = [
         "// 站点外观与编辑推荐,由 generate.py 从 site.yml 生成",
         "// 页面用 window.SITE_CONFIG / window.EDITORIAL 读取;修改请改 site.yml",
-        "window.SITE_CONFIG = %s;" % json.dumps({"default_layout": payload["default_layout"]}, ensure_ascii=False),
+        "window.SITE_CONFIG = %s;" % json.dumps({
+            "default_layout": payload["default_layout"],
+            "display": payload["display"]
+        }, ensure_ascii=False),
         "window.EDITORIAL = %s;" % json.dumps(payload["editorial"], ensure_ascii=False, indent=2),
         'window.SITE_CONFIG_UPDATED = %s;' % json.dumps(datetime.date.today().isoformat()),
     ]
@@ -692,7 +763,11 @@ def read_site_js():
     if not cfg or not ed:
         return None
     try:
-        return {"default_layout": json.loads(cfg.group(1)).get("default_layout", "standard"),
+        cfg_obj = json.loads(cfg.group(1))
+        return {"default_layout": cfg_obj.get("default_layout", "standard"),
+                "display": cfg_obj.get("display") or {
+                    "visible_layouts": list(DEFAULT_VISIBLE_LAYOUTS),
+                    "visible_themes": list(DEFAULT_VISIBLE_THEMES)},
                 "editorial": json.loads(ed.group(1))}
     except ValueError:
         return None

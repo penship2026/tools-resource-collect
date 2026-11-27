@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <base href="../../">
+  <title>5+5 切换器容量 fixture</title>
+  <link rel="stylesheet" href="assets/style.css">
+  <link rel="stylesheet" id="theme-css" href="assets/themes/default.css">
+  <script src="assets/templates.js"></script>
+  <script>
+  window.TEMPLATES = {
+    default: 'layout-1',
+    list: {
+      'layout-1': { label: '版式一', file: 'assets/layouts/standard.css' },
+      'layout-2': { label: '版式二', file: 'assets/layouts/standard.css' },
+      'layout-3': { label: '版式三', file: 'assets/layouts/standard.css' },
+      'layout-4': { label: '版式四', file: 'assets/layouts/standard.css' },
+      'layout-5': { label: '版式五', file: 'assets/layouts/standard.css' }
+    }
+  };
+  window.SITE_CONFIG = {
+    default_layout: 'layout-1',
+    display: {
+      visible_layouts: ['layout-1', 'layout-2', 'layout-3', 'layout-4', 'layout-5'],
+      visible_themes: ['default', 'dark', 'tech', 'campus', 'classical']
+    }
+  };
+  </script>
+  <script src="assets/theme.js"></script>
+  <script src="assets/layout.js"></script>
+</head>
+<body class="page-index">
+  <main class="wrap">
+    <h1>5 套版式 + 5 套主题的页脚切换器</h1>
+    <p>用于 390px 容量测试，不发布。</p>
+  </main>
+  <footer class="site-footer"><div class="wrap"><p class="footer-note">容量 fixture</p></div></footer>
+</body>
+</html>

@@ -24,3 +24,10 @@ logs/
 # 本地工具数据(工作区记忆、浏览器测试产物等),不进仓库
 .workbuddy/
 .playwright-cli/
+
+# 二期 AI 设计草稿与本地密钥(仅本机,不进仓库)
+tools/ai-template/drafts/*
+!tools/ai-template/drafts/.gitkeep
+tools/ai-template/cache/
+tools/ai-template/.env
+tools/ai-template/*.local.json

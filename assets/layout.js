@@ -22,6 +22,25 @@
     return !!key && Object.prototype.hasOwnProperty.call(LIST, key);
   }
 
+  // 展示清单由 site.yml display.visible_layouts 控制;旧部署缺字段时退回全部内置
+  function visibleKeys() {
+    var cfg = window.SITE_CONFIG && window.SITE_CONFIG.display;
+    var keys = cfg && Array.isArray(cfg.visible_layouts) ? cfg.visible_layouts : [];
+    keys = keys.filter(has);
+    return keys.length ? keys : Object.keys(LIST);
+  }
+
+  function usable(key) {
+    return has(key) && visibleKeys().indexOf(key) >= 0;
+  }
+
+  function defaultKey() {
+    var d = REG.default;
+    if (usable(d)) return d;
+    if (usable('standard')) return 'standard';
+    return visibleKeys()[0];
+  }
+
   function queryKey() {
     try {
       return new URLSearchParams(location.search).get('layout') || '';
@@ -49,7 +68,7 @@
   function storedMineChoice() {
     try {
       var v = localStorage.getItem(MINE_KEY) || '';
-      return has(v) ? v : INHERIT;
+      return usable(v) ? v : INHERIT;
     } catch (e) {
       return INHERIT;
     }
@@ -62,22 +81,21 @@
 
   function resolve() {
     var q = queryKey();
-    if (has(q)) return { key: q, preview: true };
+    if (usable(q)) return { key: q, preview: true };
     // 我的页单独设过版式就优先用它,否则跟随公开版式
     if (isMineView()) {
       var mine = storedMineChoice();
-      if (has(mine)) return { key: mine, preview: false };
+      if (usable(mine)) return { key: mine, preview: false };
     }
     var s = storedKey();
-    if (has(s)) return { key: s, preview: false };
+    if (usable(s)) return { key: s, preview: false };
     var d = siteKey();
-    if (has(d)) return { key: d, preview: false };
-    var def = REG.default;
-    return { key: has(def) ? def : FALLBACK, preview: false };
+    if (usable(d)) return { key: d, preview: false };
+    return { key: defaultKey(), preview: false };
   }
 
   function fileOf(key) {
-    return has(key) && LIST[key].file ? LIST[key].file : 'assets/layouts/standard.css';
+    return usable(key) && LIST[key].file ? LIST[key].file : 'assets/layouts/standard.css';
   }
 
   function currentKey() {
@@ -88,6 +106,8 @@
     var wrap = document.querySelector('.layout-switch');
     if (!wrap) return;
     var now = currentKey();
+    var sel = wrap.querySelector('.layout-select');
+    if (sel) sel.value = now;
     wrap.querySelectorAll('.layout-btn').forEach(function (btn) {
       var on = btn.getAttribute('data-layout-choice') === now;
       btn.classList.toggle('active', on);
@@ -96,7 +116,8 @@
   }
 
   function apply(key, persist) {
-    if (!has(key)) key = has(REG.default) ? REG.default : FALLBACK;
+    var fallback = defaultKey();
+    if (!usable(key)) key = fallback;
     if (persist) {
       try { localStorage.setItem(KEY, key); } catch (e) { /* 隐私模式忽略 */ }
     }
@@ -112,14 +133,14 @@
     }
     // 每次换 href 都重置回调,避免上一版的 onerror 误伤
     link.onerror = function () {
-      if (key === FALLBACK) return;
+      if (key === fallback) return;
       link.onerror = null;
-      document.documentElement.setAttribute('data-layout', FALLBACK);
+      document.documentElement.setAttribute('data-layout', fallback);
       document.documentElement.setAttribute('data-layout-fallback', key);
-      link.href = fileOf(FALLBACK);
+      link.href = fileOf(fallback);
       updateSwitch();
       try {
-        document.dispatchEvent(new CustomEvent('jiye:layout-fallback', { detail: { from: key, to: FALLBACK } }));
+        document.dispatchEvent(new CustomEvent('jiye:layout-fallback', { detail: { from: key, to: fallback } }));
       } catch (e) { /* 老浏览器忽略 */ }
     };
     link.onload = function () {
@@ -146,22 +167,38 @@
   function renderSwitch() {
     var footer = document.querySelector('.site-footer:not(.mine-footer) .wrap');
     if (!footer || footer.querySelector('.layout-switch')) return;
-    var keys = Object.keys(LIST);
+    var keys = visibleKeys();
     if (keys.length < 2) return;
     var wrap = document.createElement('div');
     wrap.className = 'layout-switch';
     var html = '<span>版式</span>';
-    keys.forEach(function (key) {
-      html += '<button type="button" class="layout-btn" data-layout-choice="' + key +
-        '" aria-pressed="false">' + (LIST[key].label || key) + '</button>';
-    });
+    if (keys.length >= 5) {
+      // 5 套时按钮在 390px 溢出,改为下拉
+      html += '<select class="layout-select" aria-label="版式">';
+      keys.forEach(function (key) {
+        html += '<option value="' + key + '">' + (LIST[key].label || key) + '</option>';
+      });
+      html += '</select>';
+    } else {
+      keys.forEach(function (key) {
+        html += '<button type="button" class="layout-btn" data-layout-choice="' + key +
+          '" aria-pressed="false">' + (LIST[key].label || key) + '</button>';
+      });
+    }
     wrap.innerHTML = html;
     footer.appendChild(wrap);
+    wrap.addEventListener('change', function (ev) {
+      var sel = ev.target.closest && ev.target.closest('.layout-select');
+      if (!sel) return;
+      if (!usable(sel.value)) return;
+      clearPreviewParam();
+      apply(sel.value, true);
+    });
     wrap.addEventListener('click', function (ev) {
       var btn = ev.target.closest && ev.target.closest('.layout-btn');
       if (!btn) return;
       var key = btn.getAttribute('data-layout-choice');
-      if (!has(key)) return;
+      if (!usable(key)) return;
       // 手动选择后去掉 ?layout 预览参数,否则刷新仍被预览值覆盖
       clearPreviewParam();
       apply(key, true);
@@ -175,7 +212,7 @@
 
   function setMineChoice(key) {
     try {
-      if (!has(key) || key === INHERIT) localStorage.removeItem(MINE_KEY);
+      if (!usable(key) || key === INHERIT) localStorage.removeItem(MINE_KEY);
       else localStorage.setItem(MINE_KEY, key);
     } catch (e) { /* 隐私模式忽略 */ }
     clearPreviewParam();
@@ -196,7 +233,8 @@
   }
 
   window.JiyeLayout = {
-    list: function () { return Object.keys(LIST).map(function (k) { return { key: k, label: LIST[k].label, file: LIST[k].file }; }); },
+    list: function () { return visibleKeys().map(function (k) { return { key: k, label: LIST[k].label, file: LIST[k].file }; }); },
+    visible: visibleKeys,
     current: currentKey,
     resolve: resolve,
     set: function (key) { apply(key, true); },

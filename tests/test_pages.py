@@ -103,6 +103,20 @@ class PagesContractTest(unittest.TestCase):
         self.assertIn("function unitMatches(", html)
         self.assertIn("unitCache.filter(t => unitMatches(t, terms))", html)
 
+    def test_site_config_precedes_theme_script(self):
+        """展示清单必须在 theme.js 之前加载,否则首屏会按全量主题渲染切换器。"""
+        for page in ("index.html", "series.html", "list.html", "single.html", "mine-io.html"):
+            html = read(page)
+            self.assertLess(html.index("assets/site.js"), html.index("assets/theme.js"), page)
+
+    def test_five_item_switchers_use_select(self):
+        theme_js = read("assets/theme.js")
+        layout_js = read("assets/layout.js")
+        self.assertIn("theme-select", theme_js)
+        self.assertIn("keys.length >= 5", theme_js)
+        self.assertIn("layout-select", layout_js)
+        self.assertIn("keys.length >= 5", layout_js)
+
     def test_mine_footer_has_no_theme_or_layout_switch(self):
         for asset in ("assets/theme.js", "assets/layout.js"):
             self.assertIn(":not(.mine-footer)", read(asset), asset)

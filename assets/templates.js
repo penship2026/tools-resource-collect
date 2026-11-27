@@ -38,3 +38,17 @@ window.TEMPLATES = {
     }
   }
 };
+
+/* 能力矩阵(schema 与 templates.js 共用;D92)
+ * 只允许 nav / lead / bands / toc 四个已落地能力位;
+ * sidebar / rail / timeline 一律拒绝,不写成"以后实现"。
+ */
+window.TEMPLATE_CAPABILITIES = {
+  allowed: ['nav', 'lead', 'bands', 'toc'],
+  forbidden: ['sidebar', 'rail', 'timeline'],
+  byArchetype: {
+    standard: { nav: false, lead: false, bands: false, toc: false },
+    news: { nav: true, lead: true, bands: true, toc: false },
+    magazine: { nav: true, lead: false, bands: true, toc: true }
+  }
+};

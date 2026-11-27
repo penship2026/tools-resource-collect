@@ -68,9 +68,16 @@ def items(kind, root=ROOT):
                         locked=key == (LAYOUT_LOCK if kind == "layout" else THEME_LOCK))
     for key in list(out):
         out[key]["archived"] = key in archived
+        out[key]["clonable"] = _has_spec(kind, key, root)
         if key in archived:
             out[key]["status"] = "archived"
     return out
+
+
+def _has_spec(kind, key, root=ROOT):
+    docs = Path(root) / "docs" / "templates" / ("%s.json" % key)
+    builtin = Path(root) / "tools" / "ai-template" / "builtin-specs" / kind / ("%s.json" % key)
+    return docs.exists() or builtin.exists()
 
 
 def archive(kind, key, root=ROOT):

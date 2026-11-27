@@ -1,6 +1,6 @@
 # 二期排期与进度 · AI 设计与展示管理
 
-> 版本 v1.6 · 2026-11-27 · 分支 `feat/templates-p2-20261127`（基线 `47d818d`）
+> 版本 v1.7 · 2026-11-27 · 分支 `feat/templates-p2-20261127`（基线 `47d818d`）
 > 依据：`docs/DESIGN-TEMPLATES-P2-20261127.md` v1.4、`docs/REVIEW-TEMPLATES-P2-20261127.md`
 > 口径：工程 15–19 人日，另计 3–4 人日评审/验收；每轮提交同步更新本表进度列；AI 只是增强，无 AI 基线必须全绿
 
@@ -70,6 +70,7 @@ env -u AI_BASE_URL -u AI_API_KEY -u AI_MODEL python3 -m unittest discover -s tes
 | 2026-11-27 | A4 | 评审/管理处页面、批准/驳回/迭代、草稿转正式、展示清单上下架、`cli serve/approve/reject/revise/display` | 新增 8 例；Python 141、版式 34、主题 12、视图 21、45 张基线、5+5；批准前资产哈希不变、事务回滚、第 6 套/锁定项拒绝 | 完成，待验收；只写工作区，不自动提交 |
 | 2026-11-27 | A4 收尾 | 最大上架数可配置：`display.max_layouts/max_themes`、管理页输入、`/api/display/limit`、`cli display --max`、测试 9 例 | 默认 5+5 不回退；本机设版式 5、主题 8；`DISPLAY_LIMIT_TOO_SMALL` 拒绝降到当前展示数以下 | 完成；A5 前需决定版式 3+3 超 5 的处理 |
 | 2026-11-27 | A4.5 | 管理台交互生成 1–5 候选、Spec 手改存 `-eN`、按意见重生成 `-rN`、批准并推送展示、克隆 AI 模板、旧模板归档 | Python 全量 151 例；新增生成/手改/迭代/归档/克隆/推送冒烟；手改不覆盖旧候选 | 已完成，待复验；真实模型 Key 未配置，仅 mock |
+| 2026-11-27 | A4.6 | 抽取 `standard/news/magazine` 三套内置版式 Spec，管理页标记可克隆 | 三份 Spec 校验通过；内置版式可克隆新草稿；旧 CSS/注册表不动 | 已完成，待复验；主题未抽取 |
 | 2026-11-27 | A5 | 3 个 AI 版式 + 3 个 AI 主题入库、说明、展示清单、下线/回滚演练 | 待开始；需先处理版式 3+3 超 `max_layouts=5` | 待开始 |
 
 ---

@@ -100,5 +100,5 @@ python3 tools/ai-template/cli.py display --kind theme --key anime --on
 - `POST /api/spec/save`：`{path, spec}`，校验后写 `candidate-N-eN`，不覆盖旧候选。
 - `POST /api/revise`：`{path, comments, reviewer, max_rounds}`，写 `candidate-N-rN`，服务器上限 3 轮。
 - `POST /api/approve`：加 `push:true` 时批准后写展示清单与 `site.js`；展示位满返回 `push_message`，不回滚发布。
-- `POST /api/clone`：`{kind, key, new_key, new_name}`，仅已发布 AI 模板可克隆；内置模板没有 Spec。
+- `POST /api/clone`：`{kind, key, new_key, new_name}`；已发布 AI 模板从 `docs/templates` 取 Spec，内置版式从 `builtin-specs/layout` 取抽取 Spec；内置主题尚未抽取，不能克隆。
 - `POST /api/archive`：`{kind, key}`，先移出展示清单，再写 `published.json.archived`；CSS/注册表不动，锁定项拒绝。

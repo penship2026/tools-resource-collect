@@ -4,6 +4,7 @@ import hashlib
 import json
 import sys
 import tempfile
+import shutil
 import threading
 import unittest
 import urllib.request
@@ -294,6 +295,27 @@ class ManualAndArchiveTest(unittest.TestCase):
         self.assertTrue((root / "tools" / "ai-template" / "drafts" / "mist-v2" / "candidate-1" / "spec.json").exists())
 
 
+class BuiltinSpecTest(unittest.TestCase):
+    def test_extracted_layout_specs_are_valid(self):
+        base = Path(__file__).resolve().parents[1] / "tools" / "ai-template" / "builtin-specs" / "layout"
+        for key in ("standard", "news", "magazine"):
+            spec = json.loads((base / (key + ".json")).read_text(encoding="utf-8"))
+            self.assertEqual(cli.generate.validate_candidates([spec], "layout", expect=1), [])
+
+    def test_clone_builtin_layout_spec(self):
+        tmp, root = make_root()
+        self.addCleanup(tmp.cleanup)
+        base = Path(__file__).resolve().parents[1] / "tools" / "ai-template" / "builtin-specs" / "layout"
+        result = cli.generate.clone_published(
+            "layout", "news", "news-v2", "门户新版",
+            docs_dir=root / "docs" / "templates", out_dir=root / "tools" / "ai-template" / "drafts",
+            builtin_dir=base,
+        )
+        self.assertTrue(result["ok"])
+        self.assertEqual(result["spec_source"], "builtin")
+        self.assertTrue((root / "tools" / "ai-template" / "drafts" / "news-v2" / "candidate-1" / "spec.json").exists())
+
+
 class HttpSmokeTest(unittest.TestCase):
     def test_generate_and_revise_from_workbench(self):
         tmp, root = make_root()
@@ -351,6 +373,30 @@ class HttpSmokeTest(unittest.TestCase):
         cloned = json.loads(urllib.request.urlopen(req, timeout=3).read().decode("utf-8"))
         self.assertTrue(cloned["ok"])
         self.assertEqual(cloned["key"], "http-clone")
+
+    def test_clone_builtin_layout_over_http(self):
+        tmp, root = make_root()
+        self.addCleanup(tmp.cleanup)
+        src = Path(__file__).resolve().parents[1] / "tools" / "ai-template" / "builtin-specs" / "layout"
+        dst = root / "tools" / "ai-template" / "builtin-specs" / "layout"
+        dst.mkdir(parents=True)
+        shutil.copy(src / "news.json", dst / "news.json")
+        srv = server.make_server(0, root)
+        thread = threading.Thread(target=srv.serve_forever, daemon=True)
+        thread.start()
+        self.addCleanup(srv.server_close)
+        self.addCleanup(srv.shutdown)
+        base = "http://127.0.0.1:%d" % srv.server_address[1]
+        req = urllib.request.Request(base + "/api/clone", method="POST",
+                                     data=json.dumps({"kind": "layout", "key": "news",
+                                                      "new_key": "news-v2", "new_name": "门户新版"}).encode("utf-8"),
+                                     headers={"Content-Type": "application/json"})
+        result = json.loads(urllib.request.urlopen(req, timeout=3).read().decode("utf-8"))
+        self.assertTrue(result["ok"])
+        self.assertEqual(result["spec_source"], "builtin")
+        manage = json.loads(urllib.request.urlopen(base + "/api/manage", timeout=3).read().decode("utf-8"))
+        item = [x for x in manage["kinds"]["layout"]["items"] if x["key"] == "news"][0]
+        self.assertTrue(item["clonable"])
 
     def test_approve_push_to_display(self):
         tmp, root = make_root()

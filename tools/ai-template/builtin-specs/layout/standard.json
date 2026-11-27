@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "kind": "layout",
+  "key": "standard",
+  "name": "简洁",
+  "intent": "从现有简洁版式抽取：单列 Hero + 自适应卡片网格，作为基线内置模板",
+  "archetype": "standard",
+  "density": "comfortable",
+  "nav": {"style": "none", "sticky": false, "maxItems": 5},
+  "hero": {"type": "text", "mainRatio": 0.6, "subCards": 0},
+  "bands": {"columns": 3, "rows": 1, "showDescription": true, "moreLink": true},
+  "cards": {"coverRatio": "16:9", "showTags": true},
+  "responsive": {"breakpoints": [1080, 720, 390], "mobileColumns": 1, "leadStack": true},
+  "limits": {"maxCssKb": 10, "maxRules": 160},
+  "rationale": [
+    "保留现有简洁版的单列 Hero 与卡片网格",
+    "不启用板块导航，保持基线页面结构",
+    "抽取为 Spec 后可从内置模板克隆新版本"
+  ]
+}

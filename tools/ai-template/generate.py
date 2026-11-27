@@ -400,28 +400,40 @@ def save_manual(spec_path, new_spec):
     }
 
 
-def clone_published(kind, source_key, new_key, new_name, docs_dir, out_dir):
-    """从已发布 docs 里的 Spec 复制一份新草稿；旧模板文件不动。"""
+def clone_published(kind, source_key, new_key, new_name, docs_dir, out_dir, builtin_dir=None):
+    """从已发布 docs 或内置 Spec 复制一份新草稿；旧模板文件不动。"""
     if kind not in ("layout", "theme"):
         raise GenerationError(["kind 必须是 layout / theme"])
-    docs = Path(docs_dir) / ("%s.json" % source_key)
-    if not docs.exists():
-        raise GenerationError(["没有已发布 Spec：%s" % source_key])
-    data = json.loads(docs.read_text(encoding="utf-8"))
-    spec = data.get("spec")
-    if not isinstance(spec, dict):
-        raise GenerationError(["已发布记录缺少 spec：%s" % source_key])
-    spec = json.loads(json.dumps(spec, ensure_ascii=False))
+    builtin = Path(builtin_dir) if builtin_dir else Path(out_dir).parent / "builtin-specs" / kind
+    sources = [
+        ("docs", Path(docs_dir) / ("%s.json" % source_key)),
+        ("builtin", builtin / ("%s.json" % source_key)),
+    ]
+    spec = None
+    source = ""
+    for label, path in sources:
+        if not path.exists():
+            continue
+        data = json.loads(path.read_text(encoding="utf-8"))
+        candidate = data.get("spec") if label == "docs" else data
+        if isinstance(candidate, dict):
+            spec = json.loads(json.dumps(candidate, ensure_ascii=False))
+            source = label
+            break
+    if spec is None:
+        raise GenerationError(["没有可克隆的 Spec：%s（已发布 AI 模板与内置模板都没有）" % source_key])
     spec["key"] = new_key
     spec["name"] = new_name or spec.get("name") or new_key
-    spec["intent"] = "基于 %s 维护的新版本：%s" % (source_key, spec.get("intent", ""))
+    prefix = "基于内置模板 %s 维护的新版本" if source == "builtin" else "基于 %s 维护的新版本"
+    spec["intent"] = "%s：%s" % (prefix % source_key, spec.get("intent", ""))[:120]
     errors = validate_candidates([spec], kind, expect=1)
     if errors:
         raise GenerationError(errors)
     candidate_dir, result = _write_compiled(out_dir, new_key, spec, kind, "candidate-1")
     return {
         "ok": True, "kind": kind, "source_key": source_key, "key": new_key,
-        "candidate": "candidate-1", "spec_path": str(candidate_dir / "spec.json"),
+        "candidate": "candidate-1", "spec_source": source,
+        "spec_path": str(candidate_dir / "spec.json"),
         "css": str(candidate_dir / ("%s.css" % new_key)),
         "css_bytes": len(result["css"].encode("utf-8")),
     }

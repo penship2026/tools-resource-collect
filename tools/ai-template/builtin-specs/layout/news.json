@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "kind": "layout",
+  "key": "news",
+  "name": "门户",
+  "intent": "从现有门户版式抽取：板块导航 + 1 主 3 副头条 + 板块分节",
+  "archetype": "news",
+  "density": "comfortable",
+  "nav": {"style": "tabs", "sticky": true, "maxItems": 7},
+  "hero": {"type": "lead", "mainRatio": 0.66, "subCards": 3},
+  "bands": {"columns": 3, "rows": 1, "showDescription": true, "moreLink": true},
+  "cards": {"coverRatio": "16:9", "showTags": true},
+  "responsive": {"breakpoints": [1080, 720, 390], "mobileColumns": 2, "leadStack": true},
+  "limits": {"maxCssKb": 10, "maxRules": 160},
+  "rationale": [
+    "保留现有门户版的头条主副卡与板块分节",
+    "导航吸顶、板块标题带编号，适合资讯密度场景",
+    "抽取为 Spec 后可从内置模板克隆新版本"
+  ]
+}

@@ -818,3 +818,11 @@ Chrome 无头截图三页面全部正常:首页卡片标签独立行两行截断
 - 管理处新增「克隆新版本」与「下线归档」：已发布 AI 模板可从 `docs/templates/<key>.json` 的 `spec` 克隆新 key 草稿；旧模板归档只写 `published.json.archived` 并移出展示清单，CSS/注册表不动；锁定项不可归档；内置模板没有 Spec，不可克隆。
 - 运行时仍只读 `site.js`，AI 与工坊只在 127.0.0.1 本机使用；无 Key 时一期功能不受影响。
 - 验收：Python 全量 151 例通过；新增生成/手改/迭代/归档/克隆/推送冒烟。真实模型 Key 仍未配置，A5 真实生成与截图闸门未跑。
+
+## 三十九、抽取内置页面模板 Spec(2026-11-27)
+
+- 从现有内置版式 `standard / news / magazine` 抽取三份 Design Spec，放 `tools/ai-template/builtin-specs/layout/`；只作克隆起点，不替换现有 CSS。
+- `registry.items` 增加 `clonable`：存在 `docs/templates/<key>.json` 或 `builtin-specs/<kind>/<key>.json` 的项标记为可克隆；管理页据此显示“克隆新版本”。
+- `generate.clone_published` 先读已发布 docs，找不到回退内置 Spec；克隆强制换新 key，旧版 CSS/注册表/展示不动。
+- 当前只抽版式，未抽主题；内置主题仍只能下线归档。抽取值按现有结构、密度、封面比与响应式断点填写，编译后视觉以现有页面为基准，不保证逐像素一致。
+- 验收：三份 Spec `validate` 通过；`standard/news/magazine` 均可克隆出 `candidate-1` 草稿；工作台测试新增 2 例。

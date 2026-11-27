@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "kind": "layout",
+  "key": "magazine",
+  "name": "画册",
+  "intent": "从现有画册版式抽取：单栏宽幅 + 章节编号 + 目录，3:2 封面",
+  "archetype": "magazine",
+  "density": "comfortable",
+  "nav": {"style": "tabs", "sticky": true, "maxItems": 6},
+  "hero": {"type": "text", "mainRatio": 0.6, "subCards": 0},
+  "bands": {"columns": 3, "rows": 1, "showDescription": true, "moreLink": true},
+  "cards": {"coverRatio": "3:2", "showTags": true},
+  "responsive": {"breakpoints": [1080, 720, 390], "mobileColumns": 1, "leadStack": true},
+  "limits": {"maxCssKb": 10, "maxRules": 160},
+  "rationale": [
+    "保留现有画册版的单栏宽幅与 3:2 封面",
+    "目录与章节编号是画册版的核心识别点",
+    "抽取为 Spec 后可从内置模板克隆新版本"
+  ]
+}

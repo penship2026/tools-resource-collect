@@ -1,11 +1,12 @@
 # 二期详细设计 · AI 模板与主题工坊
 
-> 版本 v1.6 · 2026-11-27 · 状态：A4 实现完成，待验收；A4.5 模板编辑闭环已落地
+> 版本 v1.7 · 2026-11-27 · 状态：A4 实现完成，待验收；A4.5 模板编辑闭环已落地，内置版式 Spec 已抽取
 > 对应方案：`docs/PLAN-TEMPLATES-20261127.md`（D70–D73、D92–D98）
 > 评审记录：`docs/REVIEW-TEMPLATES-P2-20261127.md`
 > 前置：一期 3 套版式、布局 token 白名单、`templates.js` 注册表已就绪；截图脚本与基线由 A0 新建，不再假设已存在
 > 核心定位：**AI 是可选增强，不是运行时依赖**——生成在离线/本机完成，线上仍是零构建纯静态
 
+> **v1.7 修订**：从现有内置版式 `standard/news/magazine` 抽取三份 Design Spec，放 `tools/ai-template/builtin-specs/layout/`；管理页据此把内置版式标为可克隆，克隆出的新 key 草稿可手改、预览、批准，原 CSS/注册表不动。主题尚未抽取，内置主题仍只能归档。
 > **v1.6 修订**：二期从“一次性批量生成 3 个候选”改为**模板编辑维护闭环**：管理台内 AI 生成 1–5 个候选、人工选 1 个；候选 Spec 可直接手改并存为新版本；批准时可勾选立即上架；已发布 AI 模板可克隆新版本，内置/旧模板可下线归档但文件不动。
 > **v1.5 修订**：展示上限改为可配置 `display.max_layouts` / `display.max_themes`（1–20，默认 5）；管理页可改上限、`cli display --max`、`POST /api/display/limit`；A5 试点主题上限先设 8，使 5 套内置 + 3 个 AI 主题全部展示；版式 3+3 超 5 时需先下架一套内置或同步提高版式上限。
 > **v1.4 修订**：A4 落地为 `registry / site_store / publish / display / server` 五个本机模块与两个工作台页面；批准按 CSS→docs→review→注册表→sidecar 事务写，管理处只写 `site.yml` display 与 `assets/site.js`。
@@ -448,9 +449,10 @@ docs/templates/<key>.json       Spec 原文件（可复现）
 - 手改：每张候选卡展开 `spec`，`POST /api/spec/save` 校验后写 `candidate-N-eN`；不覆盖原候选，手改版本仍需预览/批准。
 - 迭代：`POST /api/revise` 按意见重新生成 `candidate-N-rN`，旧版保留；服务器上限 3 轮，超过返回 `REVISE_LIMIT`。
 - 批准推送：`POST /api/approve` 可带 `push:true`；批准成功后写展示清单与 `site.js`。展示位满/锁定/已归档时返回 `push_message`，不回滚已完成的发布。
-- 克隆：`POST /api/clone` 只对已发布 AI 模板有效，从 `docs/templates/<key>.json` 的 `spec` 复制新 key 草稿；内置模板没有 Spec，不能克隆。
+- 克隆：`POST /api/clone` 可从 `docs/templates/<key>.json` 的 `spec`（已发布 AI 模板）或 `tools/ai-template/builtin-specs/<kind>/<key>.json`（抽取的内置版式）复制新 key 草稿；旧 CSS/注册表不动。
 - 归档：`POST /api/archive` 先从展示清单移除，再写 `published.json.archived`；不改 CSS、注册表或原 published 条目。归档项不能直接重新上架，需克隆新版本。
-- 仍未覆盖：空白手动新建模板。当前“从零新建”走 AI 生成 1 个候选或克隆已有 AI 模板；内置模板只能归档，不直接改其 CSS。
+- 内置抽取范围：当前只抽了 `standard / news / magazine` 三套版式；内置主题没有 `builtin-specs/theme/*.json`，仍只能下线归档，不能克隆。
+- 仍未覆盖：空白手动新建模板。当前“从零新建”走 AI 生成 1 个候选，或从内置/已发布模板克隆。
 
 ---
 

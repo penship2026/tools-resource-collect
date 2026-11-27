@@ -79,7 +79,7 @@
       var down = on ? '<button type="button" data-act="down">↓</button>' : '';
       var look = '<button type="button" data-act="preview">预览</button>';
       var archive = (!locked && !item.archived) ? '<button type="button" data-act="archive">下线归档</button>' : '';
-      var clone = (item.source !== 'builtin' && !item.archived) ? '<button type="button" data-act="clone">克隆新版本</button>' : '';
+      var clone = (item.clonable && !item.archived) ? '<button type="button" data-act="clone">克隆新版本</button>' : '';
       var type = kind === 'layout' ? '版式' : '主题';
       return '<tr data-key="' + esc(item.key) + '"><td><b>' + esc(item.label) + '</b><br><code>' + esc(item.key) + '</code></td>' +
         '<td>' + type + '</td>' +

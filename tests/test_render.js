@@ -42,6 +42,17 @@ ok('topicCard 结构/徽标/标签/转义', () => {
   assert(html.includes('mini-tag'));
 });
 
+ok('topicCard 右上角类型标记与站外跳转', () => {
+  const series = R.topicCard(topic, { href: 'series.html?id=daily-website' });
+  assert(series.includes('<span class="type-tag">合集</span>'));
+  assert(!series.includes('target='), '站内链接不得新开窗口');
+  const single = R.topicCard(Object.assign({}, topic, { type: 'single', count: 1 }), {
+    href: 'https://example.com/x', target: '_blank'
+  });
+  assert(single.includes('<span class="type-tag single">单条</span>'));
+  assert(single.includes('target="_blank" rel="noopener noreferrer"'));
+});
+
 ok('videoCard 列表形态(平台标签 + 摘要 + 作者)', () => {
   const html = R.videoCard(video, {
     href: 'single.html?id=daily-website&k=BV1JUs86EESY',
@@ -96,6 +107,9 @@ ok('episodes:上/下一集、序号、当前标记、路由编码', () => {
   // 第一条没有上一集
   const first = R.episodes(list[0], list, '合集名', 'daily-website');
   assert(first.includes('ep-btn prev disabled'));
+  // 从「我的收藏」进入详情时,上下集链接也要保留 view=mine
+  const mine = R.episodes(list[1], list, '合集名', 'daily-website', { view: 'mine' });
+  assert(mine.includes('&view=mine'));
 });
 
 ok('topicCard 支持整卡收藏按钮', () => {
@@ -144,6 +158,7 @@ ok('episodes 单条时不渲染导航', () => {
 ok('detailHref 只生成站内路由', () => {
   assert.strictEqual(R.detailHref('u1', { key: 'k 1' }), 'single.html?id=u1&k=k%201');
   assert.strictEqual(R.detailHref('u1', {}), 'single.html?id=u1');
+  assert.strictEqual(R.detailHref('u1', { key: 'k 1' }, { view: 'mine' }), 'single.html?id=u1&k=k%201&view=mine');
 });
 
 ok('sectionNav 只列启用板块并按 order 排序', () => {
@@ -231,6 +246,10 @@ ok('breadcrumb 含板块层与尾级', () => {
   assert(html.includes('跟着动画学古文'));
   assert(html.includes('全部内容'));
   assert.strictEqual((html.match(/<span>\/<\/span>/g) || []).length, 3);
+  const mine = R.breadcrumb({ id: 'k12', title: '中小学教育' }, '跟着动画学古文', null, { view: 'mine' });
+  assert(mine.includes('href="index.html?view=mine"'));
+  assert(mine.includes('我的收藏'));
+  assert(mine.includes('href="index.html?view=mine&section=k12"'));
 });
 
 ok('sectionMeta 优先 sections.js,缺失回退索引', () => {

@@ -57,9 +57,12 @@
   }
 
   // 站内详情路由:只走站内页面,不直接跳源平台
-  function detailHref(unitId, v) {
+  function detailHref(unitId, v, opts) {
+    opts = opts || {};
     var k = itemKey(v);
-    return 'single.html?id=' + encodeURIComponent(unitId || '') + (k ? '&k=' + encodeURIComponent(k) : '');
+    return 'single.html?id=' + encodeURIComponent(unitId || '') +
+      (k ? '&k=' + encodeURIComponent(k) : '') +
+      (opts.view === 'mine' ? '&view=mine' : '');
   }
 
   /* ---------------- 一、首页主题卡片 ---------------- */
@@ -81,7 +84,8 @@
     }).join('');
     var latest = t.latest || opts.updated || '';
     var pin = opts.pin ? '<span class="pin-badge">置顶</span>' : '';
-    return '<a class="topic-card" href="' + esc(opts.href || '#') + '">' +
+    return '<a class="topic-card" href="' + esc(opts.href || '#') + '"' +
+      (opts.target ? ' target="' + esc(opts.target) + '" rel="noopener noreferrer"' : '') + '>' +
       '<div class="topic-cover">' + cover + typeTag + pin + badge + (opts.starHtml || '') + '</div>' +
       '<div class="topic-body"><h3>' + esc(t.title) + '</h3>' +
       '<p class="slogan">' + esc(t.slogan || '') + '</p>' +
@@ -264,10 +268,16 @@
   }
 
   // 内页面包屑:全部主题 / 板块 / 主题 [/ 尾级];板块名优先读 sections.js,缺失时用索引字段
-  function breadcrumb(section, title, tail) {
-    var html = '<a href="index.html">全部主题</a>';
+  function breadcrumb(section, title, tail, opts) {
+    opts = opts || {};
+    var mine = opts.view === 'mine';
+    var home = 'index.html' + (mine ? '?view=mine' : '');
+    var html = '<a href="' + home + '">' + (mine ? '我的收藏' : '全部主题') + '</a>';
     if (section && section.id) {
-      html += '<span>/</span><a href="index.html?section=' + encodeURIComponent(section.id) + '">' +
+      var sectionHref = mine
+        ? 'index.html?view=mine&section=' + encodeURIComponent(section.id)
+        : 'index.html?section=' + encodeURIComponent(section.id);
+      html += '<span>/</span><a href="' + sectionHref + '">' +
         esc(section.title) + '</a>';
     }
     html += '<span>/</span><span>' + esc(title || '') + '</span>';
@@ -486,7 +496,8 @@
     return out;
   }
 
-  function episodes(cur, list, unitTitle, unitId) {
+  function episodes(cur, list, unitTitle, unitId, opts) {
+    opts = opts || {};
     if (!list || list.length < 2) return '';
     var i = list.indexOf(cur);
     var allVideo = list.every(function (x) { return (x.kind || 'video') === 'video'; });
@@ -495,7 +506,8 @@
     function href(item, idx) {
       var k = itemKey(item);
       return 'single.html?id=' + encodeURIComponent(unitId || '') +
-        (k ? '&k=' + encodeURIComponent(k) : '&i=' + idx);
+        (k ? '&k=' + encodeURIComponent(k) : '&i=' + idx) +
+        (opts.view === 'mine' ? '&view=mine' : '');
     }
 
     var prev = i > 0 ? list[i - 1] : null;

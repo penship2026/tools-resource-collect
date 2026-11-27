@@ -260,13 +260,15 @@
 
   /* ---------- 渲染辅助 ---------- */
 
-  function starButton(it) {
+  function starButton(it, opts) {
     var s = snapshot(it);
-    return '<button class="fav-btn" type="button" title="收藏到「我的」"' +
+    var title = opts && opts.remove ? '取消收藏' : '收藏到「我的」';
+    return '<button class="fav-btn" type="button" title="' + title + '"' +
       ' data-unit="' + esc(s.unit) + '" data-key="' + esc(s.key) + '"' +
       ' data-title="' + esc(s.title) + '" data-url="' + esc(s.url) + '"' +
       ' data-cover="' + esc(s.cover) + '" data-date="' + esc(s.date) + '"' +
       ' data-author="' + esc(s.author) + '" data-kind="' + esc(s.kind) + '"' +
+      ' data-section="' + esc(s.section) + '"' +
       ' data-unit-title="' + esc(s.unitTitle) + '">' + (has(s.unit, s.key) ? '★' : '☆') + '</button>';
   }
 
@@ -297,6 +299,7 @@
       date: el.getAttribute('data-date'),
       author: el.getAttribute('data-author'),
       kind: el.getAttribute('data-kind'),
+      section: el.getAttribute('data-section'),
       unitTitle: el.getAttribute('data-unit-title')
     });
   }
@@ -366,29 +369,32 @@
   function snapshotCard(it, opts) {
     var enabledMap = (opts && opts.units) || {};
     var offline = enabledMap[it.unit] === false;
-    // 单元已下线/被关闭时,站内详情页取不到数据,退回原链接
     var isSeries = it.kind === 'series';
+    var meta = unitMeta(it.unit) || {};
+    // 卡片结构复用公开首页的 topicCard:封面、右上角合集/单条、标签、条数与日期完全同构
+    var topic = {
+      id: it.unit,
+      title: it.title,
+      type: isSeries ? 'series' : 'single',
+      count: meta.count || (isSeries ? 0 : 1),
+      cover: it.cover,
+      latest: it.date || meta.latest || '',
+      slogan: meta.slogan || '',
+      source: meta.source || {}
+    };
     var href = (offline && it.url)
       ? it.url
       : (isSeries
-        ? 'series.html?id=' + encodeURIComponent(it.unit)
-        : 'single.html?id=' + encodeURIComponent(it.unit) + '&k=' + encodeURIComponent(it.key));
-    var target = (offline && it.url) ? ' target="_blank" rel="noopener noreferrer"' : '';
-    var cover = it.cover
-      ? '<img src="' + esc(it.cover) + '" alt="' + esc(it.title) + '" loading="lazy" referrerpolicy="no-referrer">'
-      : '<div class="fav-ph">' + esc((it.title || '内').charAt(0)) + '</div>';
-    return '<div class="fav-card">' +
-      '<a class="fav-thumb" href="' + esc(href) + '"' + target + '>' + cover + '</a>' +
-      '<div class="fav-body"><a class="fav-title" href="' + esc(href) + '"' + target + '>' + esc(it.title) + '</a>' +
-      '<div class="fav-meta"><span>' + esc(it.unitTitle || it.unit) + '</span>' +
-      (isSeries ? '<span class="fav-kind">合集</span>' : '') +
-      (it.date ? '<span>' + esc(it.date) + '</span>' : '') +
-      (offline ? '<span class="fav-off">单元已下线 · 快照</span>' : '') + '</div>' +
-      (it.note ? '<p class="fav-note">' + esc(it.note) + '</p>' : '') +
-      '<div class="fav-act">' +
-      (it.url ? '<a href="' + esc(it.url) + '" target="_blank" rel="noopener noreferrer">原链接 ↗</a>' : '') +
-      '<button type="button" class="fav-del" data-unit="' + esc(it.unit) + '" data-key="' + esc(it.key) + '">取消收藏</button>' +
-      '</div></div></div>';
+        ? 'series.html?id=' + encodeURIComponent(it.unit) + '&view=mine'
+        : 'single.html?id=' + encodeURIComponent(it.unit) + '&k=' + encodeURIComponent(it.key) + '&view=mine');
+    return Render.topicCard(topic, {
+      href: href,
+      target: (offline && it.url) ? '_blank' : '',
+      updated: topic.latest,
+      platName: Render.platKey((meta.source && meta.source.platform) || 'bilibili'),
+      tags: unitTags(it.unit),
+      starHtml: starButton(it, { remove: true })
+    });
   }
 
   /* ---------- 我的页筛选(与公开首页同一套布局) ---------- */
@@ -522,7 +528,7 @@
         : '没有匹配的收藏,试试换个标签或清空搜索。')
       : '还没有收藏。到合集页点条目右上角的 ☆ 即可收藏。';
     body.innerHTML = shown.length
-      ? '<div class="fav-grid">' + shown.map(function (it) { return snapshotCard(it, { units: units }); }).join('') + '</div>'
+      ? '<div class="topic-grid">' + shown.map(function (it) { return snapshotCard(it, { units: units }); }).join('') + '</div>'
       : '<div class="empty">' + emptyText + '</div>';
     var stat = panel.querySelector('#mine-stat');
     if (stat) {
@@ -706,14 +712,6 @@
         if (e.key === 'Escape') { e.preventDefault(); close(); }
       });
     })();
-
-    panel.addEventListener('click', function (e) {
-      var btn = e.target.closest && e.target.closest('.fav-del');
-      if (!btn) return;
-      remove(btn.getAttribute('data-unit'), btn.getAttribute('data-key'));
-      renderMineContent();
-      updateSwitchCount();
-    });
 
     mountMineFilter(panel);
     renderMineContent();

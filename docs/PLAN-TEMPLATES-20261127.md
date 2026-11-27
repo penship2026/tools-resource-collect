@@ -217,7 +217,7 @@ Design Spec（JSON Schema 校验）
 
 ---
 
-## 八、决策记录（D64–D82，追加）
+## 八、决策记录（D64–D84，追加）
 
 | 编号 | 决策 | 落点 |
 |---|---|---|
@@ -240,6 +240,8 @@ Design Spec（JSON Schema 校验）
 | D80 | 一期验收评审后的签收前整改：子页面包屑补板块层（`Render.breadcrumb` + `sections.js`）；`sidebar` 能力位统一关闭，避免声明空转；四页补「跳到主要内容」与首页视觉隐藏 `h1`；导航项最小高度 44px；内容宽与断点以代码实拍为准（news 1180 / magazine 960 / 头条 ≤1080 下移）；未使用的 `--layout-band-cols` / `--layout-lead-cols` 接入实际栅格 | `assets/render.js`、4 页、`assets/style.css`、`assets/pages/index.css`、`assets/layouts/news.css`、`docs/DESIGN-TEMPLATES-P1-20261127.md` |
 | D81 | 个人视图的板块导航不得离开 `?view=mine`：`Render.sectionNav` 支持 `view` 参数，导航链接写成 `index.html?view=mine[&section=id]`；「我的」页按收藏所属 `section`（优先快照字段，旧数据回退索引）过滤，导航计数改为本地收藏数；公开页链接不受影响 | `assets/render.js`、`assets/personal.js`、`index.html` |
 | D82 | 「我的」页动作收口到独立页脚：顶部工具栏的导出/导入/设置全部移除，导入方式与文件选择迁到专属 `mine-io.html`；我的页脚只保留「导入导出 / 设置 / 回到公开页」，不含采集入口，也不注入主题/版式切换；设置面板仍复用原面板并由页脚按钮打开 | `index.html`、`mine-io.html`、`assets/personal.js`、`assets/style.css`、`assets/theme.js`、`assets/layout.js` |
+| D83 | 「我的」收藏卡不再维护第二套卡片结构，统一复用公开首页 `Render.topicCard`：封面、右上角「合集 / 单条」类型标签、平台徽标、标语、标签、条数与日期同构；右下角星标在「我的」内为取消收藏；原 `.fav-card` 系列独立样式与删除按钮下线 | `assets/personal.js`、`assets/render.js`、`assets/style.css` |
+| D84 | 详情路由延续视图：`series.html` / `list.html` / `single.html` 读取 `view=mine`，品牌入口、返回链接与 `Render.breadcrumb` 回「我的收藏」，板块层链接为 `index.html?view=mine&section=<id>`；详情卡片、上下集链接、列表入口都透传 `&view=mine`，公开页不带该参数 | `series.html`、`list.html`、`single.html`、`assets/render.js`、`assets/personal.js` |
 
 ---
 
@@ -247,7 +249,7 @@ Design Spec（JSON Schema 校验）
 
 | 文档 | 内容 | 状态 |
 |---|---|---|
-| 本文 | 两期总体方案、现状分析、决策 D64–D82 | 本次交付 |
+| 本文 | 两期总体方案、现状分析、决策 D64–D84 | 本次交付 |
 | `docs/DESIGN-TEMPLATES-P1-20261127.md` | 一期详细设计（契约、版式规格、文件级改动、验收矩阵） | 本次交付 |
 | `docs/DESIGN-TEMPLATES-P2-20261127.md` | 二期详细设计（Spec schema、编译器、闸门、工坊、治理） | 本次交付 |
 

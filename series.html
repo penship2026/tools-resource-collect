@@ -22,7 +22,7 @@
   <header class="site-header">
     <div class="wrap">
       <div class="brand">
-        <a href="index.html"><span class="brand-mark">◈</span><span>集页</span></a>
+        <a id="brand-link" href="index.html"><span class="brand-mark">◈</span><span>集页</span></a>
       </div>
       <div class="header-meta">系列合集</div>
     </div>
@@ -60,7 +60,7 @@
   <footer class="site-footer">
     <div class="wrap">
       <div>内容来自各平台公开投稿或发布,版权归原作者所有;点击卡片将跳转至原平台查看。</div>
-      <div><a href="index.html">← 返回全部主题</a></div>
+      <div><a id="back-link" href="index.html">← 返回全部主题</a></div>
     </div>
   </footer>
 
@@ -71,6 +71,15 @@
   <script>
     var esc = window.escHtml;  // 统一转义:assets/data-loader.js 提供
     var id = CollectionLoader.currentId();
+    // 从「我的收藏」进入详情时保留 view=mine,面包屑和返回链接才能回到我的页
+    var view = new URLSearchParams(location.search).get('view') === 'mine' ? 'mine' : '';
+    function homeHref() { return 'index.html' + (view === 'mine' ? '?view=mine' : ''); }
+    (function mountViewLinks() {
+      document.getElementById('brand-link').href = homeHref();
+      var back = document.getElementById('back-link');
+      back.href = homeHref();
+      if (view === 'mine') back.textContent = '← 返回我的收藏';
+    })();
     var grid = document.getElementById('video-grid');
     var moreBar = document.getElementById('more-bar');
     var vids = [];
@@ -92,16 +101,16 @@
 
     if (!id) {
       document.querySelector('main').innerHTML =
-        '<div class="empty">未指定合集。请从 <a href="index.html">首页</a> 选择一个主题。</div>';
+        '<div class="empty">未指定合集。请从 <a href="' + homeHref() + '">' + (view === 'mine' ? '我的收藏' : '首页') + '</a> 选择一个主题。</div>';
     } else {
       CollectionLoader.load(id, function (topic, err) {
         if (err || !topic) {
           document.querySelector('main').innerHTML =
-            '<div class="empty">未找到该合集数据(' + esc(err || '') + ')。请从 <a href="index.html">首页</a> 选择。</div>';
+            '<div class="empty">未找到该合集数据(' + esc(err || '') + ')。请从 <a href="' + homeHref() + '">' + (view === 'mine' ? '我的收藏' : '首页') + '</a> 选择。</div>';
           return;
         }
         document.title = topic.title + ' · 系列合集 · 集页';
-        document.getElementById('crumb').innerHTML = Render.breadcrumb(Render.sectionMeta(topic), topic.title);
+        document.getElementById('crumb').innerHTML = Render.breadcrumb(Render.sectionMeta(topic), topic.title, null, { view: view });
         document.getElementById('topic-title').textContent = topic.title;
         document.getElementById('topic-slogan').textContent = topic.slogan || '';
         if (topic.source && topic.source.url) {
@@ -140,7 +149,7 @@
     // 卡片跳站内详情页(不直接跳源平台);源链接在详情页里提供
     // 路由统一由 assets/render.js 提供(D21)
     function detailHref(v) {
-      return Render.detailHref(id, v);
+      return Render.detailHref(id, v, { view: view });
     }
 
     function cardHtml(v) {
@@ -195,7 +204,8 @@
 
       // 超出上限时给出全量入口(带上当前搜索词,搜索也不丢)
       var q = document.getElementById('search').value.trim();
-      var href = 'list.html?id=' + encodeURIComponent(id) + (q ? '&q=' + encodeURIComponent(q) : '');
+      var href = 'list.html?id=' + encodeURIComponent(id) + (q ? '&q=' + encodeURIComponent(q) : '') +
+        (view === 'mine' ? '&view=mine' : '');
       if (list.length > PAGE_LIMIT) {
         moreBar.innerHTML = '<span>已显示最近 ' + PAGE_LIMIT + ' 条,共 ' + list.length + ' 条</span>' +
           '<a href="' + href + '">查看全部内容(可筛选、可分页) →</a>';

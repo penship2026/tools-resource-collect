@@ -95,3 +95,16 @@
 - 主题/版式切换器只注入公开页脚（`:not(.mine-footer)`），我的页脚不出现这两组切换。
 
 **验证**：CDP 实测 `?view=mine` 顶部无导出/导入/设置按钮，公开页脚隐藏、我的页脚显示且无「采集入口」；页脚设置可打开原设置面板；`mine-io.html` 显示当前收藏数，模拟导入 1 条后计数从 2 变为 3，状态提示成功。Python 81 例、视图 20 例、版式 15 例、`layout_lint`、`docs_check` 通过。
+
+## 八、我的卡片同构与详情视图延续（2026-11-27）
+
+**目标**：我的收藏卡与公开首页主题卡同构，合集卡右上角显示「合集」；从我的页进入合集/单条详情时保留 `view=mine`，面包屑与返回链接能回到我的收藏，而不是公开首页。
+
+**处理**：
+- `assets/personal.js` 的 `snapshotCard` 改为复用 `Render.topicCard`，收藏网格改用 `.topic-grid`；单条以 `single` 类型输出「单条」，合集输出「合集」；右下角星标在我的页作为取消收藏。
+- 旧 `.fav-card / .fav-thumb / .fav-body / .fav-title / .fav-meta / .fav-note / .fav-act / .fav-del` 样式和删除按钮逻辑下线，避免两套卡片结构并存。
+- `Render.detailHref` / `Render.episodes` 增加 `view` 选项；`Render.breadcrumb` 在我的视图输出「我的收藏」及 `index.html?view=mine[&section=id]`。
+- `series.html` / `list.html` / `single.html` 读取 `view=mine`，品牌入口、页脚返回改为「返回我的收藏」；合集页的单条卡、全量列表入口、单条页的上下集链接均透传 `&view=mine`。
+- 我的收藏卡进入详情时固定带 `&view=mine`；公开详情不带该参数，面包屑仍为「全部主题」。
+
+**验证**：CDP 从 `?view=mine` 点 SpringAI 合集卡，URL 为 `series.html?id=topic-df282732&view=mine`，面包屑「我的收藏 / AI 与智能工具 / SpringAI」，板块链接 `index.html?view=mine&section=ai`；点单条后 URL 与上下集链接继续带 `view=mine`；点板块层回到 `index.html?view=mine&section=ai`，我的面板保持显示。公开 `series.html?id=topic-df282732` 面包屑仍为「全部主题 / …」。Python 83 例、视图 21 例、版式 15 例、`layout_lint`、`docs_check`、`--verify` 均通过。

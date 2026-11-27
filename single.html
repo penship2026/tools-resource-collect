@@ -22,7 +22,7 @@
   <header class="site-header">
     <div class="wrap">
       <div class="brand">
-        <a href="index.html"><span class="brand-mark">◈</span><span>集页</span></a>
+        <a id="brand-link" href="index.html"><span class="brand-mark">◈</span><span>集页</span></a>
       </div>
       <div class="header-meta" id="header-meta">单条精选</div>
     </div>
@@ -36,7 +36,7 @@
   <footer class="site-footer">
     <div class="wrap">
       <div>内容来自各平台公开内容,版权归原作者所有;B站视频在页内播放,其余渠道点击按钮跳转原文。</div>
-      <div><a href="index.html">← 返回全部主题</a></div>
+      <div><a id="back-link" href="index.html">← 返回全部主题</a></div>
     </div>
   </footer>
 
@@ -47,6 +47,15 @@
   <script>
     var id = CollectionLoader.currentId();
     var root = document.getElementById('single-root');
+    // 从「我的收藏」进入详情时保留 view=mine,面包屑和返回链接才能回到我的页
+    var view = new URLSearchParams(location.search).get('view') === 'mine' ? 'mine' : '';
+    function homeHref() { return 'index.html' + (view === 'mine' ? '?view=mine' : ''); }
+    (function mountViewLinks() {
+      document.getElementById('brand-link').href = homeHref();
+      var back = document.getElementById('back-link');
+      back.href = homeHref();
+      if (view === 'mine') back.textContent = '← 返回我的收藏';
+    })();
 
     var PLAT = Render.PLAT;                 // 渠道展示名映射(视图层唯一实现)
 
@@ -135,11 +144,11 @@
     }
 
     if (!id) {
-      root.innerHTML = '<div class="empty">未指定内容。请从 <a href="index.html">首页</a> 选择一条。</div>';
+      root.innerHTML = '<div class="empty">未指定内容。请从 <a href="' + homeHref() + '">' + (view === 'mine' ? '我的收藏' : '首页') + '</a> 选择一条。</div>';
     } else {
       CollectionLoader.load(id, function (topic, err) {
         if (err || !topic) {
-          root.innerHTML = '<div class="empty">未找到该内容数据(' + esc(err || '') + ')。请从 <a href="index.html">首页</a> 选择。</div>';
+          root.innerHTML = '<div class="empty">未找到该内容数据(' + esc(err || '') + ')。请从 <a href="' + homeHref() + '">' + (view === 'mine' ? '我的收藏' : '首页') + '</a> 选择。</div>';
           return;
         }
         // 按发布时间升序 = 「第 1 集 → 第 N 集」的固定顺序,上一集/下一集都基于它
@@ -182,12 +191,12 @@
 
         document.title = (topic.title || v.title) + ' · ' + out.label + ' · 集页';
         document.getElementById('header-meta').textContent = out.label;
-        document.getElementById('crumb').innerHTML = Render.breadcrumb(Render.sectionMeta(topic), topic.title || v.title);
+        document.getElementById('crumb').innerHTML = Render.breadcrumb(Render.sectionMeta(topic), topic.title || v.title, null, { view: view });
         document.body.setAttribute('data-tpl', out.tpl);
         // 多集内容:详情下方追加「上一集 / 下一集」与全集列表
         // 分集目录:放在播放区下方;有目录时不再重复渲染底部的全集列表
         var dir = Render.parts(v, { unitId: id, videos: all, season: topic.season });
-        root.innerHTML = out.html + (dir ? '' : Render.episodes(v, all, topic.title, id));
+        root.innerHTML = out.html + (dir ? '' : Render.episodes(v, all, topic.title, id, { view: view }));
         var slot = root.querySelector('.parts-slot');
         if (slot) slot.innerHTML = dir;
         mountPartsPlayer();

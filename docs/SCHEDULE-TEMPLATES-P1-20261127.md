@@ -49,6 +49,7 @@
 | M6 | 验收整改（包屑 / sidebar / 无障碍 / 规格 / 测试） | ✅ 完成 | `Render.breadcrumb` 接入三子页；`sidebar` 统一 false；skip link + 44px + 首页 h1；Python 78、视图 19、版式 15；18 组宽度无溢出 | 11-27 |
 | M7 | 我的页板块导航修复 | ✅ 完成 | 导航保留 `view=mine`；按收藏板块过滤；导航计数改本地；Python 79、视图 20；CDP 实测 k12/ai 各 1 条、tools 空态 | 11-27 |
 | M8 | 我的页页脚与专属导入导出页 | ✅ 完成 | 顶部入口移除；`mine-io.html` 承接合并/替换与导入导出；独立页脚无采集/主题/版式切换；Python 81、CDP 实测导入 2→3 | 11-27 |
+| M9 | 我的卡片同构与详情视图延续 | ✅ 完成 | 收藏卡复用 `Render.topicCard` 与 `.topic-grid`，合集/单条右上角标记；`series/list/single` 透传 `view=mine`，面包屑回我的收藏；Python 83、视图 21、版式 15；CDP 实测合集→单条→板块链路 | 11-27 |
 
 状态符号：⏸ 待开始 / ⏳ 进行中 / ✅ 完成 / ⚠️ 阻塞 / 🔁 返工。
 

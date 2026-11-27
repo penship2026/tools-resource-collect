@@ -351,10 +351,6 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 }
 .fav-btn:hover { background: rgba(0,0,0,.8); }
 /* 首页主题卡片上的整卡收藏星沿用右下角,避开右上角的「合集/单条」标记 */
-.fav-kind {
-  font-size: 11px; line-height: 1.5; padding: 0 6px; border-radius: 999px;
-  color: var(--brand); border: 1px solid currentColor;
-}
 .fav-btn.on { color: #ffd24a; border-color: #ffd24a; }
 
 .fav-detail { display: flex; align-items: center; gap: 8px; margin: 0 0 14px; font-size: 12px; color: var(--text-mute); }
@@ -434,25 +430,6 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 }
 .mine-set-link:hover { color: var(--brand); }
 .mine-set-act { display: flex; gap: 8px; }
-
-.fav-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
-.fav-card {
-  display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow);
-}
-.fav-thumb { display: block; aspect-ratio: 16 / 9; background: var(--bg); overflow: hidden; }
-.fav-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.fav-ph { width: 100%; height: 100%; display: grid; place-items: center; font-size: 30px; color: #fff; background: linear-gradient(135deg, #1e3a5f, #2d7ff9); }
-.fav-body { padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 8px; }
-.fav-title { font-size: 14px; font-weight: 600; color: var(--text); line-height: 1.5; }
-.fav-title:hover { color: var(--brand); }
-.fav-meta { display: flex; flex-wrap: wrap; gap: 8px; font-size: 11px; color: var(--text-mute); }
-.fav-off { color: #b45f06; }
-.fav-note { font-size: 12px; color: var(--text-sub); margin: 0; }
-.fav-act { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; }
-.fav-act a { color: var(--brand); }
-.fav-del { border: 0; background: transparent; color: var(--text-mute); cursor: pointer; font-size: 12px; padding: 0; }
-.fav-del:hover { color: #c0392b; }
 
 /* ===== 主题切换(页脚三态,assets/theme.js 注入) ===== */
 .theme-switch, .layout-switch { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-top: 12px; font-size: 12px; color: var(--text-mute); }

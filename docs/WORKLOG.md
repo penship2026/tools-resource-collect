@@ -654,3 +654,11 @@ Chrome 无头截图三页面全部正常:首页卡片标签独立行两行截断
 - 我的视图收起公开首页的 lead/bands/toc/all-title,避免公开内容残留在个人面板背后。
 - 主题/版式切换器注入改为 `.site-footer:not(.mine-footer)`,我的页脚不出现这两组切换。
 - 验证:CDP 实测我的页无顶部入口、独立页脚无采集入口、设置可打开;`mine-io.html` 当前收藏数正确,模拟导入后 2→3;Python 81、视图 20、版式 15、`layout_lint`、`docs_check` 通过。
+
+## 二十、我的卡片同构与详情视图延续(2026-11-27)
+
+- 我的收藏卡改为复用 `Render.topicCard`，网格切到 `.topic-grid`；封面、平台徽标、右上角「合集/单条」、标语、标签、条数与日期与公开首页同构，右下角星标在我的页即取消收藏。
+- 下线旧的 `.fav-card` 系列样式与 `.fav-del` 删除逻辑，只保留 `.fav-btn`、`.fav-detail`；避免两套卡片实现漂移。
+- `Render.detailHref` / `Render.episodes` 增加 `view` 选项；`Render.breadcrumb` 在我的视图输出「我的收藏」，板块链接为 `index.html?view=mine&section=<id>`。
+- `series.html` / `list.html` / `single.html` 读取 `view=mine`：品牌入口与返回链接回我的收藏；合集单条卡、全量列表入口、上下集链接均透传 `&view=mine`；我的收藏卡进入详情固定带该参数，公开保持原样。
+- 验证：CDP 从我的页进入 SpringAI 合集，面包屑为「我的收藏 / AI 与智能工具 / SpringAI」，点单条后上下集仍带 `view=mine`，点板块层回到 `index.html?view=mine&section=ai` 且我的面板不丢；公开详情仍为「全部主题」。Python 83、视图 21、版式 15、`layout_lint`、`docs_check`、`--verify` 通过。

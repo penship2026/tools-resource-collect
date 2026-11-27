@@ -89,6 +89,26 @@ class PagesContractTest(unittest.TestCase):
         idx = read("index.html")
         self.assertIn("mineView ? { view: 'mine' } : null", idx)
 
+    def test_detail_pages_keep_mine_view(self):
+        """从我的收藏进入详情后,面包屑与返回链接必须回到我的页。"""
+        for page in ("series.html", "single.html", "list.html"):
+            html = read(page)
+            self.assertIn("view === 'mine'", html, page)
+            self.assertIn("id=\"brand-link\"", html, page)
+            self.assertIn("id=\"back-link\"", html, page)
+            self.assertIn("返回我的收藏", html, page)
+            self.assertIn("{ view: view }", html, page)
+        js = read("assets/personal.js")
+        self.assertIn("series.html?id=' + encodeURIComponent(it.unit) + '&view=mine'", js)
+        self.assertIn("single.html?id=' + encodeURIComponent(it.unit) + '&k=' + encodeURIComponent(it.key) + '&view=mine'", js)
+
+    def test_mine_cards_reuse_public_topic_card(self):
+        js = read("assets/personal.js")
+        self.assertIn("Render.topicCard", js)
+        self.assertIn("topic-grid", js)
+        self.assertNotIn("fav-card", js)
+        self.assertNotIn("fav-del", js)
+
     def test_nav_items_min_touch_height(self):
         css = read("assets/pages/index.css")
         block = re.search(r"\.section-tab \{([^}]*)\}", css)

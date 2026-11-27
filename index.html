@@ -61,6 +61,10 @@
     </div>
 
     <div class="filter-bar" id="filter-bar">
+      <button type="button" class="filter-collapse" aria-expanded="false">
+        <span class="filter-collapse-title">筛选条件</span>
+        <span class="filter-collapse-hint">展开</span>
+      </button>
       <div class="filter-group">
         <span class="filter-label">类型</span>
         <div class="filter-opts">
@@ -144,6 +148,10 @@
       </div>
       <!-- 我的页筛选:与公开首页同一套 .filter-bar 布局(类型 + 标签 + 搜索) -->
       <div class="filter-bar" id="mine-filter-bar">
+        <button type="button" class="filter-collapse" aria-expanded="false">
+          <span class="filter-collapse-title">筛选条件</span>
+          <span class="filter-collapse-hint">展开</span>
+        </button>
         <div class="filter-group">
           <span class="filter-label">类型</span>
           <div class="filter-opts">
@@ -442,9 +450,45 @@
     var bandsBox = document.getElementById('section-bands');
     var emptyBox = document.getElementById('section-empty');
     var filterBar = document.getElementById('filter-bar');
+    var mineFilterBar = document.getElementById('mine-filter-bar');
     var allTitle = document.getElementById('all-title');
     var sectionNavBox = document.getElementById('section-nav');
     var tocBox = document.getElementById('magazine-toc');
+
+    // 筛选条吸顶偏移:站点头高度 + 板块导航实际高度(简洁版式/窄屏导航不吸顶时为 0)
+    function syncFilterSticky() {
+      var header = document.querySelector('.site-header');
+      var navOn = sectionNavBox && !sectionNavBox.hidden &&
+        window.getComputedStyle(sectionNavBox).position === 'sticky';
+      var top = (header ? header.offsetHeight : 0) +
+        (navOn ? sectionNavBox.offsetHeight : 0);
+      document.documentElement.style.setProperty('--layout-filter-top', Math.round(top) + 'px');
+    }
+
+    // 吸顶时默认收成一行「筛选条件」,需要时再展开;离开吸顶自动恢复完整筛选
+    var filterExpanded = false;
+    var filterWasStuck = false;
+    function activeFilterBar() {
+      return (mineView ? mineFilterBar : filterBar);
+    }
+    function updateFilterStickyState() {
+      var bar = activeFilterBar();
+      if (!bar || bar.hidden || bar.offsetParent === null || !bar.getBoundingClientRect().height) return;
+      var top = parseFloat(window.getComputedStyle(document.documentElement)
+        .getPropertyValue('--layout-filter-top')) || 0;
+      var stuck = bar.getBoundingClientRect().top <= top + 1;
+      if (stuck && !filterWasStuck) filterExpanded = false;
+      if (!stuck) filterExpanded = false;
+      filterWasStuck = stuck;
+      bar.classList.toggle('is-stuck', stuck);
+      bar.classList.toggle('is-collapsed', stuck && !filterExpanded);
+      var btn = bar.querySelector('.filter-collapse');
+      if (btn) {
+        btn.setAttribute('aria-expanded', stuck && filterExpanded ? 'true' : 'false');
+        var hint = btn.querySelector('.filter-collapse-hint');
+        if (hint) hint.textContent = stuck && filterExpanded ? '收起' : '展开';
+      }
+    }
 
     function mineSectionList() {
       var counts = {};
@@ -507,6 +551,8 @@
 
       renderHero();
       renderSectionNav();
+      syncFilterSticky();
+      updateFilterStickyState();
       document.body.classList.toggle('is-section-view', !!routeSection || routeInvalid);
 
       allTitle.hidden = !!routeSection || routeInvalid || showBands;
@@ -618,8 +664,28 @@
 
     // 版式切换后结构能力变化(导航/头条/分节),需要重渲染一次
     document.addEventListener('jiye:layout', render);
+    var resizeRaf = 0;
+    window.addEventListener('resize', function () {
+      if (resizeRaf) window.cancelAnimationFrame(resizeRaf);
+      resizeRaf = window.requestAnimationFrame(function () {
+        syncFilterSticky();
+        updateFilterStickyState();
+      });
+    });
+    window.addEventListener('scroll', updateFilterStickyState, { passive: true });
+    [filterBar, mineFilterBar].forEach(function (bar) {
+      if (!bar) return;
+      var btn = bar.querySelector('.filter-collapse');
+      if (!btn) return;
+      btn.addEventListener('click', function () {
+        filterExpanded = !filterExpanded;
+        updateFilterStickyState();
+      });
+    });
     document.addEventListener('jiye:layout-fallback', render);
     render();
+    // 等我的面板/导航挂载后的下一帧再核对一次吸顶状态,覆盖恢复滚动位置与初始深链
+    window.requestAnimationFrame(updateFilterStickyState);
   </script>
 </body>
 </html>

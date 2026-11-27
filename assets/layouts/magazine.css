@@ -35,8 +35,8 @@ html[data-layout="magazine"] .hero .facts { justify-content: center; }
 .mag-toc a b { margin-left: auto; font-size: 11px; font-weight: 400; color: var(--text-mute); }
 .mag-toc a:hover { color: var(--brand); }
 
-/* 筛选条弱化,避免打断画册版面 */
-html[data-layout="magazine"] .filter-bar { background: transparent; border-width: 1px 0; border-radius: 0; box-shadow: none; }
+/* 筛选条弱化,避免打断画册版面;吸顶时必须有不透明底色,内容才不穿透 */
+html[data-layout="magazine"] .filter-bar { background: var(--bg); border-width: 1px 0; border-radius: 0; box-shadow: none; }
 html[data-layout="magazine"] .section-title { display: none; }
 /* 画册首页用目录与章节导航,顶部筛选条让位;板块视图(grid)仍保留筛选 */
 html[data-layout="magazine"] body.page-index:not(.is-section-view) .filter-bar { display: none; }

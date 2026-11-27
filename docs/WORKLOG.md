@@ -662,3 +662,10 @@ Chrome 无头截图三页面全部正常:首页卡片标签独立行两行截断
 - `Render.detailHref` / `Render.episodes` 增加 `view` 选项；`Render.breadcrumb` 在我的视图输出「我的收藏」，板块链接为 `index.html?view=mine&section=<id>`。
 - `series.html` / `list.html` / `single.html` 读取 `view=mine`：品牌入口与返回链接回我的收藏；合集单条卡、全量列表入口、上下集链接均透传 `&view=mine`；我的收藏卡进入详情固定带该参数，公开保持原样。
 - 验证：CDP 从我的页进入 SpringAI 合集，面包屑为「我的收藏 / AI 与智能工具 / SpringAI」，点单条后上下集仍带 `view=mine`，点板块层回到 `index.html?view=mine&section=ai` 且我的面板不丢；公开详情仍为「全部主题」。Python 83、视图 21、版式 15、`layout_lint`、`docs_check`、`--verify` 通过。
+
+## 二十一、筛选条吸顶与默认收缩(2026-11-27)
+
+- 主站与「我的」首页 `.filter-bar` 改为吸顶，层级低于站点头与板块导航；偏移按站点头 + 导航实际高度动态写入 `--layout-filter-top`，简洁版式与窄屏导航不吸顶时自动只算站点头。
+- 吸顶后默认收成一行「筛选条件 / 展开」，点开才显示完整分组；展开后文案变「收起」，吸顶期间保持展开，离开吸顶自动复位。
+- 画册版式筛选条补不透明底色，避免滚动内容穿透；400/600 窄屏沿用同一结构。
+- 验证：CDP 简洁主站 61px、门户/我的 122px 吸顶；筛选条由 270/217/164px 收至 50px；展开/收起与回顶复位正常；1280 截图复核。Python 84、视图 21、版式 15、`layout_lint`、`docs_check`、`--verify` 通过。

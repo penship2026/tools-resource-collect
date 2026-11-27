@@ -259,12 +259,25 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   display: flex; flex-direction: column; gap: 0; margin-bottom: 18px;
   background: var(--surface); border: 1px solid var(--border);
   border-radius: var(--radius); padding: 2px 16px; box-shadow: var(--shadow);
+  /* 滚过筛选区后吸附在站点头与板块导航下方;偏移由 index.html 按实际导航高度写入 */
+  position: sticky; top: var(--layout-filter-top, var(--layout-header-h)); z-index: 18;
 }
 .filter-group {
   display: flex; align-items: flex-start; gap: 12px; padding: 9px 0;
   border-top: 1px dashed var(--border);
 }
-.filter-group:first-child { border-top: 0; }
+.filter-group:first-of-type { border-top: 0; }
+/* 吸顶后收成一行,点开才显示完整筛选 */
+.filter-collapse {
+  display: none; align-items: center; justify-content: space-between;
+  width: 100%; min-height: 44px; padding: 0; border: 0; background: transparent;
+  color: var(--text); font: inherit; cursor: pointer; text-align: left;
+}
+.filter-collapse-title { font-size: var(--fs-sm); font-weight: 600; }
+.filter-collapse-hint { color: var(--brand); font-size: 12px; }
+.filter-bar.is-stuck .filter-collapse { display: flex; }
+.filter-bar.is-collapsed .filter-group { display: none; }
+.filter-bar.is-collapsed .filter-collapse { border-bottom: 0; }
 .filter-label {
   flex: 0 0 44px; font-size: 12px; letter-spacing: .08em; color: var(--text-mute);
   line-height: 30px; white-space: nowrap;

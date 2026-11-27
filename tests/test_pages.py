@@ -109,6 +109,18 @@ class PagesContractTest(unittest.TestCase):
         self.assertNotIn("fav-card", js)
         self.assertNotIn("fav-del", js)
 
+    def test_filter_bar_sticky_and_collapsed(self):
+        """主站与我的页筛选条吸顶,吸顶时默认收成一行并可展开。"""
+        css = read("assets/style.css")
+        self.assertIn("position: sticky; top: var(--layout-filter-top", css)
+        self.assertIn(".filter-bar.is-stuck .filter-collapse", css)
+        self.assertIn(".filter-bar.is-collapsed .filter-group", css)
+        idx = read("index.html")
+        self.assertEqual(idx.count('class="filter-collapse"'), 2)
+        self.assertIn("function syncFilterSticky", idx)
+        self.assertIn("updateFilterStickyState", idx)
+        self.assertIn("--layout-filter-top", idx)
+
     def test_nav_items_min_touch_height(self):
         css = read("assets/pages/index.css")
         block = re.search(r"\.section-tab \{([^}]*)\}", css)

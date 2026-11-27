@@ -84,9 +84,9 @@
     .toggle-btn { font-size: 11px; padding: 4px 9px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); color: var(--text-sub); cursor: pointer; white-space: nowrap; }
     .toggle-btn.off { color: #c0392b; }
     .toggle-btn.pin-on { color: var(--brand); border-color: var(--brand); background: #eef3fb; }
-    .topic-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
+    .topic-actions { display: flex; flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: flex-start; gap: 6px; margin-top: 10px; }
     .unit-row { border-bottom: 1px solid var(--border); }
-    .unit-row .topic-item { border-bottom: none; }
+    .unit-row .topic-item { display: block; border-bottom: none; }
     .hero-editor { padding: 0 0 14px; }
     .hero-editor label { display: block; font-size: 11px; color: var(--text-mute); margin-bottom: 6px; }
     .hero-editor .hero-line { display: flex; gap: 6px; flex-wrap: wrap; }
@@ -106,6 +106,20 @@
     }
     .unit-pager button:hover:not(:disabled) { border-color: var(--brand); color: var(--brand); }
     .unit-pager button:disabled { opacity: .45; cursor: default; }
+    .unit-search { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 10px 0 6px; }
+    .unit-search input {
+      flex: 1 1 240px; min-width: 0; padding: 7px 10px; font-size: 12px;
+      color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: 8px; outline: none;
+    }
+    .unit-search input:focus { border-color: var(--brand); }
+    .unit-search-count { font-size: 12px; color: var(--text-mute); }
+    .unit-note {
+      margin-top: 18px; padding-top: 14px; border-top: 1px dashed var(--border);
+      color: var(--text-mute); font-size: var(--fs-xs); line-height: 1.85;
+    }
+    .unit-note p { margin: 0 0 6px; }
+    .unit-note p:last-child { margin-bottom: 0; }
+    .unit-note b { color: var(--text-sub); font-weight: 600; }
     .status { font-size: 13px; margin-top: 12px; min-height: 20px; }
     .status.err { color: #c0392b; }
     .status.ok { color: #1d9e75; }
@@ -299,12 +313,17 @@
 
       <div class="panel">
         <h2>已有采集单元</h2>
+        <div class="unit-search">
+          <input type="search" id="unit-search" placeholder="搜索标题、ID、作者、平台或关键词…" autocomplete="off">
+          <button type="button" class="toggle-btn" id="unit-search-clear" hidden>清除</button>
+          <span class="unit-search-count" id="unit-search-count"></span>
+        </div>
         <div id="topics"><div class="tip">加载中…</div></div>
-        <p class="tip" style="margin-top:18px">
-          点「重新采集」只会把上次填写的采集信息带回左侧表单(并默认展开全部可选设置),确认后再执行,不会自动采集;
-          需要时也可以只改显示标题,或直接「下线不显示」(数据保留,可随时重新上线)。
-          采集是独立单元,可单独开启/关闭首页显示(关闭后数据保留,只是不展示);按内容唯一键去重(B站=BV 号,公众号=原文地址,小红书=笔记 ID)。
-        </p>
+        <div class="unit-note">
+          <p><b>重新采集</b>只回填上次的采集信息(并展开可选设置),确认后才会执行,不会自动采集;也可以只改显示标题,或「下线不显示」。</p>
+          <p><b>显示开关</b>每个单元独立控制首页展示;关闭后数据保留,只是不展示,可随时重新上线。</p>
+          <p><b>去重规则</b>按内容唯一键:B站=BV 号,公众号=原文地址,小红书=笔记 ID。</p>
+        </div>
       </div>
     </div>
   </main>
@@ -717,10 +736,11 @@
       return true;
     }
 
-    // 已有采集单元:默认每页 10 条,避免单元多了把页面撑得过长
-    const UNIT_PAGE_SIZE = 10;
+    // 已有采集单元:默认每页 5 条,避免单元多了把页面撑得过长
+    const UNIT_PAGE_SIZE = 5;
     let unitCache = [];
     let unitPage = 1;
+    let unitQuery = '';
 
     function loadTopics() {
       apiFetch(API_TOPICS, { cache: 'no-store' }).then(readJSON).then(d => {
@@ -729,6 +749,34 @@
         renderUnitPage();
       }).catch(err => { $('topics').innerHTML = '<div class="tip">加载失败: ' + esc(err.message) + '</div>'; });
     }
+
+    // 搜索栏:本地过滤已加载的单元,不重新请求接口
+    (function () {
+      const input = $('unit-search');
+      const clearBtn = $('unit-search-clear');
+      if (!input) return;
+      let timer = 0;
+      function applyQuery() {
+        unitQuery = input.value || '';
+        unitPage = 1;
+        renderUnitPage();
+      }
+      input.addEventListener('input', () => {
+        clearTimeout(timer);
+        timer = setTimeout(applyQuery, 150);
+      });
+      input.addEventListener('keydown', e => {
+        if (e.key === 'Enter') { e.preventDefault(); clearTimeout(timer); applyQuery(); }
+      });
+      if (clearBtn) {
+        clearBtn.addEventListener('click', () => {
+          input.value = '';
+          clearTimeout(timer);
+          applyQuery();
+          input.focus();
+        });
+      }
+    })();
 
     // 站点配置只取 CSRF token 与置顶/大图字段;/api/topics 已带回每个单元的值
     function loadSiteMeta() {
@@ -750,13 +798,40 @@
       return r.site;
     }
 
+    function unitMatches(t, terms) {
+      const hay = [t.title, t.id, t.author, t.platform, t.keyword, t.page]
+        .filter(Boolean).join(' ').toLowerCase();
+      return terms.every(term => hay.indexOf(term) !== -1);
+    }
+
+    function visibleUnits() {
+      const q = unitQuery.trim().toLowerCase();
+      if (!q) return unitCache;
+      const terms = q.split(/\s+/).filter(Boolean);
+      return unitCache.filter(t => unitMatches(t, terms));
+    }
+
     function renderUnitPage() {
       const box = $('topics');
-      if (!unitCache.length) { box.innerHTML = '<div class="tip">暂无采集单元</div>'; return; }
-      const pages = Math.ceil(unitCache.length / UNIT_PAGE_SIZE);
+      const countEl = $('unit-search-count');
+      const clearBtn = $('unit-search-clear');
+      if (clearBtn) clearBtn.hidden = !unitQuery.trim();
+      if (!unitCache.length) {
+        if (countEl) countEl.textContent = '';
+        box.innerHTML = '<div class="tip">暂无采集单元</div>';
+        return;
+      }
+      const list = visibleUnits();
+      const filtered = !!unitQuery.trim();
+      if (countEl) countEl.textContent = filtered ? `匹配 ${list.length} / 共 ${unitCache.length} 个` : `共 ${unitCache.length} 个`;
+      if (!list.length) {
+        box.innerHTML = '<div class="tip">没有匹配的采集单元,试试其他关键词</div>';
+        return;
+      }
+      const pages = Math.ceil(list.length / UNIT_PAGE_SIZE);
       unitPage = Math.min(Math.max(unitPage, 1), pages);
       const start = (unitPage - 1) * UNIT_PAGE_SIZE;
-      const rows = unitCache.slice(start, start + UNIT_PAGE_SIZE);
+      const rows = list.slice(start, start + UNIT_PAGE_SIZE);
 
       box.innerHTML = rows.map(t => {
         const type = t.type || 'series';
@@ -800,7 +875,7 @@
       if (pages > 1) {
         box.innerHTML += `
         <div class="unit-pager">
-          <span>第 ${unitPage} / ${pages} 页 · 共 ${unitCache.length} 个单元</span>
+          <span>第 ${unitPage} / ${pages} 页 · ${filtered ? `匹配 ${list.length} / 共 ${unitCache.length}` : `共 ${unitCache.length}`} 个单元</span>
           <div class="pager-btns">
             <button type="button" data-page="prev" ${unitPage <= 1 ? 'disabled' : ''}>上一页</button>
             <button type="button" data-page="next" ${unitPage >= pages ? 'disabled' : ''}>下一页</button>

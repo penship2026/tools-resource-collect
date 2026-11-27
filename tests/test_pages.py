@@ -77,6 +77,32 @@ class PagesContractTest(unittest.TestCase):
         self.assertIn('id="io-import"', io)
         self.assertIn('assets/personal.js', io)
 
+    def test_public_footer_has_no_import_export_or_collect_entry(self):
+        """主站页脚不再放采集入口和导入导出提示,这些只留在个人站页脚"""
+        idx = read("index.html")
+        footer = idx[idx.index('id="public-footer"'):idx.index('</footer>', idx.index('id="public-footer"'))]
+        self.assertNotIn("采集入口", footer)
+        self.assertNotIn("mine-io.html", footer)
+        self.assertNotIn("导出备份", footer)
+        self.assertNotIn("导入恢复", footer)
+
+    def test_collect_unit_actions_are_bottom_row(self):
+        """已采集单元的操作按钮改为信息底部一排"""
+        html = read("collector/collect.html")
+        self.assertIn(".unit-row .topic-item { display: block; border-bottom: none; }", html)
+        self.assertIn(".topic-actions { display: flex; flex-direction: row;", html)
+        self.assertIn("margin-top: 10px;", html)
+
+    def test_collect_units_page_size_and_search(self):
+        """已采集单元默认每页 5 条,并提供本地搜索栏"""
+        html = read("collector/collect.html")
+        self.assertIn("const UNIT_PAGE_SIZE = 5;", html)
+        self.assertIn('id="unit-search"', html)
+        self.assertIn('id="unit-search-clear"', html)
+        self.assertIn("function visibleUnits()", html)
+        self.assertIn("function unitMatches(", html)
+        self.assertIn("unitCache.filter(t => unitMatches(t, terms))", html)
+
     def test_mine_footer_has_no_theme_or_layout_switch(self):
         for asset in ("assets/theme.js", "assets/layout.js"):
             self.assertIn(":not(.mine-footer)", read(asset), asset)
@@ -157,17 +183,24 @@ class PagesContractTest(unittest.TestCase):
         """我的页设置:标题 + 我的页专属主题,且主题键与公开主题分离"""
         idx = read(os.path.join(ROOT, "index.html"))
         for hook in ('id="mine-settings"', 'id="mine-settings-panel"', 'id="mine-set-title"', 'id="mine-set-sub"',
-                     'id="mine-set-public"', 'id="mine-set-switch"', 'id="mine-set-theme"', 'id="mine-set-save"', 'id="mine-sub"',
+                     'id="mine-set-public"', 'id="mine-set-switch"', 'id="mine-set-layout"', 'id="mine-set-theme"', 'id="mine-set-save"', 'id="mine-sub"',
                      'id="mine-filter-bar"', 'id="mine-tag-chips"', 'id="mine-search"',
                      'class="mine-hero"'):
             self.assertIn(hook, idx)
         js = read(os.path.join(ROOT, "assets/personal.js"))
         self.assertIn("mineChoice", js)
+        self.assertIn("mine-set-layout", js)
+        self.assertIn("setMineChoice", js)
         theme_js = read(os.path.join(ROOT, "assets/theme.js"))
         self.assertIn("jiye.mine.theme.v1", theme_js)
         self.assertIn("setMineChoice", theme_js)
         # 我的页主题只在 ?view=mine 生效,不得覆盖公开主题键
         self.assertIn("view') === 'mine'", theme_js.replace('"', "'"))
+        layout_js = read(os.path.join(ROOT, "assets/layout.js"))
+        self.assertIn("jiye.mine.layout.v1", layout_js)
+        self.assertIn("setMineChoice", layout_js)
+        # 我的页版式同样只在 ?view=mine 生效,且与公开键 jiye.layout 分离
+        self.assertIn("view') === 'mine'", layout_js.replace('"', "'"))
 
     def test_all_theme_files_registered(self):
         """D40:themes/ 下每个 css 都要在 theme.js 的 THEMES 里注册,避免加了文件却切不到"""
@@ -177,6 +210,19 @@ class PagesContractTest(unittest.TestCase):
         js = read(os.path.join(ROOT, "assets/theme.js"))
         for name in files:
             self.assertIn(name, js, "theme.js 未注册 %s" % name)
+
+    def test_facts_hero_shared_by_index_and_subpages(self):
+        """首页与合集/列表子页顶部统计统一走 facts-hero,宽度与间距随版式变化"""
+        for page in ("index.html", "series.html", "list.html"):
+            html = read(page)
+            self.assertIn('class="facts facts-hero"', html, page)
+            self.assertIn('class="fact fact-date"', html, page)
+        css = read("assets/style.css")
+        self.assertIn(".facts-hero {", css)
+        self.assertIn("--layout-facts-pad: 18px;", css)
+        self.assertIn("width: fit-content; min-width: 540px;", css)
+        for asset in ("assets/layouts/news.css", "assets/layouts/magazine.css"):
+            self.assertIn(".facts-hero", read(asset), asset)
 
     def test_layout_registry_and_loader(self):
         """D65/D68:注册表 3 套、默认 standard;版式只接公开页,采集工具页不接"""

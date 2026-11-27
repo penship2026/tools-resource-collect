@@ -12,6 +12,7 @@
   --layout-header-h: 60px;
   --layout-hero-pad: 68px 0 34px;
   --layout-facts-gap: 32px;
+  --layout-facts-pad: 18px;
   --layout-section-gap: 48px;
   --layout-grid-min: 290px;
   --layout-grid-gap: 18px;
@@ -97,6 +98,28 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 .fact { display: flex; flex-direction: column; gap: 2px; }
 .fact b { display: block; font-size: 23px; font-weight: 650; font-variant-numeric: tabular-nums; }
 .fact span { font-size: var(--fs-xs); color: var(--text-mute); }
+/* Hero 统计条:数字、标签与最近更新收成一条基线,跟随版式对齐 */
+.facts-hero {
+  gap: 0; margin-top: 26px; padding-top: 14px; width: fit-content; min-width: 540px; max-width: 100%;
+  border-top: 1px solid var(--border);
+}
+.facts-hero .fact {
+  padding: 0 var(--layout-facts-pad);
+  border-left: 1px solid var(--border);
+}
+.facts-hero .fact:first-child { padding-left: 0; border-left: 0; }
+.facts-hero .fact b { font-size: clamp(21px, 2.2vw, 25px); line-height: 1.05; letter-spacing: -.01em; }
+.facts-hero .fact span { letter-spacing: .02em; white-space: nowrap; }
+.facts-hero .fact-date b { font-size: clamp(17px, 1.6vw, 19px); font-weight: 600; letter-spacing: 0; }
+
+@media (max-width: 600px) {
+  .facts-hero { width: auto; min-width: 0; max-width: none; row-gap: 12px; padding-top: 12px; }
+  .facts-hero .fact { padding: 0 14px; border-left: 0; }
+  .facts-hero .fact:first-child { padding-left: 0; }
+  .facts-hero .fact b { font-size: 20px; }
+  .facts-hero .fact-date b { font-size: 16px; }
+}
+
 
 /* 主题元信息(作者/简介) */
 .topic-meta { margin-top: 22px; max-width: 720px; display: flex; flex-direction: column; gap: 10px; }

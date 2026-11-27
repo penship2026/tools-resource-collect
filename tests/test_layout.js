@@ -108,6 +108,37 @@ eq('非法站点默认回退', env.window.JiyeLayout.current(), 'standard');
 // 8) 版本注册表:三套都在
 eq('注册表数量', Object.keys(env.window.TEMPLATES.list).length, 3);
 
+// 9) 我的页专属版式:?view=mine 时优先于公开存储
+env = makeEnv('?view=mine', { 'jiye.mine.layout.v1': 'magazine', 'jiye.layout': 'news' });
+eq('我的版式优先', env.window.JiyeLayout.current(), 'magazine');
+eq('我的版式 CSS', env.link._href, 'assets/layouts/magazine.css');
+eq('我的版式取值', env.window.JiyeLayout.mineChoice(), 'magazine');
+
+// 10) 我的页未单独设置 → 跟随公开版式
+env = makeEnv('?view=mine', { 'jiye.layout': 'news' });
+eq('我的页跟随公开', env.window.JiyeLayout.current(), 'news');
+eq('未设置时 mineChoice', env.window.JiyeLayout.mineChoice(), 'inherit');
+
+// 11) 公开页不受我的版式影响
+env = makeEnv('', { 'jiye.mine.layout.v1': 'magazine', 'jiye.layout': 'news' });
+eq('公开页忽略我的版式', env.window.JiyeLayout.current(), 'news');
+
+// 12) 保存我的版式:写自己的键,不覆盖公开键
+env = makeEnv('?view=mine', { 'jiye.layout': 'standard' });
+env.window.JiyeLayout.setMineChoice('magazine');
+eq('保存我的版式', env.window.JiyeLayout.current(), 'magazine');
+eq('我的键写入', env.store['jiye.mine.layout.v1'], 'magazine');
+eq('公开键不变', env.store['jiye.layout'], 'standard');
+
+// 13) 选「跟随公开」删除我的键并回落到公开版式
+env.window.JiyeLayout.setMineChoice('inherit');
+eq('跟随公开后恢复', env.window.JiyeLayout.current(), 'standard');
+eq('跟随公开删除我的键', env.store['jiye.mine.layout.v1'], undefined);
+
+// 14) ?layout 预览优先于我的版式
+env = makeEnv('?view=mine&layout=news', { 'jiye.mine.layout.v1': 'magazine' });
+eq('预览覆盖我的版式', env.window.JiyeLayout.current(), 'news');
+
 if (process.exitCode) {
   console.error('版式逻辑用例失败');
 } else {

@@ -621,18 +621,28 @@
       var subInput = panel.querySelector('#mine-set-sub');
       var subReset = panel.querySelector('#mine-set-sub-reset');
       var themeSel = panel.querySelector('#mine-set-theme');
+      var layoutSel = panel.querySelector('#mine-set-layout');
       var saveBtn = panel.querySelector('#mine-set-save');
       var cancelBtn = panel.querySelector('#mine-set-cancel');
       var resetBtn = panel.querySelector('#mine-set-title-reset');
-      if (!btn || !box || !titleInput || !themeSel) return;
+      if (!btn || !box || !titleInput || !themeSel || !layoutSel) return;
 
       var theme = global.JiyeTheme;
+      var layout = global.JiyeLayout;
       if (theme && theme.THEMES) {
         Object.keys(theme.THEMES).forEach(function (key) {
           var op = document.createElement('option');
           op.value = key;
           op.textContent = theme.THEMES[key].label;
           themeSel.appendChild(op);
+        });
+      }
+      if (layout && layout.list) {
+        layout.list().forEach(function (item) {
+          var op = document.createElement('option');
+          op.value = item.key;
+          op.textContent = item.label;
+          layoutSel.appendChild(op);
         });
       }
 
@@ -652,6 +662,7 @@
           subInput.placeholder = DEFAULT_SUB;
         }
         themeSel.value = theme && theme.mineChoice ? theme.mineChoice() : 'inherit';
+        layoutSel.value = layout && layout.mineChoice ? layout.mineChoice() : 'inherit';
       }
 
       function open() {
@@ -706,6 +717,7 @@
         if (subEl) subEl.textContent = mineSubtitle();
         document.title = docTitle();
         if (theme && theme.setMineChoice) theme.setMineChoice(themeSel.value);
+        if (layout && layout.setMineChoice) layout.setMineChoice(layoutSel.value);
         close();
       });
       box.addEventListener('keydown', function (e) {

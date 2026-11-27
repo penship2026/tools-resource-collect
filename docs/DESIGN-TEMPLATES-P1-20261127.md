@@ -180,6 +180,7 @@ window.TEMPLATES = {
 | `--layout-header-h` | 60px | 吸顶导航高 |
 | `--layout-hero-pad` | 68px 0 34px | 首页 hero 内边距 |
 | `--layout-facts-gap` | 32px | hero 统计间距 |
+| `--layout-facts-pad` | 18px | `facts-hero` 列左右内边距（门户 20px） |
 | `--layout-section-gap` | 48px | 板块之间距离 |
 | `--layout-grid-min` | 290px | 卡片最小列宽 |
 | `--layout-grid-gap` | 18px | 卡片间距 |

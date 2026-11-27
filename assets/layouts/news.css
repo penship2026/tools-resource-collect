@@ -5,6 +5,7 @@ html[data-layout="news"] {
   --layout-wrap: 1180px;
   --layout-hero-pad: 46px 0 26px;
   --layout-facts-gap: 40px;
+  --layout-facts-pad: 20px;
   --layout-section-gap: 44px;
   --layout-grid-min: 280px;
   --layout-cover-ratio: 16 / 10;
@@ -16,7 +17,12 @@ html[data-layout="news"] .band-grid { grid-template-columns: repeat(var(--layout
 @media (max-width: 420px) { html[data-layout="news"] .band-grid { grid-template-columns: minmax(0, 1fr); } }
 html[data-layout="news"] .hero .sub { max-width: 760px; }
 html[data-layout="news"] .hero .facts { margin-top: 18px; }
+html[data-layout="news"] .facts-hero {
+  border-top: 2px solid var(--brand); padding-top: 16px; width: 620px; max-width: 100%;
+}
 html[data-layout="news"] .hero .fact b { font-size: 20px; }
+html[data-layout="news"] .facts-hero .fact b { font-size: 26px; }
+html[data-layout="news"] .facts-hero .fact-date b { font-size: 20px; }
 
 /* 版面标题让位给分节;筛选条去掉重复的板块 chips 后保持一行 */
 html[data-layout="news"] .filter-bar { margin-top: 4px; }

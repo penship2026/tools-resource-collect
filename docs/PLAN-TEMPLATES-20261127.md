@@ -217,7 +217,7 @@ Design Spec（JSON Schema 校验）
 
 ---
 
-## 八、决策记录（D64–D87，追加）
+## 八、决策记录（D64–D91，追加）
 
 | 编号 | 决策 | 落点 |
 |---|---|---|
@@ -245,6 +245,10 @@ Design Spec（JSON Schema 校验）
 | D85 | 主站与「我的」首页筛选条统一吸顶：滚过筛选区后吸附在站点头与板块导航下方；吸顶时默认收成一行「筛选条件 / 展开」，点开才显示完整分组，离开吸顶恢复完整筛选。偏移不写死，由 `syncFilterSticky()` 按站点头与当前导航实际高度写入 `--layout-filter-top`；简洁版式与窄屏导航不吸顶时自动归零，画册版式补不透明底色避免内容穿透 | `assets/style.css`、`assets/layouts/magazine.css`、`index.html` |
 | D86 | 个人站导入导出页纳入两条发布白名单：本地 `collector/server.py` 的 `STATIC_EXACT` 加 `/mine-io.html`，GitHub Pages artifact 加 `mine-io.html`；`assets/pages/mine-io.css` 随 `assets/**` 自动发布。否则本地返回「未对外开放的路径」，线上 Pages 返回 404 | `collector/server.py`、`.github/workflows/pages.yml`、`docs/GITHUB-PAGES.md`、`docs/DEPLOY.md` |
 | D87 | 重新采集的「采集方式」增加「移除当前链接」，只对按链接/批量链接显示；输入框里的链接作为待移除项，只做本地匹配与删除，不重新抓取内容。主题采集不提供该选项。移除不计入 `intake`，另记一条 `runs`（mode=remove），保证下次重新采集仍回填原采集输入 | `collector/collect.html`、`collector/server.py`、`collector/generate.py` |
+| D88 | 主站页脚收口：`#public-footer` 只保留版权说明，删除「采集入口」链接与「导出备份 / 导入恢复」提示；导入导出与设置入口只保留在 `#mine-footer`。公开页脚的主题/版式切换器不受影响 | `index.html`、`tests/test_pages.py` |
+| D89 | 采集单元体验收口：默认每页 5 条；新增本地搜索（标题 / ID / 作者 / 平台 / 关键词 / 页面），过滤后重排分页并回到第 1 页；单条操作按钮由右侧竖排改为信息底部一排；说明文字改用 `--fs-xs` + 1.85 行距、三条粗体导语，与采集页面板字体一致 | `collector/collect.html`、`tests/test_pages.py` |
+| D90 | 「我的」页增加独立版式偏好：设置面板新增「我的版式」（跟随公开 / 简洁 / 门户 / 画册），存 `jiye.mine.layout.v1`，只在 `?view=mine` 生效；优先级 `?layout` 预览 > 我的版式 > `jiye.layout` > 站点默认；选「跟随公开版式」删除本键，不改公开页 | `assets/layout.js`、`assets/personal.js`、`index.html`、`tests/test_layout.js`、`tests/test_pages.py` |
+| D91 | 首页与合集/列表子页共用 `facts-hero` 统计条：数字与日期分字号（`fact-date`），顶部细线 + 竖向分隔，宽度按内容收缩并保底 540px；简洁左对齐、门户用品牌色 2px 线宽 620px、画册居中并保底 540px；窄屏取消分隔并换行，日期字号降级 | `assets/style.css`、`assets/layouts/news.css`、`assets/layouts/magazine.css`、`index.html`、`series.html`、`list.html`、`tests/test_pages.py` |
 
 ---
 
@@ -252,7 +256,7 @@ Design Spec（JSON Schema 校验）
 
 | 文档 | 内容 | 状态 |
 |---|---|---|
-| 本文 | 两期总体方案、现状分析、决策 D64–D87 | 本次交付 |
+| 本文 | 两期总体方案、现状分析、决策 D64–D91 | 本次交付 |
 | `docs/DESIGN-TEMPLATES-P1-20261127.md` | 一期详细设计（契约、版式规格、文件级改动、验收矩阵） | 本次交付 |
 | `docs/DESIGN-TEMPLATES-P2-20261127.md` | 二期详细设计（Spec schema、编译器、闸门、工坊、治理） | 本次交付 |
 

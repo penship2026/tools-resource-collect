@@ -735,3 +735,14 @@ Chrome 无头截图三页面全部正常:首页卡片标签独立行两行截断
 - `tools/ai-template/cli.py`：`validate` / `compile` / `lint`；`compile` 输出 `<key>.css` + `<key>.registry.json`，默认写 `drafts/<key>/`；`--timestamp` 才写生成时间。
 - 示例 Spec：`tests/fixtures/specs/layout-news-dense.json`、`theme-mist.json`；手动编译分别产出约 3.3KB / 1KB。
 - 验收：Python 110 例（新增 9 例编译器）、版式 34、主题 12、视图 21、`layout_lint`、基线 45 张、5+5 容量全过；`validate` / `compile` / `lint` CLI 冒烟通过。
+
+## 三十、二期 A2 生成管线(2026-11-27)
+
+- 新增 `tools/ai-template/adapters/openai_compat.py`：OpenAI 兼容 `/chat/completions`，只读 `AI_BASE_URL / AI_API_KEY / AI_MODEL / AI_TIMEOUT`，Key 不入库、不进浏览器；缺任一配置返回 `None`。
+- 新增 `tools/ai-template/adapters/mock.py`：固定版式/主题候选各 3 个，全部复用 A1 示例 Spec；`source=mock`，只用于离线链路与 CI，不能当可上线模板。
+- 新增 `tools/ai-template/generate.py`：合成样例 `synthetic-preview-v1` 只含虚构标题、标签、板块与数量；请求体不含 `jiye.mine.v1`、采集正文、作者、链接；一条命令产 3 候选。
+- 缓存键为 `sha256(kind + system + user + model)`；命中不调用模型；只缓存通过解析与校验的文本。模型输出只做 JSON 解析和 schema 校验，不 eval、不执行代码；非法 JSON / schema 失败重试 1 次，连续 2 次失败报错。
+- 多样性闸门：版式至少差 2 项（列数/封面比/首屏类型/密度），主题至少差 2 项（主色/背景/字体/圆角）；不合格即报 `GenerationError`。
+- `cli.py` 新增 `generate --kind layout|theme --request ... --mock --out ... --no-cache --attempts 2`；默认写 `drafts/<key>/candidate-N/` 的 `spec.json`、`<key>.css`、`<key>.registry.json`，并在根目录写 `run.json`。
+- 新增 `tests/test_generate_ai.py` 9 例：mock 双类型各 3 候选、主题 lint、缓存命中、非法 JSON 重试、schema 失败重试、候选同质拒绝、合成样例边界、环境变量门槛、CLI 冒烟。
+- 验收：A2 新增 9 例全过；mock 版式 3 候选 CSS 约 3.2–3.3KB、主题 3 候选约 0.97KB 且 lint 全过；全量 Python 119 例中 A2 全绿，唯一失败为本机未提交采集数据 `topic-35bc9a90` 缺 `section` 的既有数据自检，与 A2 代码无关；Node 版式 34、主题 12、视图 21、`layout_lint` 全过。

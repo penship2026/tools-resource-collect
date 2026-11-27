@@ -10,6 +10,7 @@
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import json
 import sys
 from pathlib import Path
@@ -20,6 +21,21 @@ sys.path.insert(0, str(HERE))
 
 import compiler  # noqa: E402
 import theme_lint  # noqa: E402
+
+
+def _load_generate():
+    """按文件路径加载，避免与仓库根 generate.py 同名冲突。"""
+    name = "ai_template_generate"
+    if name in sys.modules:
+        return sys.modules[name]
+    spec = importlib.util.spec_from_file_location(name, HERE / "generate.py")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+generate = _load_generate()
 
 
 def _load(path):
@@ -77,6 +93,21 @@ def cmd_compile(args):
     return 0
 
 
+def cmd_generate(args):
+    try:
+        run = generate.generate(
+            args.kind, args.request, constraints=args.constraints,
+            mock=args.mock, out_dir=args.out, use_cache=not args.no_cache,
+            attempts=args.attempts,
+        )
+    except generate.GenerationError as exc:
+        print(json.dumps({"ok": False, "errors": exc.errors, "raw_tail": exc.raw[-400:]},
+                         ensure_ascii=False, indent=2))
+        return 1
+    print(json.dumps(run, ensure_ascii=False, indent=2))
+    return 0
+
+
 def cmd_lint(args):
     path = Path(args.file)
     errors = theme_lint.lint_theme_file(path)
@@ -90,19 +121,32 @@ def cmd_lint(args):
 def main(argv=None):
     ap = argparse.ArgumentParser(description="集页 AI 版式/主题编译器")
     sub = ap.add_subparsers(dest="cmd", required=True)
-    for name, handler in (("validate", cmd_validate), ("compile", cmd_compile), ("lint", cmd_lint)):
+
+    for name, handler in (("validate", cmd_validate), ("compile", cmd_compile)):
         p = sub.add_parser(name)
-        if name != "lint":
-            p.add_argument("--spec", required=True, help="Spec JSON 路径")
-            p.add_argument("--kind", choices=("layout", "theme"), help="默认读取 spec.kind")
+        p.add_argument("--spec", required=True, help="Spec JSON 路径")
+        p.add_argument("--kind", choices=("layout", "theme"), help="默认读取 spec.kind")
         if name == "compile":
             p.add_argument("--out", help="输出目录；默认 tools/ai-template/drafts/<key>")
             p.add_argument("--timestamp", action="store_true", help="写入生成时间；默认不写以保证可复现")
             p.add_argument("--approval", default="", help="审批号，写入注释")
             p.add_argument("--print", action="store_true", help="同时把 CSS 打到 stdout")
-        if name == "lint":
-            p.add_argument("--file", required=True, help="主题 CSS 路径")
         p.set_defaults(func=handler)
+
+    p = sub.add_parser("generate", help="从自然语言生成 3 个候选草稿（默认离线 mock 降级）")
+    p.add_argument("--kind", required=True, choices=("layout", "theme"))
+    p.add_argument("--request", required=True, help="目标场景 / 设计需求")
+    p.add_argument("--constraints", default="", help="额外约束")
+    p.add_argument("--mock", action="store_true", help="强制离线 mock；无 AI_* 时自动降级")
+    p.add_argument("--out", help="草稿根目录；默认 tools/ai-template/drafts")
+    p.add_argument("--no-cache", action="store_true", help="不复用同 prompt 的缓存")
+    p.add_argument("--attempts", type=int, default=2, help="JSON/schema 失败重试次数，默认 2")
+    p.set_defaults(func=cmd_generate)
+
+    p = sub.add_parser("lint")
+    p.add_argument("--file", required=True, help="主题 CSS 路径")
+    p.set_defaults(func=cmd_lint)
+
     args = ap.parse_args(argv)
     return args.func(args)
 

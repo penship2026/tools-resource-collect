@@ -849,4 +849,4 @@ Chrome 无头截图三页面全部正常:首页卡片标签独立行两行截断
 - 首页不更新:网站服务原来用 `python3 -m http.server`，不发送 `Cache-Control`；浏览器启发式缓存住 `assets/data/index.js`，采集完成后首页仍读旧索引。新增 `scripts/site_server.py`，页面与数据统一 `no-store`，`docs/start-all.command` 改用该服务。
 - 数据校验:无发布日期曾被写成 `—`，`--verify` 会判日期格式异常，导致 CI / Pages 发布失败。无日期改为空字符串，展示层继续显示占位；`--normalize` 同时清理存量 `—`。
 - 采集反馈:采集成功后状态栏提示“首页数据已更新，刷新首页即可查看”。
-- 验收:新开首页可见「小学阅读书单」；`generate.py --verify` 0 问题；采集/页面/工作台/生成器/平台共 111 例通过；`docs/start-all.command --check` 三服务就绪。
+- 验收:新开首页可见「小学阅读书单」；`generate.py --verify` 0 问题；采集/页面/工作台/生成器/平台共 111 例通过；`docs/start-all.command --check` 三服务就绪；提交 `8e8e279`。

@@ -76,7 +76,7 @@ env -u AI_BASE_URL -u AI_API_KEY -u AI_MODEL python3 -m unittest discover -s tes
 | 2026-11-27 | A5 | 3 个 AI 版式 + 3 个 AI 主题入库、说明、展示清单、下线/回滚演练 | 待开始；`max_layouts=20`、`max_themes=8`，版式 3+3 不再受 5 套限制 | 待开始 |
 | 2026-11-28 | A5 | 3 套 AI 版式 + 3 套 AI 主题候选生成完成，15 张截图与 G1–G6 全部通过；`7efbff4` 已推送 | 六套候选各 15 shots 通过；未批准、`published.json` 仍为空 | 待人工确认后批准上架 |
 | 2026-11-28 | A4.7 | IDE 工作台：左模板树/工具、中 `spec.json` 编辑+预览、右 AI 对话+模型切换；三栏拖宽、左右互换；`serve --host` 局域网 | Python 全量 161 例通过；Chrome 实测候选加载、主题/版式切换、草稿预览、真实 AI 改 Spec；`/` 与 `/ide` 200 | 提交 `07c1ae6`，已推送；`/review` 保留旧评审页；8787 已用 `0.0.0.0` 重启 |
-| 2026-11-28 | A4.7+ | IDE 补页面文件：四页 2×2 选择、HTML/CSS 双标签、页面保存备份、页面 AI、`/api/pages` 与 `/repo` 白名单 | Python 全量 164 例通过；四页预览 200；Chrome 实测首页/集合页/详情页加载与切换；真实 AI 改页面 CSS/HTML 成功；`.env` 与 docs 被 404 | 待提交；页面 AI 未限制 `max_tokens`，大文件需继续观察截断 |
+| 2026-11-28 | A4.7+ | IDE 补页面文件：四页 2×2 选择、HTML/CSS 双标签、页面保存备份、页面 AI、`/api/pages` 与 `/repo` 白名单 | Python 全量 164 例通过；四页预览 200；Chrome 实测首页/集合页/详情页加载与切换；真实 AI 改页面 CSS/HTML 成功；`.env` 与 docs 被 404 | 提交 `8df66ce`，已推送；页面 AI 未限制 `max_tokens`，大文件需继续观察截断 |
 
 ---
 

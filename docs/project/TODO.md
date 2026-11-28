@@ -1,8 +1,8 @@
 # 待办清单
 
 > 逐条处理,处理完把 `- [ ]` 改为 `- [x]` 并在「处理记录」补一行结果。
-> 来源:docs/WORKLOG.md 中遗留的待确认/待执行事项。
-> 改造计划(决策与里程碑):docs/PLAN-20261126.md;问题依据:docs/REVIEW-20261126.md。
+> 来源:docs/project/WORKLOG.md 中遗留的待确认/待执行事项。
+> 改造计划(决策与里程碑):docs/project/PLAN-20261126.md;问题依据:docs/project/REVIEW-20261126.md。
 > 多端并发:本文件只「勾选 + 末尾追加记录」,不重排/不格式化;开工前先看 PLAN 第八章 8.3。
 
 ---
@@ -123,7 +123,7 @@
   3. 静态白名单:只放行 5 个展示页、`collector/collect.html`、`assets/**`,其余(含 `.git`/`backups`/`docs`/`*.py`/`.github`)一律 JSON 404。
   4. `/api/health` 增加 `auth` 字段;公网模式不回显本机数据目录。
   5. 采集页新增口令输入(仅 `auth=token` 时出现),所有接口调用走 `apiFetch` 自动带头;401 时自动露出一行提示。
-- **验证**:默认模式探测 `/.git/config`、`/backups/`、`/collector/generate.py`、`/docs/DEPLOY.md` 均 404,`index.html`/`style.css`/`collect.html` 均 200;`--public` 无口令 exit 2;`--public --token` 下无头 401、错口令 401、正确口令正常返回;`py_compile` 与 collect.html `node --check` 通过。
+- **验证**:默认模式探测 `/.git/config`、`/backups/`、`/collector/generate.py`、`/docs/ops/DEPLOY.md` 均 404,`index.html`/`style.css`/`collect.html` 均 200;`--public` 无口令 exit 2;`--public --token` 下无头 401、错口令 401、正确口令正常返回;`py_compile` 与 collect.html `node --check` 通过。
 
 ---
 
@@ -182,7 +182,7 @@
 
 ### ⏸ 15. 本机 launchd 兜底:按用户要求暂停(2026-11-26 18:00)
 
-- 已执行 `launchctl bootout gui/501/com.jiye.collect` 卸载,并 `launchctl disable gui/501/com.jiye.collect` 持久禁用(登录不再自动加载);`~/Library/LaunchAgents/com.jiye.collect.plist` 保留,恢复命令见 `docs/DEPLOY.md` 第十章开头。
+- 已执行 `launchctl bootout gui/501/com.jiye.collect` 卸载,并 `launchctl disable gui/501/com.jiye.collect` 持久禁用(登录不再自动加载);`~/Library/LaunchAgents/com.jiye.collect.plist` 保留,恢复命令见 `docs/ops/DEPLOY.md` 第十章开头。
 - 调度侧仅保留 GitHub Actions(每天北京 07:00);`scripts/launchd/collect.sh` 与 `install.sh` 仍作为可选项留在仓库,代码不做改动。
 
 ### ✅ 16. D24 数据侧解耦:去掉 `page`,platform 存稳定 key(2026-11-26)
@@ -368,8 +368,8 @@
 ### ✅ 40. 对外创作过程记录 + HTML 阅读版(D62)(2026-11-26)
 
 - 通读 PLAN(需求/决策/里程碑)、REVIEW(18 个问题)、TODO(39 项)与 WORKLOG(完整时间线),整理为可发布叙事。
-- 新增 `docs/CREATION-STORY-20261126.md`:600 字小红书文案 + 9 图分镜 + 创作时间线 + 排期方法 + 踩坑 + 资料依据。
-- 新增 `docs/CREATION-STORY-20261126.html`:单文件零依赖,阅读进度、吸顶目录、一键复制文案;1280/390 无横向溢出,复制按钮实测通过。
+- 新增 `docs/project/CREATION-STORY-20261126.md`:600 字小红书文案 + 9 图分镜 + 创作时间线 + 排期方法 + 踩坑 + 资料依据。
+- 新增 `docs/project/CREATION-STORY-20261126.html`:单文件零依赖,阅读进度、吸顶目录、一键复制文案;1280/390 无横向溢出,复制按钮实测通过。
 - README 文档索引同步;`docs_check.py` 通过。
 
 ### ✅ 41. 设置页与板块体系开发启动（D63）（2026-11-27）
@@ -379,7 +379,7 @@
 - 混合关键词：must 全命中 + any 至少一个；B站聚类与公众号/小红书候选都走同一过滤。
 - 新增 `collector/settings.html` 与本机 API：读取/保存配置、CSRF、cron 导出、立即执行、Git 预览/推送。
 - 新增 `collector/git_sync.py`：只提交数据白名单，固定 `origin/main`，fast-forward 前置校验，不 force/reset/clean。
-- 新增 `pages.yml` artifact 发布，线上不暴露 `collector/`；`docs/GITHUB-PAGES.md` 同步。
+- 新增 `pages.yml` artifact 发布，线上不暴露 `collector/`；`docs/ops/GITHUB-PAGES.md` 同步。
 - 验收：Python 54 例、node 12 例、verify 12 单元 0 问题、docs-check 通过；设置页 HTTP 冒烟通过。
 
 ### ✅ 42. 真实 dry-run 与作者锁修复（D63.1）（2026-11-27）

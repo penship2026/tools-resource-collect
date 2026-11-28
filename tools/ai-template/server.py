@@ -247,7 +247,9 @@ class Handler(BaseHTTPRequestHandler):
         self._send(200, path.read_bytes(), ctype)
 
     def do_GET(self):
-        path = urllib.parse.urlsplit(self.path).path
+        parts = urllib.parse.urlsplit(self.path)
+        path = parts.path
+        query = urllib.parse.parse_qs(parts.query)
         if path in ("/", "/ide", "/ide.html"):
             self._file(WORKBENCH / "ide.html")
             return
@@ -284,6 +286,52 @@ class Handler(BaseHTTPRequestHandler):
             return
         if path == "/api/pages":
             self._json(studio.page_catalog(self.root))
+            return
+        if path == "/api/page/history":
+            try:
+                limit = int((query.get("limit") or [studio.PAGE_HISTORY_LIMIT])[0])
+            except ValueError:
+                limit = studio.PAGE_HISTORY_LIMIT
+            try:
+                result = studio.list_page_history(
+                    self.root, (query.get("path") or [""])[0], limit,
+                )
+            except studio.StudioError as exc:
+                self._json(exc.as_dict())
+                return
+            self._json(result)
+            return
+        if path == "/api/page/history/content":
+            try:
+                result = studio.read_page_history(
+                    self.root, (query.get("path") or [""])[0],
+                    (query.get("version") or [""])[0],
+                )
+            except studio.StudioError as exc:
+                self._json(exc.as_dict())
+                return
+            self._json(result)
+            return
+        if path == "/api/design/history":
+            try:
+                result = studio.list_design_history(
+                    self.root, (query.get("path") or [""])[0],
+                )
+            except studio.StudioError as exc:
+                self._json(exc.as_dict())
+                return
+            self._json(result)
+            return
+        if path == "/api/design/history/content":
+            try:
+                result = studio.read_design_history(
+                    self.root, (query.get("path") or [""])[0],
+                    (query.get("version") or [""])[0],
+                )
+            except studio.StudioError as exc:
+                self._json(exc.as_dict())
+                return
+            self._json(result)
             return
         if path == "/favicon.ico":
             self._send(204, b"")
@@ -400,6 +448,16 @@ class Handler(BaseHTTPRequestHandler):
                 )
             elif path == "/api/page/save":
                 result = studio.save_page(self.root, body.get("path"), body.get("content"))
+            elif path == "/api/page/validate":
+                result = studio.validate_page(self.root, body.get("path"), body.get("content"))
+            elif path == "/api/page/history/diff":
+                result = studio.diff_page_history(
+                    self.root, body.get("path"), body.get("left"), body.get("right"),
+                )
+            elif path == "/api/design/history/diff":
+                result = studio.diff_design_history(
+                    self.root, body.get("path"), body.get("left"), body.get("right"),
+                )
             elif path == "/api/page-edit":
                 result = studio.edit_page(
                     self.root, body.get("path"), body.get("content"), body.get("instruction", ""),

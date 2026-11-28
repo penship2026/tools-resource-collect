@@ -31,7 +31,7 @@ window.SECTIONS = [
     "description": "全龄；大模型、Agent、AI 开发与 AI 应用",
     "order": 4,
     "enabled": true,
-    "count": 5
+    "count": 6
   },
   {
     "id": "tech",

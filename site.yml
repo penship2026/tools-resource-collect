@@ -8,11 +8,19 @@ display:
     - standard
     - news
     - magazine
+  max_layouts: 20
   visible_themes:
+    - tech
     - default
     - dark
-    - tech
     - campus
     - classical
+  max_themes: 6
 
-editorial: {}
+editorial:
+  daily-website:
+    pin: true
+    pin_at: "2026-11-27 19:05"
+  topic-205064a1:
+    pin: true
+    pin_at: "2026-11-27 13:26"

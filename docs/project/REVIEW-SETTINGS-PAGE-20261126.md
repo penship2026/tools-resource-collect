@@ -1,8 +1,8 @@
 # 设置页需求评审：开发就绪评估
 
-> 对象：`docs/REQUIREMENTS-SECTIONS-SCHEDULE-20261126.md` v0.4
+> 对象：`docs/project/REQUIREMENTS-SECTIONS-SCHEDULE-20261126.md` v0.4
 > 基线：`git HEAD = 8d4829f`，需求文档尚未提交
-> 方式：通读需求文档 + 现有 `topics.yml`、`collector/generate.py`、`collector/server.py`、两个 workflow、`docs/GITHUB-PAGES.md`
+> 方式：通读需求文档 + 现有 `topics.yml`、`collector/generate.py`、`collector/server.py`、两个 workflow、`docs/ops/GITHUB-PAGES.md`
 > 结论：**尚未达到可执行开发水平（DoR 未通过）**。方向清楚，但工程侧仍有 7 个 P0 缺口，直接开发会造成数据模型、采集匹配、部署安全返工。
 >
 > **2026-11-27 更新**：P0 附录已补齐，并已按拍板口径开始实现（数据层/迁移/混合关键词/设置页 API/Git 同步/Pages artifact）。本评审保留为开发前基线，最新实现进度见 `PLAN-20261126.md`、`TODO.md`、`WORKLOG.md`。
@@ -30,7 +30,7 @@
 
 | 项 | 现状 | 与需求的差距 |
 |---|---|---|
-| Pages 发布 | `docs/GITHUB-PAGES.md` 写明 `Deploy from a branch` / `main` / `/ (root)` | 设置页会随仓库公开，无法满足“线上 404”；必须改 artifact 或拆目录 |
+| Pages 发布 | `docs/ops/GITHUB-PAGES.md` 写明 `Deploy from a branch` / `main` / `/ (root)` | 设置页会随仓库公开，无法满足“线上 404”；必须改 artifact 或拆目录 |
 | 主题配置 | `topics.yml` 是扁平结构，只有 `keyword` / `id` / `title` / `channels` | 不支持 `must_keywords` / `any_keywords`；解析器 `load_topics_yaml` 也只支持这四项 |
 | 采集匹配 | `collect_topic(keyword=...)` 按单关键词搜索；B站要求关键词完整出现在标题 | 没有“多词 AND + 同义词 OR”的两阶段搜索与本地过滤 |
 | 批量结果 | `run_topics` 任一主题失败返回 `ok:false`，CLI `sys.exit(1)` | workflow 采集步骤失败后不会执行 `--verify` 与提交，已成功数据丢掉 |

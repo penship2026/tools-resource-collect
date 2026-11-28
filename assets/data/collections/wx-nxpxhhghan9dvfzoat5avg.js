@@ -36,5 +36,6 @@ window.COLLECTION_DATA["wx-nxpxhhghan9dvfzoat5avg"] = {
   ],
   "updated": "2026-11-27",
   "latest": "2026.11.24",
-  "section": "humanities"
+  "section": "humanities",
+  "enabled": true
 };

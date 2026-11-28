@@ -37,6 +37,19 @@
 
 **新增一套页面版式三步**:① 在 `assets/layouts/` 新增 CSS;② 在 `assets/templates.js` 的 `list` 加 `{label, desc, file, nav/lead/bands/toc...}`;③ 跑 `python3 scripts/layout_lint.py`。不需要改任何页面。
 
+## 二期 AI 生成与模板工坊（本机）
+
+二期把版式/主题的生成、手改、评审、发布、上架、历史回滚收进本机工作台，产物仍是零构建静态 CSS，线上不依赖 AI：
+
+```bash
+python3 tools/ai-template/cli.py serve --port 8787
+```
+
+- IDE：`http://127.0.0.1:8787/`；评审：`/review`；管理处：`/manage.html`。
+- 页面 HTML/CSS 可直接改，保存前校验语法与资源引用；历史包含当前版本，可任选两项对比、覆盖/恢复。
+- 版式/主题候选只落 `tools/ai-template/drafts/`，批准后才原子发布；AI 不自动保存或上架。
+- 完整操作、候选命名、闸门、回滚与排障见 [`docs/phase2/GUIDE-TEMPLATES-P2-20261127.md`](docs/phase2/GUIDE-TEMPLATES-P2-20261127.md)。
+
 首页只展示 `enabled !== false` 的主题单元;关闭显示的主题单元数据仍保留,只是不在首页出现。
 
 ## 个人收藏(纯本地,无后端)
@@ -89,19 +102,22 @@
 ├── sections.yml                    # 板块注册表(0–18 岁分段 + 全龄)
 ├── topics.yml                      # 单元主题清单(v2: must/any + section)
 ├── scripts/                        # docs_check / layout_lint 自检
-├── docs/                           # 部署、过程与对外文档
-│   ├── DEPLOY.md                   # 服务器 / 群晖 / 飞牛部署
-│   ├── GITHUB-PAGES.md             # GitHub Pages 托管与数据更新
-│   ├── PLAN-20261126.md            # 需求、决策与里程碑
-│   ├── REVIEW-20261126.md          # 全项目评审
-│   ├── TODO.md / WORKLOG.md        # 执行记录与工作日志
-│   └── CREATION-STORY-20261126.*   # 对外创作过程记录（Markdown + HTML）
+├── docs/                           # 文档索引与分阶段归档
+│   ├── README.md                   # 文档索引与整理说明
+│   ├── phase1/                     # 页面版式模板一期:设计/排期/验收
+│   ├── phase2/                     # AI 模板工坊二期:设计/评审/排期/使用说明
+│   ├── project/                    # 项目基线、跨期决策与过程记录
+│   ├── ops/                        # 部署与 GitHub Pages 托管
+│   ├── research/                   # 独立专题调研
+│   └── templates/                  # 批准后的模板说明与 Spec(程序生成)
 ├── .github/workflows/              # 采集与 Pages artifact workflow
 ├── backups/                        # 备份压缩包(自动生成)
 └── Dockerfile / docker-compose.yml # Docker 部署
 ```
 
 > 路径约定:所有采集命令从**项目根**执行,脚本统一带 `collector/` 前缀(如 `python3 collector/generate.py`)。程序自动把项目根作为数据目录基准,无需额外配置;也可用 `VIDEO_PROJECT_ROOT` 显式指定项目根。
+
+> 文档分类、阅读顺序与旧路径对照见 [docs/README.md](docs/README.md)。
 
 ## 数据模型:主题单元
 
@@ -203,13 +219,13 @@ http://电脑局域网IP:8765/collector/settings.html
 
 `--lan` 会把采集与设置接口暴露给同一局域网，只建议在可信网络临时使用，用完 `Ctrl+C` 关闭。设置页的 Origin 白名单已覆盖本机、内网 IP 和 `.local` 主机名，手机访问时保存、立即执行和 Git 推送不会被 CSRF 校验误拦。
 
-部署后自检 `<地址>/api/health`,应返回 JSON 且 `writable: true`、`index_ok: true`。反向代理需把 `/api/*` 转发到该进程,并用 `location /` 整体转发;只要该地址能从公网访问,就应使用 `--public --token` 启动,详见 `docs/DEPLOY.md` 的「安全基线」。静态站托管到 GitHub Pages 见 `docs/GITHUB-PAGES.md`。
+部署后自检 `<地址>/api/health`,应返回 JSON 且 `writable: true`、`index_ok: true`。反向代理需把 `/api/*` 转发到该进程,并用 `location /` 整体转发;只要该地址能从公网访问,就应使用 `--public --token` 启动,详见 `docs/ops/DEPLOY.md` 的「安全基线」。静态站托管到 GitHub Pages 见 `docs/ops/GITHUB-PAGES.md`。
 
 采集端与展示端可分离部署(同机/同容器共享数据目录,或不同机器挂载同一共享卷),两端用相同的环境变量 `VIDEO_DATA_DIR` 指向共享目录即可。
 
 ### 定时采集(推荐)与本机采集台
 
-- **定时采集**:单元主题清单在仓库根目录 `topics.yml`(`--topics` 批量执行),由 GitHub Actions 每天 07:00 跑一次;本机 launchd 兜底自 2026-11-26 起**暂停**(脚本与 plist 保留,恢复见 `docs/DEPLOY.md` 第十章)。展示端始终是纯静态,不需要 `server.py` 常驻。
+- **定时采集**:单元主题清单在仓库根目录 `topics.yml`(`--topics` 批量执行),由 GitHub Actions 每天 07:00 跑一次;本机 launchd 兜底自 2026-11-26 起**暂停**(脚本与 plist 保留,恢复见 `docs/ops/DEPLOY.md` 第十章)。展示端始终是纯静态,不需要 `server.py` 常驻。
 - **本机采集台**:需要表单交互、重新采集回填、下线开关时,临时运行 `python3 collector/server.py`(默认只听 `127.0.0.1`),用完关掉即可。
 
 ```bash

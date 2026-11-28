@@ -4,7 +4,7 @@
 > v1.3 变更：按验收评审整改包屑、sidebar 口径、无障碍、内容宽与断点、未用 token（D80）
 > v1.2 变更：新增人工置顶、画册大图字段、设置页默认版式三项（见 5.4）；一期工期 9–11 人日
 > v1.1 变更：确认板块链接地址用 `?section=` 并补链接规范；切换器文案定为「简洁 / 门户 / 画册」
-> 对应方案：`docs/PLAN-TEMPLATES-20261127.md`（D64–D80）
+> 对应方案：`docs/project/PLAN-TEMPLATES-20261127.md`（D64–D80）
 > 范围：只设计，不改代码；评审通过后按 M1→M5 实施
 > 前置承诺：不新增页面文件、不引入构建步骤、不改变采集端与数据 schema
 
@@ -454,7 +454,7 @@ magazine 只改"形"：封面比例、单栏、章节间距、编号排版，全
 | `scripts/docs_check.py` | 新增版式文件/注册表/内联样式检查，调用 `layout_lint` |
 | `tests/test_pages.py` | 4 个公开页加载 `templates.js`+`layout.js`；采集页不接；注册表 3 条 |
 | `tests/test_render.js` | 导航/头条/分节/面包屑的 DOM 断言 |
-| `README.md` / `docs/DEPLOY.md` | 版式层目录与契约、切换方式 |
+| `README.md` / `docs/ops/DEPLOY.md` | 版式层目录与契约、切换方式 |
 
 ### 不新增、不修改
 
@@ -511,7 +511,7 @@ magazine 只改"形"：封面比例、单栏、章节间距、编号排版，全
 1. `layout_lint.py` 扩展：版式注册表与 CSS 一一对应、`site.yml`/`site.js` 存在、页面脚本顺序 `site.js → templates.js → layout.js`、索引加载 `sections.js`、页级 CSS 只允许 token 与 `#fff/#000`。
 2. CI 接入 `node tests/test_render.js`、`node tests/test_layout.js`、`layout_lint.py`；`py_compile` 覆盖 `scripts/`。
 3. README 更新为「四公开页 + 两工具页」、外置样式、版式表、`?section`、`site.yml` 与“新增版式三步”。
-4. 验收矩阵改用 Chrome CDP 实测 390/768/1280 的 `scrollWidth`；T1–T15 结果归档到 `docs/ACCEPTANCE-TEMPLATES-P1-20261127.md`。
+4. 验收矩阵改用 Chrome CDP 实测 390/768/1280 的 `scrollWidth`；T1–T15 结果归档到 `docs/phase1/ACCEPTANCE-TEMPLATES-P1-20261127.md`。
 5. 补 T9 兜底：`sections.js` 缺失时按索引 `section` 聚合导航；补 T10 硬编码颜色拦截。
 
 **退出条件**：CI 绿、`layout_lint` 绿、T1–T15 有记录；新增版式只改注册表 + CSS。

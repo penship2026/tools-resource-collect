@@ -64,8 +64,8 @@ collector/collect.html
 Dockerfile
 docker-compose.yml
 README.md                 # 根目录唯一文档
-docs/DEPLOY.md
-docs/GITHUB-PAGES.md
+docs/ops/DEPLOY.md
+docs/ops/GITHUB-PAGES.md
 ```
 
 **GitHub 配置文件**(项目已内置,一并提交即可,无需手动创建):
@@ -226,7 +226,7 @@ git push
 python3 collector/generate.py --topics topics.yml --dry-run --pages 1
 ```
 
-并发由 `concurrency: update-data` 保证,同一时间只跑一个采集任务;本机 launchd 兜底见 `docs/DEPLOY.md` 的「本机 macOS 定时采集」。
+并发由 `concurrency: update-data` 保证,同一时间只跑一个采集任务;本机 launchd 兜底见 `docs/ops/DEPLOY.md` 的「本机 macOS 定时采集」。
 
 **关键注意点**:
 
@@ -247,7 +247,7 @@ python3 collector/generate.py --topics topics.yml --dry-run --pages 1
 
 ### 3.3 方式 C:NAS / 服务器采集后同步推送
 
-已按 `docs/DEPLOY.md` 在群晖、飞牛或 Linux 服务器部署了采集服务的场景:
+已按 `docs/ops/DEPLOY.md` 在群晖、飞牛或 Linux 服务器部署了采集服务的场景:
 
 ```bash
 # 在 NAS/服务器上采集(数据写在共享目录)

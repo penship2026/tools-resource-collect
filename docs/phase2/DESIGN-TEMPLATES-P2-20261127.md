@@ -1,11 +1,13 @@
 # 二期详细设计 · AI 模板与主题工坊
 
-> 版本 v1.11 · 2026-11-28 · 状态：A4 实现完成，待验收；A5 六套候选已生成并通过闸门；IDE 工作台左侧改为资源三 Tab，列出全量设计
-> 对应方案：`docs/PLAN-TEMPLATES-20261127.md`（D70–D73、D92–D98）
-> 评审记录：`docs/REVIEW-TEMPLATES-P2-20261127.md`
+> 版本 v1.13 · 2026-11-28 · 状态：A4 实现完成，待验收；A5 六套候选已生成并通过闸门；IDE 工作台左侧改为资源三 Tab，列出全量设计
+> 对应方案：`docs/project/PLAN-TEMPLATES-20261127.md`（D70–D73、D92–D98）
+> 评审记录：`docs/phase2/REVIEW-TEMPLATES-P2-20261127.md`
 > 前置：一期 3 套版式、布局 token 白名单、`templates.js` 注册表已就绪；截图脚本与基线由 A0 新建，不再假设已存在
 > 核心定位：**AI 是可选增强，不是运行时依赖**——生成在离线/本机完成，线上仍是零构建纯静态
 
+> **v1.13 修订**：历史列表纳入「当前版本」，支持任选两项（历史↔历史、历史↔当前）对比差异；历史项可「覆盖当前编辑项」，未保存时可「恢复当前编辑项」。页面保存前增加 HTML/CSS 语法与资源拼接校验，失败阻止落盘并展示明细。版式/主题补历史与对比，沿用不可变候选目录模型。
+>
 > **v1.11 修订**：工作台左栏从「页面文件 + 模板树」改为同一组三个 Tab——「页面文件」「版式」「主题」；版式/主题列出全量设计（内置、已上架、AI 草稿），不再只列 AI 候选。新增 `GET /api/designs` 合并注册表与草稿；内置项只读预览真实站点，AI 草稿仍可编辑、保存新版本。首屏计数为 4 / 6 / 10。
 >
 > **v1.10 修订**：IDE 工作台补上「页面文件」模式，可编辑首页 `index.html`、集合页 `series.html`、列表页 `list.html`、详情页 `single.html` 及各自 `assets/pages/*.css`；页面 HTML/CSS 均可手改、备份后保存、AI 改文件；模板候选 Spec 模式保留。新增 `/repo` 白名单，局域网只暴露站点文件与候选草稿，不暴露 `.env`、`tools/` 与文档。
@@ -474,7 +476,7 @@ docs/templates/<key>.json       Spec 原文件（可复现）
 - 全量设计：`GET /api/designs` 把 `registry.items()` 的注册表设计与 `candidates()` 的草稿按 `kind+key` 合并。每行显示来源标签「内置 / AI 草稿 / 已发布 / 已归档」与状态「展示中 / 未上架 / 锁定 / N 个候选」。当前版式 6 套（内置 `standard/news/magazine` + 草稿 `news-grid-compact/news-a5-2/a5-portal-mixed`），主题 10 套（内置 `default/dark/tech/campus/classical/anime` + 草稿 `campus-v2/qing-lv-academy/midnight-ink/warm-paper-a5-4`）。
 - 内置只读：点击内置项进入 `mode=design`，加载 API 返回的内置 Spec 与真实 CSS，编辑器只读，保存按钮显示「只读模板」；预览嵌 `/repo/index.html` 并注入 `#theme-css`、`#layout-css`、`data-theme`、`data-layout` 应用选中设计。内置项保存与 AI 改 Spec 均提示「先在管理处克隆后再改」，避免绕过批准直接改线上模板。AI 草稿仍走 `mode=template`，可编辑 Spec、保存 `candidate-N-eN`、跑 G1–G6、AI 改 Spec。
 - 预览工具条：主题/版式下拉从 `state.designs` 全量生成，内置与草稿同源；预览宽度按桌面/平板/手机三档。
-- 中栏：`源码 / 分屏 / 预览` 三态。页面模式下列表直接载入真实页面文件，HTML 与 CSS 都可编辑；保存走 `POST /api/page/save`，白名单外的路径拒绝，写前备份到 `backups/pages/<时间戳>/`，再原子替换。模板模式保留 `spec.json` 编辑，保存走 `POST /api/spec/save` 写 `candidate-N-eN`；`styles.css` 仍是只读编译产物。
+- 中栏：`源码 / 分屏 / 预览` 三态。页面模式下列表直接载入真实页面文件，HTML 与 CSS 都可编辑；保存走 `POST /api/page/save`，白名单外的路径拒绝，写前备份到 `backups/pages/<时间戳>/<相对路径>`，再原子替换。模板模式保留 `spec.json` 编辑，保存走 `POST /api/spec/save` 写 `candidate-N-eN`；`styles.css` 仍是只读编译产物。
 - 页面预览：直接嵌 `/repo/index.html`、`/repo/series.html?id=<首个单元>`、`/repo/list.html?id=<首个单元>`、`/repo/single.html?id=<首个单元>`；预览始终读已保存版本，保存成功后自动刷新；页面模式没有“未保存草稿预览”，按钮改为「刷新预览」并提示。
 - 右栏：对话输入改文件要求。页面模式走 `POST /api/page-edit`，模型只返回完整 HTML/CSS 正文，用户点「应用到编辑器」后才进源码，仍需手动「保存文件」；模板模式走 `POST /api/ai-edit` 返回完整新 Spec，仍需手动「保存新版本」。模型下拉来自 `/api/models`，可切 `.env` 当前模型、OpenRouter 预设、本机 Ollama；自定义模型只存浏览器 `localStorage`，随单次请求发给本机服务。
 - 草稿预览：仅模板模式使用。`POST /api/preview-draft` 把当前未保存 Spec 编译到 `drafts/<key>/studio-preview`，只读、不进候选列表、不批准。
@@ -503,8 +505,49 @@ docs/templates/<key>.json       Spec 原文件（可复现）
 
 - Mac 局域网 `192.168.0.100`；启动：`python3 tools/ai-template/cli.py serve --host 0.0.0.0 --port 8787`。
 - 工作台：`http://192.168.0.100:8787/`；二期站点：`http://192.168.0.100:8899/`。
-- 验收项：资源三 Tab 计数 `4 / 6 / 10` 与互斥显示；首页/集合页/列表页/详情页四页加载与 HTML/CSS 切换、页面保存与备份、页面 AI 应用；版式 6 行、主题 10 行全量列出；内置 `standard/dark` 只读且预览正确应用；AI 草稿 `news-grid-compact` 可编辑、改字符后保存按钮启用；候选加载、源码编辑、JSON 校验、草稿预览、保存新版本、AI 改 Spec 应用、模型切换、三栏拖宽/互换、手机宽度下不横向溢出。
+- 验收项：资源三 Tab 计数 `4 / 9 / 13` 与互斥显示；首页/集合页/列表页/详情页四页加载与 HTML/CSS 切换、页面保存前校验与备份、页面 AI 应用；页面历史弹窗、当前版本 + 20 个上限、历史只读预览、覆盖当前编辑项与恢复、任选两项对比；版式 9 行、主题 13 行全量列出；内置 `standard/dark` 只读且预览正确应用；AI 草稿 `news-grid-compact` 可编辑、改字符后保存按钮启用；候选加载、源码编辑、JSON 校验、草稿预览、保存新版本、AI 改 Spec 应用、模型切换、三栏拖宽/互换、手机宽度下不横向溢出。
 - 已知边界：管理处与写接口无登录鉴权，只应在可信局域网使用；AI 结果和候选仍需人工保存/批准，不自动发布。
+
+#### 8.4.3 页面历史版本（v1.12，v1.13 扩展）
+
+页面保存会覆盖同名文件，因此每次保存先做语法与拼接校验，再把旧文件快照到 `backups/pages/<时间戳>/<相对路径>`，最后原子替换当前文件；同一文件保留最近 20 个快照。列表首项固定为磁盘上的「当前版本」，因此可以「历史对历史」，也可以「历史对当前」。
+
+- 顶栏在页面模式显示「历史」，打开「历史版本」弹窗，按「复选框 + 预览按钮 + 覆盖按钮」三栏展示；当前版本标记「当前」。
+- 点选历史项进入只读预览：编辑器加载该版本内容且不可编辑，文件 Tab 禁用，预览徽标显示「历史版本 · 时间」；HTML 历史用旧 HTML + 当前 CSS，CSS 历史用当前 HTML + 旧 CSS。
+- 历史模式隐藏「重载保存版 / 保存文件」，只保留「历史」与「切换为当前编辑版」；保存、AI 应用、元素选取均被拦截。
+- 点「切换为当前编辑版」恢复进入历史前的文件 Tab、当前编辑内容与未保存状态，重新允许编辑并刷新当前预览。
+- 历史只读预览之外，新增「覆盖当前编辑项」：把历史内容载入编辑器，允许继续修改；此时按钮变为「恢复当前编辑项」，可在未保存时一键载回原保存内容。保存成功后生成最新当前版本，原当前版本进入历史。
+- 勾选任意两个版本（含当前）后「对比差异」启用，弹窗按 `difflib.unified_diff` 渲染增删行与统计；最多同时选 2 个，跨资源切换时清空选择。
+
+#### 8.4.4 保存校验
+
+保存前调用 `POST /api/page/validate`，前端展示错误与警告明细；后端 `save_page` 仍会二次校验，失败直接拒绝写入。
+
+- HTML：`DOCTYPE`、`html/head/body` 唯一、标签闭合、意外结束标签、当前页面 CSS 引用、`link/script/img/source/iframe/video/audio` 本地资源存在性；重复 `id` 和 `lang` 缺失为警告。
+- CSS：块注释、字符串、花括号、圆括号配对，以及 CSS 中混入 HTML 标签。
+- 通用：空文件与 512KB 上限；错误码统一为 `PAGE_*`，`StudioError.details` 携带 `errors/warnings`。
+- 校验失败弹窗展示错误码、消息与行号，禁止落盘；校验通过但有警告时允许保存并 toast 提示。
+
+| 接口 | 用途 |
+|---|---|
+| `GET /api/page/history?path=...&limit=20` | 当前版本 + 历史快照列表 |
+| `GET /api/page/history/content?path=...&version=current\|<时间戳>` | 读取当前或历史版本内容 |
+| `POST /api/page/history/diff` | `{path,left,right}` 返回统一差异 |
+| `POST /api/page/validate` | `{path,content}` 返回 `ok/errors/warnings/stats` |
+
+#### 8.4.5 版式与主题历史
+
+版式/主题沿用「不可变候选目录」模型：每次保存仍生成新的 `-eN` 候选，历史列表把同一 `key` 下的所有候选目录视为版本，当前候选标「当前」，`studio-preview` 排除；不额外建立备份快照，也不设 20 条上限。列表可预览、覆盖当前编辑项、勾选两项对比；历史预览通过 `/api/preview-draft` 实时编译到 `studio-preview`。
+
+| 接口 | 用途 |
+|---|---|
+| `GET /api/design/history?path=<候选 spec>` | 当前候选 + 同 key 其他候选 |
+| `GET /api/design/history/content?path=<候选 spec>&version=current\|<候选目录>` | 读取当前或历史候选 Spec |
+| `POST /api/design/history/diff` | `{path,left,right}` 对比两个候选 Spec |
+
+已知边界：连续保存会叠加 `-e2-e2` 类链式后缀，历史列表原样展示候选目录名；模板历史版本数不做上限。
+
+验证：`index.html` 连续保存 24 次后列表为「当前 + 20 个历史」；不完整 HTML 保存被 `PAGE_VALIDATE` 拦截且原文件不变；当前对历史、历史对历史均可出差异；`qing-lv-academy` 三个候选在主题历史中可预览、覆盖、恢复与对比；980px 下历史顶栏单行。
 
 ---
 

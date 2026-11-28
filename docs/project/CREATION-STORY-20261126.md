@@ -218,9 +218,9 @@ B站 有公开搜索接口；公众号和小红书没有稳定的公开搜索，
 
 本文根据仓库内四份过程文档整理，技术细节以原文档为准：
 
-- `docs/PLAN-20261126.md`：目标、决策 D1–D61、里程碑 M0–M6、遗留问题与处理结果；
-- `docs/REVIEW-20261126.md`：全项目评审的 18 个问题与优先级；
-- `docs/TODO.md`：39 项处理记录与逐项验收；
-- `docs/WORKLOG.md`：从 2026-11-25 01:12 起的完整时间线、踩坑与验证。
+- `docs/project/PLAN-20261126.md`：目标、决策 D1–D61、里程碑 M0–M6、遗留问题与处理结果；
+- `docs/project/REVIEW-20261126.md`：全项目评审的 18 个问题与优先级；
+- `docs/project/TODO.md`：39 项处理记录与逐项验收；
+- `docs/project/WORKLOG.md`：从 2026-11-25 01:12 起的完整时间线、踩坑与验证。
 
-浏览器阅读版：`docs/CREATION-STORY-20261126.html`。
+浏览器阅读版：`docs/project/CREATION-STORY-20261126.html`。

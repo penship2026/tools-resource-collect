@@ -1,7 +1,7 @@
 # 一期排期计划 · 页面版式模板与板块导航
 
 > 版本 v1.1 · 2026-11-27 · 状态：验收整改完成，待签收
-> 依据：`docs/PLAN-TEMPLATES-20261127.md` v1.2、`docs/DESIGN-TEMPLATES-P1-20261127.md` v1.2（D64–D75）
+> 依据：`docs/project/PLAN-TEMPLATES-20261127.md` v1.2、`docs/phase1/DESIGN-TEMPLATES-P1-20261127.md` v1.2（D64–D75）
 > 开发分支：`feat/templates-p1-20261127`（基线 `f095339`）
 > 工期口径：只算工作日，一个人 + AI 协作；每天更新「三、进度台账」
 
@@ -88,6 +88,6 @@
 
 - 一个里程碑一个提交，前缀 `feat:` / `docs:` / `fix:`；文档与代码同批（D34）。
 - 提交前跑：`python3 collector/generate.py --verify`、`python3 scripts/docs_check.py`、`python3 -m unittest discover -s tests`。
-- 每日结束更新本文件「进度台账」与 `docs/TODO.md` 的勾选，不重排旧内容（D36）。
+- 每日结束更新本文件「进度台账」与 `docs/project/TODO.md` 的勾选，不重排旧内容（D36）。
 - 发现设计口径需要变更，先改 PLAN（D75 之后追加编号），再改代码，不在代码里静默偏离。
 - 回归基准截图存 `docs/screenshots/templates-p1/`（只放关键 6 组，控制仓库体积）。

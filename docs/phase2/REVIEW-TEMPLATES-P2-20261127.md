@@ -1,7 +1,7 @@
 # 二期设计评审 · AI 设计与展示管理
 
 > 日期：2026-11-27 · 基线：`feat/templates-p2-20261127`（`47d818d`，与 `main` 同点）
-> 评审对象：`docs/DESIGN-TEMPLATES-P2-20261127.md` v1.0、`docs/PLAN-TEMPLATES-20261127.md` D70–D73
+> 评审对象：`docs/phase2/DESIGN-TEMPLATES-P2-20261127.md` v1.0、`docs/project/PLAN-TEMPLATES-20261127.md` D70–D73
 > 评审方式：通读二期设计与一期契约；核对 `templates.js`、`render.js`、`layout.js`、`layout_lint.py`、`pages.yml` 与测试基线；未改业务代码
 > 基线回归：Python 92 例、版式 27 例、视图 21 例、`layout_lint` 均通过
 

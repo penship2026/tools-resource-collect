@@ -7,7 +7,7 @@
 > v1.2 变更：新增 D75（置顶 / 画册大图 / 默认版式走 site.yml）；一期工期调为 9–11 人日
 > v1.1 变更：确认板块视图链接用 `?section=`；版式切换器文案定为「简洁 / 门户 / 画册」
 > 性质：**只做分析与方案**，不改代码、不改数据、不动排期与台账
-> 关联：`docs/PLAN-20261126.md`（D21–D26 表现层分离、D43 布局 token 化清单）、`docs/REVIEW-20261126.md`、`docs/REQUIREMENTS-SECTIONS-SCHEDULE-20261126.md`
+> 关联：`docs/project/PLAN-20261126.md`（D21–D26 表现层分离、D43 布局 token 化清单）、`docs/project/REVIEW-20261126.md`、`docs/project/REQUIREMENTS-SECTIONS-SCHEDULE-20261126.md`
 > 决策编号：本文新增 **D64–D98**，按 D35「只增不改」追加，不回写、不重排原文
 
 ---
@@ -225,7 +225,7 @@ Design Spec（JSON Schema 校验）
 
 | 编号 | 决策 | 落点 |
 |---|---|---|
-| D64 | 表现层三层正交：结构 `style.css` / 版式 `layouts/*.css` / 主题 `themes/*.css`；版式不写色值，主题不写布局；修订 11.3「布局值可进主题」的建议——布局只在版式层 | `assets/`、`docs/PLAN-20261126.md` 追加注 |
+| D64 | 表现层三层正交：结构 `style.css` / 版式 `layouts/*.css` / 主题 `themes/*.css`；版式不写色值，主题不写布局；修订 11.3「布局值可进主题」的建议——布局只在版式层 | `assets/`、`docs/project/PLAN-20261126.md` 追加注 |
 | D65 | 模板 = 版式 + 内置密度，不含主题；主题与版式各自记忆（`jiye.theme` / `jiye.layout`）；页脚并排两个切换器 | `assets/templates.js`、5 页页脚 |
 | D66 | 板块升为一级导航：`generate.py` 由 `sections.yml` 生成 `assets/data/sections.js`（id/title/description/order/enabled/count），导航按 order；空板块保留占位，停用不显示 | `collector/generate.py`、`index.html` |
 | D67 | 板块视图用 `?section=<id>`，不新增页面文件；hero 切换为板块标题/说明/计数，同步 `document.title` | `index.html` |
@@ -241,13 +241,13 @@ Design Spec（JSON Schema 校验）
 | D77 | 版式层只接 4 个公开页（index/series/list/single）；`collector/collect.html` 与 `collector/settings.html` 是本机工具页，不加载 `templates.js` / `layout.js`，避免版式影响采集与设置操作 | 4 页 `<head>`、`tests/test_pages.py` |
 | D78 | 首页专属样式补入页面层：`assets/pages/index.css`（D76 清单原漏 index）。门户首页头条固定「1 主 + 3 副」，空板块在分节保留紧凑占位，板块导航为「全部 + 启用板块」；T1 导航项数口径按 enabled+1 | `assets/pages/index.css`、`assets/layouts/news.css`、`index.html`、P1 10.2 |
 | D79 | 画册首页的空章节不排正文,只在目录保留 0 计数入口,并在板块视图显示空态;章节编号始终按启用板块全序计算,不因隐藏空章而重排错号 | `assets/layouts/magazine.css`、`index.html`、P1 6.4/T3 |
-| D80 | 一期验收评审后的签收前整改：子页面包屑补板块层（`Render.breadcrumb` + `sections.js`）；`sidebar` 能力位统一关闭，避免声明空转；四页补「跳到主要内容」与首页视觉隐藏 `h1`；导航项最小高度 44px；内容宽与断点以代码实拍为准（news 1180 / magazine 960 / 头条 ≤1080 下移）；未使用的 `--layout-band-cols` / `--layout-lead-cols` 接入实际栅格 | `assets/render.js`、4 页、`assets/style.css`、`assets/pages/index.css`、`assets/layouts/news.css`、`docs/DESIGN-TEMPLATES-P1-20261127.md` |
+| D80 | 一期验收评审后的签收前整改：子页面包屑补板块层（`Render.breadcrumb` + `sections.js`）；`sidebar` 能力位统一关闭，避免声明空转；四页补「跳到主要内容」与首页视觉隐藏 `h1`；导航项最小高度 44px；内容宽与断点以代码实拍为准（news 1180 / magazine 960 / 头条 ≤1080 下移）；未使用的 `--layout-band-cols` / `--layout-lead-cols` 接入实际栅格 | `assets/render.js`、4 页、`assets/style.css`、`assets/pages/index.css`、`assets/layouts/news.css`、`docs/phase1/DESIGN-TEMPLATES-P1-20261127.md` |
 | D81 | 个人视图的板块导航不得离开 `?view=mine`：`Render.sectionNav` 支持 `view` 参数，导航链接写成 `index.html?view=mine[&section=id]`；「我的」页按收藏所属 `section`（优先快照字段，旧数据回退索引）过滤，导航计数改为本地收藏数；公开页链接不受影响 | `assets/render.js`、`assets/personal.js`、`index.html` |
 | D82 | 「我的」页动作收口到独立页脚：顶部工具栏的导出/导入/设置全部移除，导入方式与文件选择迁到专属 `mine-io.html`；我的页脚只保留「导入导出 / 设置 / 回到公开页」，不含采集入口，也不注入主题/版式切换；设置面板仍复用原面板并由页脚按钮打开 | `index.html`、`mine-io.html`、`assets/personal.js`、`assets/style.css`、`assets/theme.js`、`assets/layout.js` |
 | D83 | 「我的」收藏卡不再维护第二套卡片结构，统一复用公开首页 `Render.topicCard`：封面、右上角「合集 / 单条」类型标签、平台徽标、标语、标签、条数与日期同构；右下角星标在「我的」内为取消收藏；原 `.fav-card` 系列独立样式与删除按钮下线 | `assets/personal.js`、`assets/render.js`、`assets/style.css` |
 | D84 | 详情路由延续视图：`series.html` / `list.html` / `single.html` 读取 `view=mine`，品牌入口、返回链接与 `Render.breadcrumb` 回「我的收藏」，板块层链接为 `index.html?view=mine&section=<id>`；详情卡片、上下集链接、列表入口都透传 `&view=mine`，公开页不带该参数 | `series.html`、`list.html`、`single.html`、`assets/render.js`、`assets/personal.js` |
 | D85 | 主站与「我的」首页筛选条统一吸顶：滚过筛选区后吸附在站点头与板块导航下方；吸顶时默认收成一行「筛选条件 / 展开」，点开才显示完整分组，离开吸顶恢复完整筛选。偏移不写死，由 `syncFilterSticky()` 按站点头与当前导航实际高度写入 `--layout-filter-top`；简洁版式与窄屏导航不吸顶时自动归零，画册版式补不透明底色避免内容穿透 | `assets/style.css`、`assets/layouts/magazine.css`、`index.html` |
-| D86 | 个人站导入导出页纳入两条发布白名单：本地 `collector/server.py` 的 `STATIC_EXACT` 加 `/mine-io.html`，GitHub Pages artifact 加 `mine-io.html`；`assets/pages/mine-io.css` 随 `assets/**` 自动发布。否则本地返回「未对外开放的路径」，线上 Pages 返回 404 | `collector/server.py`、`.github/workflows/pages.yml`、`docs/GITHUB-PAGES.md`、`docs/DEPLOY.md` |
+| D86 | 个人站导入导出页纳入两条发布白名单：本地 `collector/server.py` 的 `STATIC_EXACT` 加 `/mine-io.html`，GitHub Pages artifact 加 `mine-io.html`；`assets/pages/mine-io.css` 随 `assets/**` 自动发布。否则本地返回「未对外开放的路径」，线上 Pages 返回 404 | `collector/server.py`、`.github/workflows/pages.yml`、`docs/ops/GITHUB-PAGES.md`、`docs/ops/DEPLOY.md` |
 | D87 | 重新采集的「采集方式」增加「移除当前链接」，只对按链接/批量链接显示；输入框里的链接作为待移除项，只做本地匹配与删除，不重新抓取内容。主题采集不提供该选项。移除不计入 `intake`，另记一条 `runs`（mode=remove），保证下次重新采集仍回填原采集输入 | `collector/collect.html`、`collector/server.py`、`collector/generate.py` |
 | D88 | 主站页脚收口：`#public-footer` 只保留版权说明，删除「采集入口」链接与「导出备份 / 导入恢复」提示；导入导出与设置入口只保留在 `#mine-footer`。公开页脚的主题/版式切换器不受影响 | `index.html`、`tests/test_pages.py` |
 | D89 | 采集单元体验收口：默认每页 5 条；新增本地搜索（标题 / ID / 作者 / 平台 / 关键词 / 页面），过滤后重排分页并回到第 1 页；单条操作按钮由右侧竖排改为信息底部一排；说明文字改用 `--fs-xs` + 1.85 行距、三条粗体导语，与采集页面板字体一致 | `collector/collect.html`、`tests/test_pages.py` |
@@ -268,9 +268,9 @@ Design Spec（JSON Schema 校验）
 | 文档 | 内容 | 状态 |
 |---|---|---|
 | 本文 | 两期总体方案、现状分析、决策 D64–D95 | 本次交付 |
-| `docs/DESIGN-TEMPLATES-P1-20261127.md` | 一期详细设计（契约、版式规格、文件级改动、验收矩阵） | 本次交付 |
-| `docs/DESIGN-TEMPLATES-P2-20261127.md` | 二期详细设计 v1.3（版式/主题 Spec、双编译器、闸门、设计管理处、5 套展示位、无 AI 基线） | 本次交付 |
-| `docs/REVIEW-TEMPLATES-P2-20261127.md` | 二期设计评审（阻断项、范围收敛、验收增量） | 本次交付 |
-| `docs/SCHEDULE-TEMPLATES-P2-20261127.md` | 二期排期与进度（A0–A5、开工顺序、台账） | 本次交付 |
+| `docs/phase1/DESIGN-TEMPLATES-P1-20261127.md` | 一期详细设计（契约、版式规格、文件级改动、验收矩阵） | 本次交付 |
+| `docs/phase2/DESIGN-TEMPLATES-P2-20261127.md` | 二期详细设计 v1.3（版式/主题 Spec、双编译器、闸门、设计管理处、5 套展示位、无 AI 基线） | 本次交付 |
+| `docs/phase2/REVIEW-TEMPLATES-P2-20261127.md` | 二期设计评审（阻断项、范围收敛、验收增量） | 本次交付 |
+| `docs/phase2/SCHEDULE-TEMPLATES-P2-20261127.md` | 二期排期与进度（A0–A5、开工顺序、台账） | 本次交付 |
 
-代码与数据已按一期 M1 起实施（进度见 `docs/SCHEDULE-TEMPLATES-P1-20261127.md`），实施按 D34「改动即落档」同步更新 README / TODO / WORKLOG。
+代码与数据已按一期 M1 起实施（进度见 `docs/phase1/SCHEDULE-TEMPLATES-P1-20261127.md`），实施按 D34「改动即落档」同步更新 README / TODO / WORKLOG。

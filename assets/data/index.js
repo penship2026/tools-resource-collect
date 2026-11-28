@@ -7,24 +7,58 @@ window.SITE = {
 };
 window.COLLECTION_INDEX = [
   {
+    "id": "topic-35bc9a90",
+    "type": "series",
+    "title": "DK图解数学",
+    "slogan": "共收录 13 期,点击分集在当前页播放",
+    "source": {
+      "platform": "bilibili",
+      "name": "木子乙的糖糖",
+      "url": "https://space.bilibili.com/3546772542588955/video"
+    },
+    "keyword": "DK图解数学",
+    "tags": [
+      "动画",
+      "课程",
+      "清华大学",
+      "数学",
+      "学习",
+      "DK",
+      "图解",
+      "数学动画"
+    ],
+    "count": 13,
+    "platforms": [
+      "bilibili"
+    ],
+    "updated": "2026-11-27",
+    "latest": "2025.04.01",
+    "created": "2026-11-27",
+    "enabled": true,
+    "section": "ai",
+    "cover": "https://i1.hdslb.com/bfs/archive/7948f3060e84b384111793b8eada53f2fbcfae66.jpg",
+    "section_title": "AI 与智能工具",
+    "section_enabled": true,
+    "last_at": "2026-11-27 16:46",
+    "last_mode": "keyword",
+    "last_mode_label": "按主题采集"
+  },
+  {
     "id": "daily-website",
     "type": "series",
     "title": "每天挖掘一个神奇网站",
-    "slogan": "共收录 24 期,点击分集在当前页播放",
+    "slogan": "共收录 25 条内容 · B站",
     "source": {
       "platform": "bilibili",
-      "name": "草根的异世界",
-      "url": "https://space.bilibili.com/3690973370517975/video"
+      "name": "爱学习的柒影",
+      "url": "https://www.bilibili.com/video/BV1kF4m1c7MU/"
     },
-    "keyword": "每天挖掘一个神奇网站",
+    "keyword": "batch",
     "tags": [
-      "资源分享",
-      "实用工具",
-      "网站推荐",
-      "干货分享",
-      "虚拟资料"
+      "爱学习的柒影",
+      "每天挖掘一个神奇网站"
     ],
-    "count": 24,
+    "count": 25,
     "section": "tools",
     "platforms": [
       "bilibili"
@@ -32,10 +66,13 @@ window.COLLECTION_INDEX = [
     "updated": "2026-11-27",
     "latest": "2026.11.19",
     "created": "2026-11-26",
-    "enabled": true,
+    "enabled": false,
     "cover": "https://i2.hdslb.com/bfs/archive/2a2da89665dc1cc8f21f1837861f833731fb51df.png",
     "section_title": "工具与效率",
-    "section_enabled": true
+    "section_enabled": true,
+    "last_at": "2026-11-27 10:49",
+    "last_mode": "batch",
+    "last_mode_label": "批量链接采集"
   },
   {
     "id": "topic-df282732",
@@ -125,11 +162,11 @@ window.COLLECTION_INDEX = [
     "updated": "2026-11-27",
     "latest": "2026.11.24",
     "section": "humanities",
+    "enabled": true,
     "cover": "https://mmbiz.qpic.cn/mmbiz_jpg/eT2Hxs8JQmMYuUGAPiaibwuBm9JslsPRcDz78NnibsEBKY89feEvibT0Qkf4BT2F0SXsnnGsA6VVa0NSn1IiajTvwkUicMo9ekQ3XFVHzonAZduzo/0?wx_fmt=jpeg",
     "section_title": "人文与通识",
     "section_enabled": false,
-    "created": "2026-11-26",
-    "enabled": true
+    "created": "2026-11-26"
   },
   {
     "id": "bv1uks66oeeh",
@@ -164,7 +201,7 @@ window.COLLECTION_INDEX = [
     "last_mode": "url",
     "last_mode_label": "按链接采集",
     "created": "2026-11-26",
-    "enabled": true
+    "enabled": false
   },
   {
     "id": "topic-4e6ee53f",
@@ -195,7 +232,7 @@ window.COLLECTION_INDEX = [
     "last_mode": "keyword",
     "last_mode_label": "按主题采集",
     "created": "2026-11-26",
-    "enabled": true
+    "enabled": false
   },
   {
     "id": "bv1wg39zpetl",

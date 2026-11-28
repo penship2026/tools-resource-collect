@@ -5,7 +5,7 @@
 > 本文档由内部工作日志整理而来,按时间演进顺序记录关键决策、代码改动与验证结论。
 > 各阶段「处理时间」来自会话记录时间戳,精确到分钟,区间为「需求提出 → 本阶段完成(下一需求提出前)」。
 >
-> 待办事项已单独列出,见 **docs/TODO.md**(逐条处理,处理完勾选)。
+> 待办事项已单独列出,见 **docs/project/TODO.md**(逐条处理,处理完勾选)。
 
 ---
 
@@ -74,7 +74,7 @@
 - CLI 加 --url 开关,collect.html 加 Tab 切换。
 
 ### 服务重启与部署文档(06:58–07:58)
-`docs/DEPLOY.md`(现结构)覆盖普通 Linux 服务器(systemd + Nginx)、群晖 DSM、飞牛 fnOS 三种部署;含自检清单、故障排查表。
+`docs/ops/DEPLOY.md`(现结构)覆盖普通 Linux 服务器(systemd + Nginx)、群晖 DSM、飞牛 fnOS 三种部署;含自检清单、故障排查表。
 Dockerfile(python:3.12-slim,**必须 TZ=Asia/Shanghai + tzdata** 解决 fromtimestamp 日期差 8 小时)与 docker-compose.yml。
 
 ### 采集端/展示端分离 + 备份(07:58–08:09)
@@ -103,7 +103,7 @@ Dockerfile(python:3.12-slim,**必须 TZ=Asia/Shanghai + tzdata** 解决 fromtime
 
 ## 六、GitHub Pages 托管与目录整理(2026-11-25 08:29 – 10:25)
 
-### 托管文档(docs/GITHUB-PAGES.md,08:29)
+### 托管文档(docs/ops/GITHUB-PAGES.md,08:29)
 - 三页面全相对路径 + script 标签加载数据,天然兼容 Pages 子路径。
 - Pages 不能跑 Python,采集仍需本地/NAS/Actions;采集后只提交 index.js 与 collections/*.js。
 - 防盗链:`<meta name="referrer" content="no-referrer">`。
@@ -159,8 +159,8 @@ Chrome 无头截图三页面全部正常:首页卡片标签独立行两行截断
 
 ## 九、文档化(2026-11-25 11:28 – 11:34)
 
-- 11:28:工作日志落地为 `docs/WORKLOG.md`(即本文档)。
-- 11:34:待办单列为 `docs/TODO.md`;全文补充精确到分钟的处理时间。
+- 11:28:工作日志落地为 `docs/project/WORKLOG.md`(即本文档)。
+- 11:34:待办单列为 `docs/project/TODO.md`;全文补充精确到分钟的处理时间。
 
 ---
 
@@ -276,21 +276,21 @@ Chrome 无头截图三页面全部正常:首页卡片标签独立行两行截断
 - 采集页默认「按链接采集」,必填项直显、可选设置折叠;分「新建采集 / 重新采集」两态,重新采集只回填不自动执行,可只改标题,也可直接下线不显示(可选设置默认展开);按主题采集可多选 B站 / 公众号 / 小红书。
 - 远程仓库:`github.com/penship2026/tools-resource-collect`(main),Pages 自定义域名 `resource-collect.ximyan.com`。
 - 已知限制:B站搜索翻页为唯一数据源,排序波动可能漏采旧视频;公众号 / 小红书主题采集依赖搜索引擎,会间歇性风控、结果有噪声,小红书只有标题+链接;视频号仅能跳转微信观看;抖音风控未纳入。
-- 待办事项:**见 docs/TODO.md**(旧架构文件清理)。
+- 待办事项:**见 docs/project/TODO.md**(旧架构文件清理)。
 
 ### 10:30–13:10 全项目评审与改造计划落档
-- **评审**:按 README / docs / collector 全量代码 + 5 个页面走查,产出 `docs/REVIEW-20261126.md`(P0–P3 共 18 条,含实测证据)。基线 `HEAD = efff2a2`(多渠道采集已提交),`py_compile` 通过。
+- **评审**:按 README / docs / collector 全量代码 + 5 个页面走查,产出 `docs/project/REVIEW-20261126.md`(P0–P3 共 18 条,含实测证据)。基线 `HEAD = efff2a2`(多渠道采集已提交),`py_compile` 通过。
 - **实测结论(可复现)**:`server.py` 默认静态托管把 `/.git/config`、`/backups/`、`/collector/generate.py` 都返回 200;3 个写接口无鉴权且监听 `0.0.0.0`;`index.html` / `series.html` / `collector/collect.html` 仍无 `esc()`;`.github/workflows` 不存在但 README 声称已内置。
 - **评审期间并发事实**:10:01–10:26 另一侧连续修改 `generate.py` / `platforms.py` / `server.py` / `collect.html`,P0「`channels` 形参遮蔽」在评审过程中被修复,该条已标为【已修】并复测通过。
 - **后续评估(三轮,均未改代码)**:服务能否取消(结论:可任务化,但浏览器直连平台 API 受 CORS 限制)、个人收藏层(localStorage + 导出导入,1.5–2 人日)、GitHub 同类项目(无完全对应,B站方向多为下载/留档,localStorage 收藏层有大量同构实现)。
-- **计划**:产出 `docs/PLAN-20261126.md`,决策 D1–D33、里程碑 M0–M6;7 项待定逐条定稿(见计划第六章);补「页面与数据分离 / 多主题模版」分析(第七章);按「多端并发」要求新增第八章协作约定与 D34–D39。
+- **计划**:产出 `docs/project/PLAN-20261126.md`,决策 D1–D33、里程碑 M0–M6;7 项待定逐条定稿(见计划第六章);补「页面与数据分离 / 多主题模版」分析(第七章);按「多端并发」要求新增第八章协作约定与 D34–D39。
 
 ## 当前状态(2026-11-26 13:10)
 
 - 站点名:**集页**;支持 B站 / 公众号 / 小红书三渠道采集;存量 **11 个单元**(以 `generate.py --list` 与索引/文件一一对应校验为准;上文 10:42 记录的「9 个单元」已过时)。
 - 页面共 **5 个**:首页 / 合集页 / 全部内容页 / 站内详情页 + 采集页 `collector/collect.html`;服务未常驻,采集时运行 `python3 collector/server.py 8765`。
 - 远程仓库:`github.com/penship2026/tools-resource-collect`(main),Pages 自定义域名 `resource-collect.ximyan.com`。
-- 当前文档:`docs/REVIEW-20261126.md`(问题依据)、`docs/PLAN-20261126.md`(决策与里程碑)、`docs/TODO.md`(执行)、本文件(演进记录)。
+- 当前文档:`docs/project/REVIEW-20261126.md`(问题依据)、`docs/project/PLAN-20261126.md`(决策与里程碑)、`docs/project/TODO.md`(执行)、本文件(演进记录)。
 - 已知限制:B站搜索翻页为唯一数据源;公众号 / 小红书主题采集依赖搜索引擎,会间歇性风控、结果有噪声;小红书只有标题+链接;视频号仅能跳转微信观看;抖音风控未纳入。
 
 ### 13:10–13:30 M0 止血(转义 / 原子写入 / 损坏识别)
@@ -342,7 +342,7 @@ Chrome 无头截图三页面全部正常:首页卡片标签独立行两行截断
 - **验证**:26 个 Python 用例 + 10 个 node 用例通过;`--verify` 通过;8894 端口 9 个路径 200。
 
 ### 18:00 launchd 兜底暂停
-- 按用户要求暂停本机定时任务:`launchctl bootout gui/501/com.jiye.collect` + `launchctl disable gui/501/com.jiye.collect`(持久禁用,登录不再自动加载);plist 保留,恢复方式写入 `docs/DEPLOY.md`。
+- 按用户要求暂停本机定时任务:`launchctl bootout gui/501/com.jiye.collect` + `launchctl disable gui/501/com.jiye.collect`(持久禁用,登录不再自动加载);plist 保留,恢复方式写入 `docs/ops/DEPLOY.md`。
 
 ### 18:30–19:30 D24 数据侧解耦 + 样式优化一轮
 - **D24 生产端**:`generate.py` 增 `platform_key()`(中文名/旧值 → `bilibili|wechat|xhs|multi`);四个采集分支写 key,不再写 `page`;`migrate_legacy` 清理旧 page 字段。
@@ -472,7 +472,7 @@ Chrome 无头截图三页面全部正常:首页卡片标签独立行两行截断
 
 ### 14:20–15:10 对外创作过程记录（D62）
 - 通读 PLAN（需求分析、D1–D61、M0–M6）、REVIEW（18 个问题）、TODO（39 项）与 WORKLOG（11-25 01:12 起时间线），抽取可公开发布的事实。
-- 新增 `docs/CREATION-STORY-20261126.md`：600 字小红书文案、9 图分镜、完整创作过程、排期理由、做对/踩坑、资料依据。
+- 新增 `docs/project/CREATION-STORY-20261126.md`：600 字小红书文案、9 图分镜、完整创作过程、排期理由、做对/踩坑、资料依据。
 - 新增同名单文件 HTML：阅读进度、吸顶目录、统计卡、一键复制文案、时间线、里程碑表；Playwright 1280/390 实测无横向溢出，复制按钮通过。
 - README 文档索引补充；docs-check 通过。
 
@@ -627,7 +627,7 @@ Chrome 无头截图三页面全部正常:首页卡片标签独立行两行截断
 - T10：临时注入 `#123456`，自检退出码 1；恢复后通过。
 - T6：Chrome CDP 实测 390/768/1280 × 6 组页面，`scrollWidth == innerWidth`，18 组全通过。
 - T4/T5/T14：CDP 自动化验证查询预览不落存储、手动切换保留、主题/版式互不影响、默认版式只影响新会话。
-- T1–T15 结果与证据归档 `docs/ACCEPTANCE-TEMPLATES-P1-20261127.md`。
+- T1–T15 结果与证据归档 `docs/phase1/ACCEPTANCE-TEMPLATES-P1-20261127.md`。
 
 ## 十七、页面模板一期 M6：验收整改(2026-11-27)
 
@@ -706,9 +706,9 @@ Chrome 无头截图三页面全部正常:首页卡片标签独立行两行截断
 
 ## 二十七、二期设计评审与范围收敛(2026-11-27)
 
-- 新增 `docs/REVIEW-TEMPLATES-P2-20261127.md`：对照 `templates.js` / `render.js` / `layout.js` / `layout_lint.py` / `pages.yml` 评审二期 v1.0，列出能力漂移、主题回耦合、截图基线缺失、draft 无落点、6 套切换器溢出五个阻断项。
+- 新增 `docs/phase2/REVIEW-TEMPLATES-P2-20261127.md`：对照 `templates.js` / `render.js` / `layout.js` / `layout_lint.py` / `pages.yml` 评审二期 v1.0，列出能力漂移、主题回耦合、截图基线缺失、draft 无落点、6 套切换器溢出五个阻断项。
 - `DESIGN-TEMPLATES-P2` 升至 v1.1：Spec 只保留 `nav / lead / bands / toc`，删除 `rails / timeline / theme`；补 draft 目录、原子发布、`status` 与下线回退；G3/G4/G6 改用本机 Chrome/CDP + 固定 fixture；工期改 12–15 人日 + 2–3 人日评审。
-- `PLAN-TEMPLATES` 追加 D92–D95；新增 `docs/SCHEDULE-TEMPLATES-P2-20261127.md`（A0–A5 与进度台账）。
+- `PLAN-TEMPLATES` 追加 D92–D95；新增 `docs/phase2/SCHEDULE-TEMPLATES-P2-20261127.md`（A0–A5 与进度台账）。
 - 用户确认二期定位为「AI 增强」：补充 D96 与设计 1.3「无 AI 基线」，明确无 Key / 无 `tools/` / 断网时一期全部功能仍可用；`DESIGN-TEMPLATES-P2` 升至 v1.2。
 - 追加 D97–D98：AI 可设计版式与主题；前端每类最多展示 5 套、内置占名额；新增「AI 设计管理处」控制展示清单，设计库可多于 5 套；设计升至 v1.3、排期升至 v1.2。
 - 本轮只改文档，未动业务代码；基线 Python 92 例、版式 27、视图 21、`layout_lint`、`docs_check` 通过。

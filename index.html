@@ -33,7 +33,7 @@
         <button type="button" class="view-btn" data-view="public">公开</button>
         <button type="button" class="view-btn" data-view="mine">我的</button>
       </nav>
-      <div class="header-meta">一集一页 · 持续更新</div>
+      <div class="header-meta">一集一页 ·  · 持续更新</div>
     </div>
   </header>
 
@@ -41,7 +41,7 @@
 
   <main class="wrap" id="main-content">
     <section class="hero" id="hero">
-      <h2 id="hero-title">每个值得收藏的宝藏主题单元<br>都有一页完整清单</h2>
+      <h2 id="hero-title">收藏的宝藏主题单元<br>都有一页完整清单</h2>
       <p class="sub" id="hero-sub">按主题单元收录各平台的视频与图文(公众号、小红书等),点开卡片即可看原片或原文。<br>清单由采集程序自动整理,持续更新。</p>
       <p class="section-back" id="section-back" hidden><a href="index.html">← 全部主题单元</a></p>
       <div class="facts facts-hero">
@@ -93,8 +93,8 @@
       </div>
     </div>
 
-    <div class="topic-grid" id="topic-grid"></div>
-    <div id="section-bands"></div>
+    <div class="topic-grid" id="topic-grid" data-generated="topic-list"></div>
+    <div id="section-bands" data-generated="section-bands"></div>
     <div class="section-empty" id="section-empty" hidden></div>
 
     <!-- 个人收藏视图(?view=mine):数据只在本机 localStorage,不上传、不采集 -->
@@ -350,8 +350,11 @@
         metaDesc = routeSection.description || routeSection.title;
       }
 
-      h1.innerHTML = title;
-      sub.innerHTML = desc;
+      // 默认首页保留 HTML 里的首屏文案，避免保存后的编辑在预览/刷新时被脚本覆盖。
+      if (routeInvalid || routeSection) {
+        h1.innerHTML = title;
+        sub.innerHTML = desc;
+      }
       back.hidden = backHidden;
       topicsLabel.textContent = tLabel;
       itemsLabel.textContent = iLabel;

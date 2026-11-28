@@ -132,7 +132,7 @@
 **处理**：
 - 本地静态白名单加入 `/mine-io.html`，404 提示同步改为「展示页、我的导入导出页与 assets/」。
 - Pages artifact 清单加入 `mine-io.html`；`assets/pages/mine-io.css` 已在 `assets/**` 内，无需单独放行。
-- `docs/GITHUB-PAGES.md`、`docs/DEPLOY.md`、README 页面清单同步。
+- `docs/ops/GITHUB-PAGES.md`、`docs/ops/DEPLOY.md`、README 页面清单同步。
 
 **验证**：本地 `python3 collector/server.py --port 18087` 实测 `/mine-io.html` 返回 200、`/collector/settings.html` 仍返回 200（本机白名单内）；Python 85 例、视图 21 例、版式 15 例、`layout_lint`、`docs_check`、`--verify` 通过。线上需等 Pages 重新部署后访问确认。
 

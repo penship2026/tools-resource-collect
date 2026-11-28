@@ -2,9 +2,9 @@
 """文档一致性自检(D38):只读,不改任何文件。
 
 检查项:
-  1. 关键文档存在(README / DEPLOY / GITHUB-PAGES / TODO / WORKLOG / PLAN / REVIEW)
+  1. 关键文档存在(README / docs 索引 / 一期与二期设计、排期、评审、说明书 / DEPLOY / GITHUB-PAGES / TODO / WORKLOG / PLAN / REVIEW)
   2. 口径统一:不再出现「四个页面」「三个页面」等旧说法
-  3. 文档里提到的 docs/*.md 与仓库内文件对得上(不引用不存在的文档)
+  3. 文档里提到的 docs/<目录>/<文件>.md 与仓库内文件对得上(不引用不存在的文档)
   4. workflow 引用的清单/脚本存在,且不内嵌重复的采集命令
   5. DEPLOY 覆盖本机 launchd 与「形态 A/B」
   6. 两套内置主题 token 完全对齐(D25/D31)
@@ -19,12 +19,20 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 REQUIRED = [
     "README.md",
-    "docs/DEPLOY.md",
-    "docs/GITHUB-PAGES.md",
-    "docs/TODO.md",
-    "docs/WORKLOG.md",
-    "docs/PLAN-20261126.md",
-    "docs/REVIEW-20261126.md",
+    "docs/README.md",
+    "docs/phase1/DESIGN-TEMPLATES-P1-20261127.md",
+    "docs/phase1/SCHEDULE-TEMPLATES-P1-20261127.md",
+    "docs/phase1/ACCEPTANCE-TEMPLATES-P1-20261127.md",
+    "docs/phase2/DESIGN-TEMPLATES-P2-20261127.md",
+    "docs/phase2/REVIEW-TEMPLATES-P2-20261127.md",
+    "docs/phase2/SCHEDULE-TEMPLATES-P2-20261127.md",
+    "docs/phase2/GUIDE-TEMPLATES-P2-20261127.md",
+    "docs/ops/DEPLOY.md",
+    "docs/ops/GITHUB-PAGES.md",
+    "docs/project/TODO.md",
+    "docs/project/WORKLOG.md",
+    "docs/project/PLAN-20261126.md",
+    "docs/project/REVIEW-20261126.md",
     "topics.yml",
     ".github/workflows/update-data.yml",
     "scripts/launchd/collect.sh",
@@ -52,7 +60,7 @@ def doc_texts():
 
 
 # REVIEW 是冻结的决策记录(见 PLAN 第八章),不参与口径检查
-FROZEN = {"docs/REVIEW-20261126.md"}
+FROZEN = {"docs/project/REVIEW-20261126.md"}
 
 
 def check_wording(texts):
@@ -66,7 +74,7 @@ def check_wording(texts):
 
 def check_doc_links(texts):
     for rel, text in texts.items():
-        for name in re.findall(r"docs/[A-Za-z0-9_.\-]+\.md", text):
+        for name in re.findall(r"docs/(?:[A-Za-z0-9_.\-]+/)?[A-Za-z0-9_.\-]+\.md", text):
             if "YYYY" in name:  # 模板里的占位名
                 continue
             if not os.path.exists(os.path.join(ROOT, name)):
@@ -143,7 +151,7 @@ def check_themes():
 
 
 def check_deploy():
-    path = os.path.join(ROOT, "docs/DEPLOY.md")
+    path = os.path.join(ROOT, "docs/ops/DEPLOY.md")
     if not os.path.exists(path):
         return
     text = open(path, encoding="utf-8").read()

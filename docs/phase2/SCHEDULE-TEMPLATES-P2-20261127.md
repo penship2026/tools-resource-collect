@@ -79,7 +79,7 @@ env -u AI_BASE_URL -u AI_API_KEY -u AI_MODEL python3 -m unittest discover -s tes
 | 2026-11-28 | A4.7 | IDE 工作台：左模板树/工具、中 `spec.json` 编辑+预览、右 AI 对话+模型切换；三栏拖宽、左右互换；`serve --host` 局域网 | Python 全量 161 例通过；Chrome 实测候选加载、主题/版式切换、草稿预览、真实 AI 改 Spec；`/` 与 `/ide` 200 | 提交 `07c1ae6`，已推送；`/review` 保留旧评审页；8787 已用 `0.0.0.0` 重启 |
 | 2026-11-28 | A4.7+ | IDE 补页面文件：四页 2×2 选择、HTML/CSS 双标签、页面保存备份、页面 AI、`/api/pages` 与 `/repo` 白名单 | Python 全量 164 例通过；四页预览 200；Chrome 实测首页/集合页/详情页加载与切换；真实 AI 改页面 CSS/HTML 成功；`.env` 与 docs 被 404 | 提交 `8df66ce`，已推送；页面 AI 未限制 `max_tokens`，大文件需继续观察截断 |
 | 2026-11-28 | A4.7+ 资源三 Tab | 左栏「页面文件 / 版式 / 主题」同组三 Tab；`/api/designs` 合并内置、已上架与 AI 草稿，版式 6 套、主题 10 套全量列出；内置只读真实预览，草稿仍可编辑 | Python 全量 165 例通过；`node --check` 通过；Chrome 实测计数 4/6/10、版式 6 行、主题 10 行、`standard/dark` 只读预览、`news-grid-compact` 改字符后保存启用 | 代码提交 `2a4fbc7`，文档随后提交；推送因 GitHub 443 超时待重试；内置项需在管理处克隆后才可编辑 |
-| 2026-11-28 | A4.8 + 文档 | 页面/版式/主题历史、当前版本、任选两项对比、覆盖/恢复；页面 HTML/CSS 保存校验；二期使用说明书；docs 按一期/二期归档并补索引 | `tests.test_server/test_pages/test_studio` 55 例通过；`docs_check` 通过；Chrome 实测页面历史对比/恢复、主题历史、保存校验弹窗、版式历史入口 | 待提交回填哈希；A5 仍待人工批准上架 |
+| 2026-11-28 | A4.8 + 文档 | 页面/版式/主题历史、当前版本、任选两项对比、覆盖/恢复；页面 HTML/CSS 保存校验；二期使用说明书；docs 按一期/二期归档并补索引 | `tests.test_server/test_pages/test_studio` 55 例通过；`docs_check` 通过；Chrome 实测页面历史对比/恢复、主题历史、保存校验弹窗、版式历史入口 | 提交 `bf3e338`；A5 仍待人工批准上架 |
 
 ---
 

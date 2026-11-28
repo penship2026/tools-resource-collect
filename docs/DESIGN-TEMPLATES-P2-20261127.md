@@ -1,11 +1,13 @@
 # 二期详细设计 · AI 模板与主题工坊
 
-> 版本 v1.9 · 2026-11-28 · 状态：A4 实现完成，待验收；A5 六套候选已生成并通过闸门；新增 IDE 式模板工作台
+> 版本 v1.10 · 2026-11-28 · 状态：A4 实现完成，待验收；A5 六套候选已生成并通过闸门；IDE 工作台新增页面文件编辑
 > 对应方案：`docs/PLAN-TEMPLATES-20261127.md`（D70–D73、D92–D98）
 > 评审记录：`docs/REVIEW-TEMPLATES-P2-20261127.md`
 > 前置：一期 3 套版式、布局 token 白名单、`templates.js` 注册表已就绪；截图脚本与基线由 A0 新建，不再假设已存在
 > 核心定位：**AI 是可选增强，不是运行时依赖**——生成在离线/本机完成，线上仍是零构建纯静态
 
+> **v1.10 修订**：IDE 工作台补上「页面文件」模式，可编辑首页 `index.html`、集合页 `series.html`、列表页 `list.html`、详情页 `single.html` 及各自 `assets/pages/*.css`；页面 HTML/CSS 均可手改、备份后保存、AI 改文件；模板候选 Spec 模式保留。新增 `/repo` 白名单，局域网只暴露站点文件与候选草稿，不暴露 `.env`、`tools/` 与文档。
+>
 > **v1.9 修订**：工作台从「候选评审卡片」升级为 IDE 形态：左侧模板树与工具、中间可编辑 `spec.json` + 实时预览、右侧 AI 对话改 Spec 并可切换模型；三栏可拖宽、左右可互换，`serve --host 0.0.0.0` 支持局域网。旧评审页保留在 `/review`。
 > **v1.8 修订**：补齐 `default/dark/tech/campus/classical/anime` 六套内置主题 Spec，内置版式与主题均可克隆维护；A5 试点期 `max_layouts` 放开到 20，不再受 5 套限制，主题仍为 8。
 > **v1.7 修订**：从现有内置版式 `standard/news/magazine` 抽取三份 Design Spec，放 `tools/ai-template/builtin-specs/layout/`；管理页据此把内置版式标为可克隆，克隆出的新 key 草稿可手改、预览、批准，原 CSS/注册表不动。主题尚未抽取，内置主题仍只能归档。
@@ -462,16 +464,17 @@ docs/templates/<key>.json       Spec 原文件（可复现）
 
 ```text
 ┌ 顶栏：项目 / 当前模板 / 模型 / 评审页 / 管理处 / 站点 ┐
-│ 左：模板树、搜索、新建、跑闸门、布局设置 │ 中：spec.json 编辑 + 预览 │ 右：AI 对话 + 模型 │
-└ 状态栏：当前文件 / JSON 状态 / 模型 / 保存状态 ┘
+│ 左：页面文件 2×2 + 模板树、搜索、新建、跑闸门 │ 中：HTML/CSS 编辑 + 预览 │ 右：AI 对话 + 模型 │
+└ 状态栏：当前文件 / 文件状态 / 模型 / 保存状态 ┘
 ```
 
-- 左栏：候选按版式/主题分组；点击加载 `spec.json` 与同目录编译出的 CSS；支持新建候选、刷新、跑 G1–G6、左右面板互换。
-- 中栏：`源码 / 分屏 / 预览` 三态；`spec.json` 可直接编辑，保存走 `POST /api/spec/save` 写 `candidate-N-eN`，不覆盖原候选；`styles.css` 是只读编译产物；预览支持桌面/平板/手机三档、主题/版式切换、刷新与新标签打开。
-- 右栏：对话输入改 Spec 要求，`POST /api/ai-edit` 返回完整新 Spec；用户点「应用到编辑器」后才进入源码，仍需手动「保存新版本」。模型下拉来自 `/api/models`，可切 `.env` 当前模型、OpenRouter 预设、本机 Ollama；自定义模型只存浏览器 `localStorage`，随单次请求发给本机服务。
-- 草稿预览：`POST /api/preview-draft` 把当前未保存 Spec 编译到 `drafts/<key>/studio-preview`，只读、不进候选列表、不批准；保存前的预览不落正式候选。
+- 左栏：顶部「页面文件」固定四页——首页 `index.html`、集合页 `series.html`、列表页 `list.html`、详情页 `single.html`，每页绑定 `assets/pages/*.css`；下方才是模板候选，按版式/主题分组。页面与候选互斥选中，互切时若有未保存改动会二次确认。
+- 中栏：`源码 / 分屏 / 预览` 三态。页面模式下列表直接载入真实页面文件，HTML 与 CSS 都可编辑；保存走 `POST /api/page/save`，白名单外的路径拒绝，写前备份到 `backups/pages/<时间戳>/`，再原子替换。模板模式保留 `spec.json` 编辑，保存走 `POST /api/spec/save` 写 `candidate-N-eN`；`styles.css` 仍是只读编译产物。
+- 页面预览：直接嵌 `/repo/index.html`、`/repo/series.html?id=<首个单元>`、`/repo/list.html?id=<首个单元>`、`/repo/single.html?id=<首个单元>`；预览始终读已保存版本，保存成功后自动刷新；页面模式没有“未保存草稿预览”，按钮改为「刷新预览」并提示。
+- 右栏：对话输入改文件要求。页面模式走 `POST /api/page-edit`，模型只返回完整 HTML/CSS 正文，用户点「应用到编辑器」后才进源码，仍需手动「保存文件」；模板模式走 `POST /api/ai-edit` 返回完整新 Spec，仍需手动「保存新版本」。模型下拉来自 `/api/models`，可切 `.env` 当前模型、OpenRouter 预设、本机 Ollama；自定义模型只存浏览器 `localStorage`，随单次请求发给本机服务。
+- 草稿预览：仅模板模式使用。`POST /api/preview-draft` 把当前未保存 Spec 编译到 `drafts/<key>/studio-preview`，只读、不进候选列表、不批准。
 - 布局：三栏 CSS 变量 + 拖动分隔条调宽，左右面板可互换，宽度与顺序存 `localStorage`；窄屏退化为纵向堆叠。
-- 边界：AI 不执行模型输出、不自动保存、不自动批准；服务端校验 Spec schema 且强制 `kind/key` 不变；预览 iframe 同源，主题/版式切换只改 DOM/CSS link，不改发布产物。
+- 边界：AI 不执行模型输出、不自动保存、不自动批准；页面 HTML 必须含 `<html>...</html>`，单文件 ≤512KB；`/repo` 只放行五个站点 HTML、`assets/` 与 `tools/ai-template/drafts/`，`.env`、`tools/` 其他文件与文档一律 404。
 
 #### 8.4.1 入口与接口
 
@@ -480,6 +483,9 @@ docs/templates/<key>.json       Spec 原文件（可复现）
 | `GET /`、`GET /ide` | IDE 工作台 |
 | `GET /review` | 旧候选评审页 |
 | `GET /manage.html` | AI 设计管理处 |
+| `GET /api/pages` | 页面文件清单与预览地址 |
+| `POST /api/page/save` | 备份并保存页面 HTML/CSS |
+| `POST /api/page-edit` | AI 改页面 HTML/CSS，不落盘 |
 | `GET /api/candidates` | 候选列表与预览路径 |
 | `POST /api/spec/save` | 保存手改版本 |
 | `POST /api/preview-draft` | 未保存 Spec 草稿预览 |
@@ -491,7 +497,7 @@ docs/templates/<key>.json       Spec 原文件（可复现）
 
 - Mac 局域网 `192.168.0.100`；启动：`python3 tools/ai-template/cli.py serve --host 0.0.0.0 --port 8787`。
 - 工作台：`http://192.168.0.100:8787/`；二期站点：`http://192.168.0.100:8899/`。
-- 验收项：候选加载、源码编辑、JSON 校验、草稿预览、保存新版本、AI 改 Spec 应用、模型切换、三栏拖宽/互换、手机宽度下不横向溢出。
+- 验收项：首页/集合页/列表页/详情页四页加载与 HTML/CSS 切换、页面保存与备份、页面 AI 应用、候选加载、源码编辑、JSON 校验、草稿预览、保存新版本、AI 改 Spec 应用、模型切换、三栏拖宽/互换、手机宽度下不横向溢出。
 - 已知边界：管理处与写接口无登录鉴权，只应在可信局域网使用；AI 结果和候选仍需人工保存/批准，不自动发布。
 
 ---

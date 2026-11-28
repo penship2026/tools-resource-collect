@@ -28,6 +28,47 @@ def fixture_theme(root):
     return json.loads(src.read_text(encoding="utf-8"))
 
 
+class PageEditorTest(unittest.TestCase):
+    def _root(self, tmp):
+        root = Path(tmp)
+        (root / "assets/data").mkdir(parents=True)
+        (root / "assets/data/index.js").write_text(
+            'window.COLLECTION_INDEX = [{"id": "topic-test"}];\n', encoding="utf-8")
+        (root / "assets/pages").mkdir(parents=True)
+        (root / "index.html").write_text("<html><body>home</body></html>", encoding="utf-8")
+        (root / "assets/pages/index.css").write_text("body{}", encoding="utf-8")
+        return root
+
+    def test_page_catalog_preview_query(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._root(tmp)
+            data = studio.page_catalog(root)
+            self.assertEqual(len(data["items"]), 4)
+            self.assertEqual(data["items"][0]["preview"], "/repo/index.html")
+            self.assertIn("?id=topic-test", data["items"][1]["preview"])
+            self.assertEqual(data["items"][3]["preview"], "/repo/single.html?id=topic-test")
+
+    def test_page_save_backs_up_and_rejects_outside(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._root(tmp)
+            studio.save_page(root, "index.html", "<html><body>v2</body></html>")
+            self.assertIn("v2", (root / "index.html").read_text(encoding="utf-8"))
+            self.assertTrue(list((root / "backups/pages").glob("*/*")))
+            with self.assertRaises(studio.StudioError):
+                studio.save_page(root, "../index.html", "<html></html>")
+
+    def test_page_edit_fake_model(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._root(tmp)
+            fake = FakeAdapter()
+            fake.complete = lambda system, user, kind=None: "<html><body>edited</body></html>"
+            out = studio.edit_page(root, "index.html", "<html><body>home</body></html>", "把正文改成 edited", adapter=fake)
+            self.assertEqual(out["content"], "<html><body>edited</body></html>")
+            fake.complete = lambda system, user, kind=None: "<html><body>broken"
+            with self.assertRaises(studio.StudioError):
+                studio.edit_page(root, "index.html", "<html><body>home</body></html>", "改坏", adapter=fake)
+
+
 class StudioEditTest(unittest.TestCase):
     def test_theme_edit_keeps_identity(self):
         spec = fixture_theme(None)

@@ -9,7 +9,9 @@ from __future__ import annotations
 import importlib.util
 import json
 import os
+import re
 import urllib.parse
+from datetime import datetime
 from pathlib import Path
 
 import compiler
@@ -37,6 +39,124 @@ class StudioError(RuntimeError):
 
     def as_dict(self):
         return {"ok": False, "code": self.code, "message": self.message}
+
+
+PAGE_DEFS = (
+    {"id": "home", "label": "首页", "html": "index.html", "css": "assets/pages/index.css",
+     "preview": "/repo/index.html", "needs_id": False},
+    {"id": "series", "label": "集合页", "html": "series.html", "css": "assets/pages/series.css",
+     "preview": "/repo/series.html", "needs_id": True},
+    {"id": "list", "label": "列表页", "html": "list.html", "css": "assets/pages/list.css",
+     "preview": "/repo/list.html", "needs_id": True},
+    {"id": "single", "label": "详情页", "html": "single.html", "css": "assets/pages/single.css",
+     "preview": "/repo/single.html", "needs_id": True},
+)
+PAGE_PATHS = {x["html"] for x in PAGE_DEFS} | {x["css"] for x in PAGE_DEFS}
+
+
+def _first_unit_id(root):
+    index = Path(root) / "assets" / "data" / "index.js"
+    if not index.exists():
+        return ""
+    text = index.read_text(encoding="utf-8")
+    match = re.search(r"window\.COLLECTION_INDEX\s*=\s*(\[[\s\S]*?\])\s*;", text)
+    if not match:
+        return ""
+    try:
+        items = json.loads(match.group(1))
+    except ValueError:
+        return ""
+    return str(items[0].get("id") or "") if items else ""
+
+
+def page_catalog(root=None):
+    """四个页面及各自 HTML/CSS 文件的编辑入口。"""
+    unit = _first_unit_id(root) if root else ""
+    items = []
+    for page in PAGE_DEFS:
+        preview = page["preview"]
+        if page["needs_id"] and unit:
+            preview += ("&" if "?" in preview else "?") + "id=" + urllib.parse.quote(unit)
+        items.append({
+            "id": page["id"], "label": page["label"],
+            "html": page["html"], "css": page["css"], "preview": preview,
+        })
+    return {"ok": True, "items": items}
+
+
+def _page_path(root, path):
+    path = str(path or "").replace("\\", "/").lstrip("/")
+    if path not in PAGE_PATHS:
+        raise StudioError("PAGE_PATH", "只能编辑首页、集合页、列表页、详情页及其页面 CSS")
+    return path
+
+
+def save_page(root, path, content):
+    """保存页面文件；先备份旧文件，再原子替换。"""
+    rel = _page_path(root, path)
+    if not isinstance(content, str) or not content.strip():
+        raise StudioError("PAGE_EMPTY", "文件内容为空")
+    if len(content.encode("utf-8")) > 512 * 1024:
+        raise StudioError("PAGE_TOO_LARGE", "单个页面文件不能超过 512KB")
+    if rel.endswith(".html") and ("<html" not in content.lower() or "</html>" not in content.lower()):
+        raise StudioError("PAGE_HTML", "HTML 必须保留 <html> 完整文档结构")
+    target = Path(root) / rel
+    target.parent.mkdir(parents=True, exist_ok=True)
+    backup = Path(root) / "backups" / "pages" / datetime.now().strftime("%Y%m%d-%H%M%S-%f") / Path(rel).name
+    backup.parent.mkdir(parents=True, exist_ok=True)
+    if target.exists():
+        backup.write_text(target.read_text(encoding="utf-8"), encoding="utf-8")
+    tmp = target.with_name(target.name + ".tmp")
+    tmp.write_text(content, encoding="utf-8")
+    tmp.replace(target)
+    return {"ok": True, "path": rel, "bytes": len(content.encode("utf-8")),
+            "backup": backup.relative_to(Path(root)).as_posix(), "message": "页面已保存，旧文件已备份"}
+
+
+def edit_page(root, path, content, instruction, model_id="", custom=None, adapter=None):
+    """让模型改一个完整页面文件；不落盘、不部署。"""
+    rel = _page_path(root, path)
+    if not isinstance(content, str) or not content.strip():
+        raise StudioError("PAGE_EMPTY", "当前文件为空")
+    instruction = str(instruction or "").strip()
+    if not instruction:
+        raise StudioError("EDIT_EMPTY", "先写下要改什么")
+    if adapter is None:
+        cfg = resolve_model(model_id, custom, root)
+        adapter = openai_compat.OpenAICompat(cfg["base_url"], cfg["api_key"], cfg["model"], cfg.get("timeout", 180))
+    language = "CSS" if rel.endswith(".css") else "HTML"
+    system = (
+        "你是集页静态站的页面编辑助手。只输出修改后的完整%s文件正文，"
+        "不要解释、不要 markdown 代码块、不要 diff。\n"
+        "必须保留页面现有的数据加载方式、DOM id、脚本依赖与响应式行为；"
+        "不引入外部 CDN、外部字体、远程接口或构建步骤；不写后端与部署配置。\n"
+        "HTML 必须保留 <!DOCTYPE html> 与 <html>...</html> 完整结构；"
+        "CSS 必须保留现有选择器的语义，不写 @import。" % language
+    )
+    user = "当前文件：%s\n\n```%s\n%s\n```\n\n修改要求：%s" % (
+        rel, language.lower(), content, instruction)
+    try:
+        raw = adapter.complete(system, user, kind="page")
+    except openai_compat.AdapterError as exc:
+        raise StudioError("MODEL_FAILED", str(exc))
+    text = str(raw or "").strip()
+    if text.startswith("```"):
+        lines = text.splitlines()
+        if lines:
+            lines = lines[1:]
+        if lines and lines[-1].strip() == "```":
+            lines = lines[:-1]
+        text = "\n".join(lines).strip()
+    if not text:
+        raise StudioError("MODEL_EMPTY", "模型没有返回文件内容")
+    if len(text.encode("utf-8")) > 512 * 1024:
+        raise StudioError("MODEL_TOO_LARGE", "模型返回内容超过 512KB")
+    if rel.endswith(".html") and ("<html" not in text.lower() or "</html>" not in text.lower()):
+        raise StudioError("MODEL_HTML", "模型返回的不是完整 HTML 文档")
+    if rel.endswith(".css") and text.count("{") != text.count("}"):
+        raise StudioError("MODEL_CSS", "模型返回的 CSS 大括号不完整，可能被截断")
+    return {"ok": True, "path": rel, "content": text, "model": getattr(adapter, "model", "") or model_id,
+            "message": "AI 已返回页面修改版；尚未保存，确认后再写入。"}
 
 
 def _env_int(name, default):

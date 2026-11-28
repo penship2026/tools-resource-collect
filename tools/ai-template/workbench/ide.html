@@ -57,6 +57,16 @@ code{font-family:var(--mono);font-size:11px;color:var(--mute)}
 .side-tools{display:grid;grid-template-columns:1fr 1fr;gap:7px;padding:10px 12px;border-bottom:1px solid var(--line)}
 .side-tools button{font-size:12px;padding:6px 8px}
 .side-tools .wide{grid-column:1/-1}
+.page-box{padding:8px 10px 10px;border-bottom:1px solid var(--line);background:rgba(0,0,0,.08)}
+.page-list{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.page{display:flex;align-items:center;gap:6px;text-align:left;background:transparent;border:1px solid transparent;border-radius:6px;padding:6px;min-width:0;color:var(--text)}
+.page:hover{background:var(--panel2);border-color:var(--line)}
+.page.active{background:rgba(61,155,131,.12);border-color:rgba(111,199,168,.35)}
+.page .pico{width:17px;height:17px;flex:0 0 17px;border-radius:4px;background:var(--panel3);color:var(--mute);display:grid;place-items:center;font-size:9px;font-weight:700}
+.page.active .pico{background:var(--brand2);color:#06120e}
+.page .ptext{min-width:0}
+.page .pname{display:block;font-size:11px;line-height:1.3;white-space:nowrap}
+.page .pfile{display:block;font-family:var(--mono);font-size:8px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tree-head{display:flex;align-items:center;justify-content:space-between;padding:12px 14px 6px;color:var(--mute);font-size:11px}
 .tree-head strong{color:var(--text);font-size:11px;font-weight:600}
 .tree{overflow:auto;padding:0 8px 16px;min-height:0;flex:1}
@@ -188,9 +198,13 @@ dialog::backdrop{background:rgba(0,0,0,.55)}
       <input id="search" class="search" placeholder="搜索模板名、key、意图…">
     </div>
     <div class="side-tools">
-      <button id="newCandidate" class="primary wide">＋ 新建候选</button>
+      <button id="newCandidate" class="primary wide">＋ 新建模板候选</button>
       <button id="refreshList">刷新列表</button>
       <button id="runGatesBtn">跑闸门</button>
+    </div>
+    <div class="page-box">
+      <div class="group-label">页面文件 <span id="pageCount">4</span></div>
+      <div class="page-list" id="pageList"><div class="pfile">正在读取页面…</div></div>
     </div>
     <div class="tree" id="tree">
       <div class="chat-empty">正在读取候选…</div>
@@ -215,8 +229,8 @@ dialog::backdrop{background:rgba(0,0,0,.55)}
     <div class="workspace-body" id="workspaceBody" data-view="split">
       <div class="editor-pane" id="editorPane">
         <div class="file-tabs">
-          <button class="ftab active" data-file="spec">spec.json <span id="dirtyDot">●</span></button>
-          <button class="ftab" data-file="css">styles.css <small>编译产物</small></button>
+          <button class="ftab active" id="tabMain" data-file="main">spec.json <span id="dirtyDot">●</span></button>
+          <button class="ftab" id="tabCss" data-file="css">styles.css <small id="cssHint">编译产物</small></button>
         </div>
         <div class="code-shell"><div class="gutter" id="gutter"></div><textarea id="source" spellcheck="false" autocomplete="off" autocapitalize="off"></textarea></div>
         <div class="editor-info"><span id="sourceInfo">JSON · 0 行</span><span id="jsonState">等待选择模板</span><span id="fileMode"></span></div>
@@ -288,8 +302,9 @@ dialog::backdrop{background:rgba(0,0,0,.55)}
 'use strict';
 var THEMES=[['default','默认'],['dark','暗夜'],['tech','科技'],['campus','校园'],['classical','古典']];
 var LAYOUTS=[['standard','简洁'],['news','门户'],['magazine','画册']];
-var state={items:[],current:null,source:'',original:'',css:'',view:'split',file:'spec',dirty:false,
-  theme:'default',layout:'news',model:'',models:[],custom:null,previewMode:'candidate',draftUrl:'',layoutMode:'lcr'};
+var state={items:[],current:null,mode:'page',page:null,pages:[],source:'',css:'',origMain:'',origCss:'',
+  view:'split',file:'main',dirty:false,theme:'default',layout:'news',model:'',models:[],custom:null,
+  previewMode:'page',draftUrl:'',layoutMode:'lcr'};
 var $=function(id){return document.getElementById(id)};
 var editor=$('source'),gutter=$('gutter'),frame=$('previewFrame');
 function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
@@ -298,33 +313,107 @@ function getText(url){return fetch(url,{cache:'no-store'}).then(function(r){if(!
 function post(url,body){return fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(function(r){return r.json()})}
 function toast(msg,bad){var t=$('toast');t.textContent=msg;t.className='show'+(bad?' bad':'');clearTimeout(t._t);t._t=setTimeout(function(){t.className=''},2600)}
 function setStatus(msg){$('statusText').textContent=msg}
-function parseSource(){try{return {ok:true,value:JSON.parse(editor.value)}}catch(e){return {ok:false,error:e.message}}}
 function safe(s){return esc(s)}
-function itemPath(item){return item?item.path:''}
+function activeValue(){return state.file==='css'?state.css:state.source}
+function activeOriginal(){return state.file==='css'?state.origCss:state.origMain}
+function parseSource(){try{return {ok:true,value:JSON.parse(editor.value)}}catch(e){return {ok:false,error:e.message}}}
 
 function updateGutter(){
   var n=editor.value.split('\n').length;
   var html=[]; for(var i=1;i<=n;i++)html.push('<span>'+i+'</span>');
   gutter.innerHTML=html.join(''); gutter.scrollTop=editor.scrollTop;
   var pos=editor.selectionStart||0; var before=editor.value.slice(0,pos).split('\n');
-  $('sourceInfo').textContent=(state.file==='spec'?'JSON':'CSS')+' · '+n+' 行 · 第 '+before.length+' 行';
+  var label=state.mode==='template'?(state.file==='css'?'CSS':'JSON'):(state.file==='css'?'CSS':'HTML');
+  $('sourceInfo').textContent=label+' · '+n+' 行 · 第 '+before.length+' 行';
+  var name=state.mode==='page'&&state.page?(state.file==='css'?state.page.css:state.page.html):(state.file==='css'?'styles.css':'spec.json');
+  $('statusFile').textContent=name;
 }
 function setDirty(v){
   state.dirty=!!v;
-  $('dirtyDot').style.visibility=v?'visible':'hidden';
+  if($('dirtyDot'))$('dirtyDot').style.visibility=v?'visible':'hidden';
   $('statusDirty').textContent=v?'未保存':'已保存';
-  $('saveBtn').disabled=(state.file!=='spec')||!v||!state.current;
+  $('saveBtn').disabled=!v||(!state.current&&!state.page)||(state.mode==='template'&&state.file!=='main');
 }
 function checkJson(){
-  if(state.file!=='spec'){ $('jsonState').textContent='编译产物只读'; $('jsonState').className=''; $('statusJson').textContent='CSS —'; return; }
+  if(state.mode==='template'&&state.file==='css'){
+    $('jsonState').textContent='编译产物只读';$('jsonState').className='';$('statusJson').textContent='CSS —';
+    return;
+  }
+  if(state.mode==='page'){
+    $('jsonState').textContent=(state.file==='css'?'CSS 可直接编辑':'HTML 可直接编辑');$('jsonState').className='';
+    $('statusJson').textContent=(state.file==='css'?'CSS ✓':'HTML ✓');
+    return;
+  }
   var r=parseSource();
   $('jsonState').textContent=r.ok?'JSON 合法':'JSON 错误：'+r.error;
   $('jsonState').className=r.ok?'json-ok':'json-bad';
   $('statusJson').textContent=r.ok?'JSON ✓':'JSON ✗';
-  $('saveBtn').disabled=(state.file!=='spec')||!r.ok||!state.dirty||!state.current;
 }
 function syncEditor(){
-  editor.value=state.source; state.original=state.source; setDirty(false); updateGutter(); checkJson();
+  editor.value=state.file==='css'?state.css:state.source;
+  state.origMain=state.source;state.origCss=state.css;
+  setDirty(false);updateGutter();checkJson();
+}
+function updateTabs(){
+  var page=state.page;
+  var main=state.mode==='page'&&page?page.html:'spec.json';
+  var css=state.mode==='page'&&page?page.css.split('/').pop():'styles.css';
+  $('tabMain').innerHTML=safe(main)+' <span id="dirtyDot">●</span>';
+  $('tabCss').innerHTML=safe(css)+' <small id="cssHint">'+(state.mode==='page'?'页面样式':'编译产物')+'</small>';
+  if($('dirtyDot'))$('dirtyDot').style.visibility=state.dirty?'visible':'hidden';
+}
+
+function renderPages(){
+  var html=state.pages.map(function(p){
+    var active=state.mode==='page'&&state.page&&state.page.id===p.id;
+    return '<button class="page'+(active?' active':'')+'" data-page-id="'+safe(p.id)+'" title="'+safe(p.html+' · '+p.css)+'">'+
+      '<span class="pico">P</span><span class="ptext"><span class="pname">'+safe(p.label)+'</span>'+
+      '<span class="pfile">'+safe(p.html)+'</span></span></button>';
+  }).join('');
+  $('pageList').innerHTML=html||'<div class="pfile">页面读取失败</div>';
+  $('pageCount').textContent=state.pages.length;
+  Array.prototype.forEach.call($('pageList').querySelectorAll('.page'),function(b){
+    b.addEventListener('click',function(){var id=b.getAttribute('data-page-id');var p=state.pages.filter(function(x){return x.id===id})[0];if(p)selectPage(p);});
+  });
+}
+function loadPages(){
+  return get('/api/pages').then(function(data){
+    if(data&&data.ok&&data.items&&data.items.length)state.pages=data.items;
+    if(!state.pages.length)throw new Error('no pages');
+  }).catch(function(){
+    state.pages=[
+      {id:'home',label:'首页',html:'index.html',css:'assets/pages/index.css',preview:'/repo/index.html'},
+      {id:'series',label:'集合页',html:'series.html',css:'assets/pages/series.css',preview:'/repo/series.html'},
+      {id:'list',label:'列表页',html:'list.html',css:'assets/pages/list.css',preview:'/repo/list.html'},
+      {id:'single',label:'详情页',html:'single.html',css:'assets/pages/single.css',preview:'/repo/single.html'}
+    ];
+  }).then(function(){
+    renderPages();
+    if(state.pages.length)selectPage(state.pages[0]);
+  });
+}
+function selectPage(page){
+  if(!page)return;
+  if(state.page&&state.page.id===page.id&&state.mode==='page')return;
+  if(state.dirty&&!confirm('当前文件有未保存改动，切换页面会丢弃，继续？'))return;
+  state.mode='page';state.page=page;state.current=null;state.file='main';state.previewMode='page';
+  renderPages();renderTree();
+  $('centerEmpty').hidden=true;$('workspaceBody').hidden=false;
+  $('kindBadge').textContent='页面';
+  $('candName').textContent=page.label;$('crumbKind').textContent='页面';
+  $('crumbName').textContent=page.label;$('crumbKey').textContent=page.html;
+  $('candKey').textContent=page.html;
+  $('chatContext').innerHTML='当前页面：<strong>'+safe(page.label)+'</strong> · '+safe(page.html);
+  $('saveBtn').textContent='保存文件';$('draftBtn').textContent='刷新预览';$('runGatesBtn').disabled=true;
+  setStatus('读取页面文件…');
+  Promise.all([
+    getText('/repo/'+page.html),
+    getText('/repo/'+page.css).catch(function(){return '/* 页面 CSS 读取失败 */'})
+  ]).then(function(pair){
+    state.source=pair[0];state.css=pair[1];state.origMain=pair[0];state.origCss=pair[1];
+    updateTabs();setFileTab('main');refreshPreview();
+    setStatus('已载入 '+page.html+' + '+page.css);checkJson();
+  }).catch(function(e){toast('页面读取失败：'+e,true);setStatus('页面读取失败')});
 }
 
 function renderTree(){
@@ -338,63 +427,66 @@ function renderTree(){
     if(!arr.length)return;
     html+='<div class="group-label">'+g[1]+' <span>'+arr.length+'</span></div>';
     arr.forEach(function(x){
-      var active=state.current&&state.current.path===x.path;
+      var active=state.mode==='template'&&state.current&&state.current.path===x.path;
       html+='<button class="cand'+(active?' active':'')+'" data-path="'+safe(x.path)+'" title="'+safe(x.name)+'">'+
         '<span class="ico">'+(x.kind==='layout'?'L':'T')+'</span><span class="body"><span class="name">'+safe(x.name)+'</span>'+
         '<span class="meta"><span class="dot '+(x.ok?'':'bad')+'"></span>'+safe(x.candidate)+' <span class="cand-key">'+safe(x.key)+'</span></span></span></button>';
     });
   });
-  $('tree').innerHTML=html||'<div class="chat-empty">没有匹配的候选</div>';
+  $('tree').innerHTML=html||'<div class="chat-empty">没有匹配的模板候选</div>';
   Array.prototype.forEach.call($('tree').querySelectorAll('.cand'),function(b){
     b.addEventListener('click',function(){var path=b.getAttribute('data-path');var item=state.items.filter(function(x){return x.path===path})[0];if(item)selectItem(item);});
   });
 }
-
 function loadCandidates(keepPath){
   return get('/api/candidates').then(function(data){
     if(!data.ok){toast(data.message||'候选读取失败',true);return}
     state.items=data.items||[];
-    var keep=keepPath||(state.current&&state.current.path);
-    state.current=state.items.filter(function(x){return x.path===keep})[0]||
+    var keep=keepPath||(state.mode==='template'&&state.current&&state.current.path);
+    var found=state.items.filter(function(x){return x.path===keep})[0]||
       state.items.filter(function(x){return x.ok&&x.visual==='checked'})[0]||state.items[0]||null;
     renderTree();
-    if(state.current){selectItem(state.current,true)}else{clearWorkspace()}
+    if(state.mode!=='page'&&found){state.current=found;selectItem(found,true)}
+    else if(state.mode!=='page'){clearWorkspace()}
   }).catch(function(e){toast('候选读取失败：'+e,true)});
 }
 
 function clearWorkspace(){
   state.current=null;state.source='';state.css='';editor.value='';
   $('centerEmpty').hidden=false;$('workspaceBody').hidden=true;
-  $('candName').textContent='未选择模板';$('candKey').textContent='';$('kindBadge').textContent='—';
+  $('candName').textContent='未选择文件';$('candKey').textContent='';$('kindBadge').textContent='—';
   $('saveBtn').disabled=true;
 }
 function selectItem(item,fromLoad){
   if(!item)return;
-  state.current=item;state.previewMode='candidate';
+  if(!fromLoad&&state.dirty&&!confirm('当前文件有未保存改动，切换文件会丢弃，继续？'))return;
+  state.mode='template';state.current=item;state.page=null;state.previewMode='candidate';state.file='main';
+  renderPages();renderTree();
   $('centerEmpty').hidden=true;$('workspaceBody').hidden=false;
   $('kindBadge').textContent=item.kind==='layout'?'版式':'主题';
   $('candName').textContent=item.name;$('crumbKind').textContent=item.kind==='layout'?'版式':'主题';
   $('crumbName').textContent=item.name;$('crumbKey').textContent=item.key;
-  $('candKey').textContent=item.key;$('chatContext').innerHTML='当前：<strong>'+safe(item.name)+'</strong> · '+safe(item.key)+' · '+safe(item.candidate);
-  setStatus('读取源码…');
+  $('candKey').textContent=item.key;$('chatContext').innerHTML='当前模板：<strong>'+safe(item.name)+'</strong> · '+safe(item.key)+' · '+safe(item.candidate);
+  $('saveBtn').textContent='保存新版本';$('draftBtn').textContent='预览草稿';$('runGatesBtn').disabled=false;
+  setStatus('读取模板源码…');
   getText('/repo/'+item.path).then(function(text){
-    state.source=text; editor.value=text; editor.readOnly=false; editor.classList.remove('readonly');
-    state.file='spec';setFileTab('spec');syncEditor();renderTree();
+    state.source=text;state.origMain=text;editor.value=text;editor.readOnly=false;editor.classList.remove('readonly');
     var dir=item.path.slice(0,item.path.lastIndexOf('/'));
-    return getText('/repo/'+dir+'/'+item.key+'.css').then(function(css){state.css=css}).catch(function(){state.css='/* CSS 暂无 */'});
+    return getText('/repo/'+dir+'/'+item.key+'.css').then(function(css){state.css=css;state.origCss=css}).catch(function(){state.css='/* CSS 暂无 */';state.origCss=state.css});
   }).then(function(){
+    updateTabs();setFileTab('main');populatePreviewControls();refreshPreview();
     setStatus('已载入 '+item.key+' / '+item.candidate);
-    setView(state.view);populatePreviewControls();refreshPreview();
-  }).catch(function(e){toast('读取源码失败：'+e,true);setStatus('读取失败')});
+  }).catch(function(e){toast('读取模板失败：'+e,true);setStatus('读取失败')});
 }
 
 function populatePreviewControls(){
   var themeSel=$('previewTheme'),layoutSel=$('previewLayout');
   themeSel.innerHTML=THEMES.map(function(x){return '<option value="'+x[0]+'">'+x[1]+'</option>'}).join('');
   layoutSel.innerHTML=LAYOUTS.map(function(x){return '<option value="'+x[0]+'">'+x[1]+'</option>'}).join('');
-  var isLayout=state.current&&state.current.kind==='layout';
-  $('themeField').style.display=isLayout?'inline-flex':'none';
-  $('layoutField').style.display=isLayout?'none':'inline-flex';
+  var isPage=state.mode==='page';
+  var isLayout=!isPage&&state.current&&state.current.kind==='layout';
+  $('themeField').style.display=isPage?'none':(isLayout?'inline-flex':'none');
+  $('layoutField').style.display=isPage?'none':(isLayout?'none':'inline-flex');
   themeSel.value=state.theme;layoutSel.value=state.layout;
 }
 function setView(v){
@@ -404,18 +496,31 @@ function setView(v){
 function setFileTab(file){
   state.file=file;
   Array.prototype.forEach.call(document.querySelectorAll('.ftab'),function(b){b.className='ftab'+(b.getAttribute('data-file')===file?' active':'')});
-  if(file==='css'){editor.value=state.css;editor.readOnly=true;editor.classList.add('readonly');$('fileMode').textContent='只读 · 由 Spec 编译';}
-  else{editor.value=state.source;editor.readOnly=false;editor.classList.remove('readonly');$('fileMode').textContent='可编辑 · 保存为新版本';}
-  updateGutter();checkJson();
+  if(state.mode==='page'){
+    editor.value=file==='css'?state.css:state.source;
+    editor.readOnly=false;editor.classList.remove('readonly');
+    $('fileMode').textContent=file==='css'?'CSS · 可直接编辑':'HTML · 可直接编辑';
+  }else if(file==='css'){
+    editor.value=state.css;editor.readOnly=true;editor.classList.add('readonly');
+    $('fileMode').textContent='只读 · 由 Spec 编译';
+  }else{
+    editor.value=state.source;editor.readOnly=false;editor.classList.remove('readonly');
+    $('fileMode').textContent='可编辑 · 保存为新版本';
+  }
+  updateGutter();checkJson();setDirty(editor.value!==activeOriginal());
 }
 function refreshPreview(){
+  if(state.mode==='page'&&state.page){
+    state.previewMode='page';$('previewModeBadge').textContent='页面预览 · 已保存';
+    frame.src=state.page.preview+(state.page.preview.indexOf('?')>=0?'&':'?')+'t='+Date.now();
+    populatePreviewControls();return;
+  }
   if(!state.current)return;
-  state.previewMode='candidate';
-  $('previewModeBadge').textContent='候选预览';
+  state.previewMode='candidate';$('previewModeBadge').textContent='候选预览';
   frame.src=state.current.preview+'?t='+Date.now();
 }
 function applyPreview(){
-  if(state.previewMode!=='candidate')return;
+  if(state.previewMode!=='candidate'||!state.current)return;
   try{
     var doc=frame.contentDocument;if(!doc)return;var root=doc.documentElement;
     if(state.current.kind==='layout'){
@@ -434,12 +539,25 @@ function applyPreview(){
 frame.addEventListener('load',applyPreview);
 
 function saveCurrent(){
-  if(!state.current||state.file!=='spec')return;
+  if(state.mode==='page'&&state.page){
+    var content=editor.value,path=state.file==='css'?state.page.css:state.page.html;
+    if(!content.trim()){toast('文件内容为空',true);return}
+    var pbtn=$('saveBtn');pbtn.disabled=true;setStatus('保存页面文件…');
+    post('/api/page/save',{path:path,content:content}).then(function(data){
+      pbtn.disabled=false;
+      if(!data.ok){toast((data.code||'PAGE')+'：'+(data.message||''),true);return}
+      if(state.file==='css'){state.css=content;state.origCss=content}else{state.source=content;state.origMain=content}
+      setDirty(false);toast('已保存 '+path+'，旧文件已备份');
+      refreshPreview();setStatus('已保存 '+path);
+    }).catch(function(e){pbtn.disabled=false;toast('保存失败：'+e,true)});
+    return;
+  }
+  if(!state.current||state.file!=='main')return;
   var r=parseSource();if(!r.ok){toast('JSON 不合法：'+r.error,true);return}
   var btn=$('saveBtn');btn.disabled=true;setStatus('保存新版本…');
   post('/api/spec/save',{path:state.current.path,spec:r.value}).then(function(data){
     if(!data.ok){toast((data.code||'SAVE')+'：'+(data.message||''),true);btn.disabled=false;return}
-    state.source=editor.value;state.original=editor.value;setDirty(false);
+    state.source=editor.value;state.origMain=editor.value;setDirty(false);
     toast('已保存 '+data.candidate+'（未批准）');
     return loadCandidates(data.spec_path).then(function(){
       var item=state.items.filter(function(x){return x.path===data.spec_path})[0];
@@ -449,22 +567,21 @@ function saveCurrent(){
   }).catch(function(e){toast('保存失败：'+e,true);btn.disabled=false});
 }
 function previewDraft(){
-  if(!state.current||state.file!=='spec')return;
+  if(state.mode==='page'){refreshPreview();toast('页面预览始终读取已保存版本；保存后会刷新');return}
+  if(!state.current||state.file!=='main')return;
   var r=parseSource();if(!r.ok){toast('JSON 不合法：'+r.error,true);return}
   setStatus('编译草稿预览…');
   post('/api/preview-draft',{spec:r.value,kind:state.current.kind}).then(function(data){
     if(!data.ok){toast((data.code||'PREVIEW')+'：'+(data.message||''),true);return}
     state.previewMode='draft';state.draftUrl=data.preview;
     $('previewModeBadge').textContent='草稿预览 · 未保存';
-    frame.src=data.preview+'?t='+Date.now();setStatus('草稿预览已更新（未保存）');
-    toast('草稿预览已更新，尚未保存');
+    frame.src=data.preview+'?t='+Date.now();setStatus('草稿预览已更新（未保存）');toast('草稿预览已更新，尚未保存');
   }).catch(function(e){toast('草稿预览失败：'+e,true)});
 }
 
 function runGates(){
-  if(!state.current)return;
-  setStatus('跑 G1–G6（15 张截图）…');
-  $('runGatesBtn').disabled=true;
+  if(state.mode!=='template'||!state.current)return;
+  setStatus('跑 G1–G6（15 张截图）…');$('runGatesBtn').disabled=true;
   post('/api/preview',{path:state.current.path,kind:state.current.kind}).then(function(data){
     $('runGatesBtn').disabled=false;
     if(!data.ok){toast('闸门未通过：'+(data.errors||[]).map(function(x){return x.code}).join(' / '),true);setStatus('闸门未通过')}
@@ -479,28 +596,49 @@ function addMsg(role,text,extra){
   if(extra)el.appendChild(extra);
   $('chatLog').appendChild(el);$('chatLog').scrollTop=$('chatLog').scrollHeight;return el;
 }
+function applyPageResult(data,thinking){
+  thinking.className='msg';thinking.querySelector('.bubble').textContent=data.message||'AI 已返回修改版。';
+  var tools=document.createElement('div');tools.className='tools';
+  var apply=document.createElement('button');apply.className='primary';apply.textContent='应用到编辑器';
+  apply.addEventListener('click',function(){
+    if(targetFile==='css'){state.css=data.content}else{state.source=data.content}
+    editor.value=data.content;setDirty(true);updateGutter();checkJson();toast('已应用到编辑器，点「保存文件」才会落盘');
+  });
+  var copy=document.createElement('button');copy.textContent='复制内容';
+  copy.addEventListener('click',function(){navigator.clipboard&&navigator.clipboard.writeText(data.content);toast('已复制');});
+  tools.appendChild(apply);tools.appendChild(copy);thinking.appendChild(tools);$('chatLog').scrollTop=$('chatLog').scrollHeight;
+}
 function sendAI(){
-  if(!state.current){toast('先在左侧选择模板',true);return}
+  if(!state.page&&!state.current){toast('先在左侧选择页面或模板',true);return}
   var text=$('chatInput').value.trim();if(!text){toast('写下要改什么',true);return}
-  var r=parseSource();if(state.file!=='spec'||!r.ok){toast('先把 spec.json 切回来并保证 JSON 合法',true);return}
+  var pageMode=state.mode==='page'&&state.page;
+  var targetFile=state.file;
+  if(pageMode&&!editor.value.trim()){toast('当前文件为空',true);return}
+  if(!pageMode){
+    var r=parseSource();if(state.file!=='main'||!r.ok){toast('先把 spec.json 切回来并保证 JSON 合法',true);return}
+  }
   $('chatInput').value='';addMsg('user',text);
-  var thinking=addMsg('assistant','正在修改 Spec…');
+  var thinking=addMsg('assistant',pageMode?'正在修改页面文件…':'正在修改 Spec…');
   var btn=$('sendBtn');btn.disabled=true;$('chatHint').textContent='模型生成中…';
-  var body={path:state.current.path,kind:state.current.kind,instruction:text,spec:r.value,model:state.model};
+  var body={instruction:text,model:state.model};
   if(state.model==='custom'&&state.custom)body.custom=state.custom;
-  post('/api/ai-edit',body).then(function(data){
-    btn.disabled=false;$('chatHint').textContent='⌘/Ctrl + Enter 发送 · 不自动发布';
+  var url;
+  if(pageMode){url='/api/page-edit';body.path=state.file==='css'?state.page.css:state.page.html;body.content=editor.value}
+  else{url='/api/ai-edit';body.path=state.current.path;body.kind=state.current.kind;body.spec=r.value}
+  post(url,body).then(function(data){
+    btn.disabled=false;$('chatHint').textContent='⌘/Ctrl + Enter 发送 · 不自动保存';
     if(!data.ok){thinking.className='msg error';thinking.querySelector('.bubble').textContent=(data.code||'AI')+'：'+(data.message||'');return}
+    if(pageMode){applyPageResult(data,thinking);return}
     thinking.querySelector('.bubble').textContent=data.message||'已生成修改版。';
     var tools=document.createElement('div');tools.className='tools';
     var apply=document.createElement('button');apply.className='primary';apply.textContent='应用到编辑器';
     apply.addEventListener('click',function(){
-      state.source=JSON.stringify(data.spec,null,2);editor.value=state.source;setFileTab('spec');setDirty(true);checkJson();toast('已应用到编辑器，点「保存新版本」才会落盘');
+      state.source=JSON.stringify(data.spec,null,2);state.origMain=state.origMain;editor.value=state.source;setFileTab('main');setDirty(true);checkJson();toast('已应用到编辑器，点「保存新版本」才会落盘');
     });
     var copy=document.createElement('button');copy.textContent='复制 JSON';
     copy.addEventListener('click',function(){navigator.clipboard&&navigator.clipboard.writeText(JSON.stringify(data.spec,null,2));toast('已复制');});
     tools.appendChild(apply);tools.appendChild(copy);thinking.appendChild(tools);$('chatLog').scrollTop=$('chatLog').scrollHeight;
-  }).catch(function(e){btn.disabled=false;$('chatHint').textContent='⌘/Ctrl + Enter 发送 · 不自动发布';thinking.className='msg error';thinking.querySelector('.bubble').textContent='AI 请求失败：'+e});
+  }).catch(function(e){btn.disabled=false;$('chatHint').textContent='⌘/Ctrl + Enter 发送 · 不自动保存';thinking.className='msg error';thinking.querySelector('.bubble').textContent='AI 请求失败：'+e});
 }
 
 function loadModels(){
@@ -548,7 +686,6 @@ function loadLayoutPrefs(){
     if(r)document.documentElement.style.setProperty('--right',r+'px');
     if(c)document.documentElement.style.setProperty('--code',c+'%');
   }catch(e){}
-  $('workspaceBody')&&0;
 }
 function initSplit(){
   var drag=null;
@@ -570,7 +707,8 @@ function initSplit(){
 }
 
 function initUI(){
-  loadCustom();loadLayoutPrefs();initSplit();loadModels();loadCandidates();
+  loadCustom();loadLayoutPrefs();initSplit();loadModels();
+  loadPages().then(function(){loadCandidates()});
   $('search').addEventListener('input',renderTree);
   $('refreshList').addEventListener('click',function(){loadCandidates()});
   $('runGatesBtn').addEventListener('click',runGates);
@@ -586,10 +724,19 @@ function initUI(){
   });
   Array.prototype.forEach.call($('viewSwitch').querySelectorAll('button'),function(b){b.addEventListener('click',function(){setView(b.getAttribute('data-view'))})});
   Array.prototype.forEach.call(document.querySelectorAll('.ftab'),function(b){b.addEventListener('click',function(){setFileTab(b.getAttribute('data-file'))})});
-  editor.addEventListener('input',function(){if(state.file!=='spec')return;state.source=editor.value;setDirty(editor.value!==state.original);updateGutter();checkJson();});
+  editor.addEventListener('input',function(){
+    if(state.mode==='page'){if(state.file==='css')state.css=editor.value;else state.source=editor.value}
+    else if(state.file==='main')state.source=editor.value;
+    setDirty(editor.value!==activeOriginal());updateGutter();checkJson();
+  });
   editor.addEventListener('scroll',function(){gutter.scrollTop=editor.scrollTop});
   editor.addEventListener('keyup',updateGutter);editor.addEventListener('click',updateGutter);
-  editor.addEventListener('keydown',function(e){if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s'){e.preventDefault();saveCurrent();return} if(e.key==='Tab'){e.preventDefault();var a=editor.selectionStart,b=editor.selectionEnd;editor.value=editor.value.slice(0,a)+'  '+editor.value.slice(b);editor.selectionStart=editor.selectionEnd=a+2;state.source=editor.value;setDirty(true);updateGutter();checkJson();}});
+  editor.addEventListener('keydown',function(e){
+    if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s'){e.preventDefault();saveCurrent();return}
+    if(e.key==='Tab'&&!editor.readOnly){e.preventDefault();var a=editor.selectionStart,b=editor.selectionEnd;editor.value=editor.value.slice(0,a)+'  '+editor.value.slice(b);editor.selectionStart=editor.selectionEnd=a+2;
+      if(state.mode==='page'){if(state.file==='css')state.css=editor.value;else state.source=editor.value}else state.source=editor.value;
+      setDirty(true);updateGutter();checkJson();}
+  });
   $('saveBtn').addEventListener('click',saveCurrent);$('draftBtn').addEventListener('click',previewDraft);
   Array.prototype.forEach.call($('deviceGroup').querySelectorAll('button'),function(b){b.addEventListener('click',function(){Array.prototype.forEach.call($('deviceGroup').querySelectorAll('button'),function(x){x.className=''});b.className='active';$('frameWrap').className='frame-wrap device-'+b.getAttribute('data-w')})});
   $('previewTheme').addEventListener('change',function(){state.theme=this.value;applyPreview()});

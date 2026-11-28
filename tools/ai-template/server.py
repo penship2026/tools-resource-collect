@@ -59,6 +59,15 @@ def _safe_path(root, rel):
     return path
 
 
+REPO_PUBLIC_FILES = {"index.html", "series.html", "list.html", "single.html", "mine-io.html"}
+
+
+def _repo_allowed(rel):
+    rel = str(rel or "").replace("\\", "/").lstrip("/")
+    return (rel in REPO_PUBLIC_FILES or rel.startswith("assets/")
+            or rel.startswith("tools/ai-template/drafts/"))
+
+
 def candidates(root=ROOT):
     items = []
     drafts = Path(root) / DRAFTS
@@ -177,7 +186,11 @@ class Handler(BaseHTTPRequestHandler):
             self._file(_safe_path(WORKBENCH, path[len("/workbench/"):]))
             return
         if path.startswith("/repo/"):
-            self._file(_safe_path(self.root, path[len("/repo/"):]))
+            rel = path[len("/repo/"):]
+            if not _repo_allowed(rel):
+                self._send(404, "not found")
+                return
+            self._file(_safe_path(self.root, rel))
             return
         if path.startswith("/preview/"):
             self._preview(path)
@@ -190,6 +203,9 @@ class Handler(BaseHTTPRequestHandler):
             return
         if path == "/api/models":
             self._json(studio.model_catalog(self.root))
+            return
+        if path == "/api/pages":
+            self._json(studio.page_catalog(self.root))
             return
         if path == "/favicon.ico":
             self._send(204, b"")
@@ -303,6 +319,13 @@ class Handler(BaseHTTPRequestHandler):
             elif path == "/api/spec/save":
                 result = generate.save_manual(
                     _safe_path(self.root, body.get("path", "")), body.get("spec"),
+                )
+            elif path == "/api/page/save":
+                result = studio.save_page(self.root, body.get("path"), body.get("content"))
+            elif path == "/api/page-edit":
+                result = studio.edit_page(
+                    self.root, body.get("path"), body.get("content"), body.get("instruction", ""),
+                    model_id=body.get("model", ""), custom=body.get("custom"),
                 )
             elif path == "/api/preview-draft":
                 result = studio.preview_draft(body.get("spec"), body.get("kind") or "layout", self.root)

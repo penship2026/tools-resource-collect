@@ -35,6 +35,25 @@ class OriginTest(unittest.TestCase):
         self.assertIsInstance(value, str)
 
 
+class CollectOnlyAssetsTest(unittest.TestCase):
+    def test_collect_theme_assets_are_allowed(self):
+        """采集端专用模式必须放行主题脚本与主题 CSS,否则页面会丢 token 样式。"""
+        for path in ("/assets/style.css", "/assets/theme.js",
+                     "/assets/themes/default.css", "/assets/themes/dark.css?x=1"):
+            self.assertTrue(server.collect_asset_allowed(path), path)
+
+    def test_collect_only_does_not_open_other_assets(self):
+        for path in ("/assets/data/index.js", "/assets/site.js", "/assets/templates.js"):
+            self.assertFalse(server.collect_asset_allowed(path), path)
+
+    def test_collect_page_uses_root_asset_urls(self):
+        """/collect.html 与 /collector/collect.html 两种入口都能解析到同一份主题资源。"""
+        html = (ROOT / "collector" / "collect.html").read_text(encoding="utf-8")
+        for path in ('href="/assets/style.css"', 'src="/assets/theme.js"',
+                     'href="/assets/themes/default.css"'):
+            self.assertIn(path, html)
+
+
 class SettingsPageTest(unittest.TestCase):
     def test_default_collapsed_and_guide_link(self):
         html = (ROOT / "collector" / "settings.html").read_text(encoding="utf-8")

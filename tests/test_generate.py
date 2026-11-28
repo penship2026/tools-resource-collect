@@ -263,6 +263,17 @@ class GenerateDataTest(unittest.TestCase):
         # 幂等:再跑一次不改动
         self.assertEqual(generate.normalize_dataset(log=lambda *a: None)["changed"], 0)
 
+    def test_normalize_unknown_date_to_empty(self):
+        """未知日期不再写「—」占位,避免 --verify/CI 被单条脏日期卡住。"""
+        self.assertEqual(generate.normalize_date("—"), "")
+        self.assertEqual(generate.normalize_date("2025-4-9"), "2025.04.09")
+        write_unit("u2", [video(0, date="—")])
+        self.write_index([{"id": "u2", "count": 1, "enabled": True, "type": "series",
+                           "source": {"platform": "bilibili"}}])
+        self.assertEqual(generate.normalize_dataset(log=lambda *a: None)["changed"], 1)
+        self.assertEqual(generate.load_collection_data("u2")["videos"][0]["date"], "")
+        self.assertTrue(generate.verify_data(log=lambda *a: None)["ok"])
+
 
     def test_finalize_unit_writes_contract(self):
         """D15:采集单元收口统一组装字段,不再各拼一份 dict"""
@@ -570,6 +581,76 @@ class CliSmokeTest(unittest.TestCase):
         r = self.run_cli("--verify")
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
         self.assertIn("自检通过", r.stdout)
+
+
+class CollectTopicAccountTest(unittest.TestCase):
+    """按单元主题采集:指定账号只对 B站 / 公众号生效,小红书明确忽略。"""
+
+    def setUp(self):
+        self._search = generate.channels.search_topic
+        self._fetch = generate.channels.fetch_wechat
+        self.logs = []
+
+    def tearDown(self):
+        generate.channels.search_topic = self._search
+        generate.channels.fetch_wechat = self._fetch
+
+    def logs_text(self):
+        return "\n".join(str(x) for x in self.logs)
+
+    def test_account_match(self):
+        self.assertTrue(generate.account_match("草根的异世界", "草根的异世界"))
+        # 平台昵称常带后缀,归一化后按前缀匹配
+        self.assertTrue(generate.account_match("草根的异世界 · 官方", "草根的异世界"))
+        self.assertFalse(generate.account_match("别家公众号", "草根的异世界"))
+        # 抓不到账号名时不允许放过
+        self.assertFalse(generate.account_match("", "草根的异世界"))
+
+    def test_wechat_up_filters_by_account(self):
+        hits = [{"url": "https://mp.weixin.qq.com/s/a"},
+                {"url": "https://mp.weixin.qq.com/s/b"},
+                {"url": "https://mp.weixin.qq.com/s/c"}]
+
+        def fake_search(keyword, platform_key, limit=20, log=print, account=None):
+            self.assertEqual(platform_key, "wechat")
+            self.assertEqual(account, "草根的异世界")
+            return hits
+
+        def fake_fetch(url, log=print):
+            if url.endswith("/a"):
+                return {"platform": "wechat", "kind": "article", "url": url,
+                        "title": "每日一站 第1期", "author": "草根的异世界",
+                        "source_name": "草根的异世界", "date": "2026-11-20"}
+            if url.endswith("/b"):
+                return {"platform": "wechat", "kind": "article", "url": url,
+                        "title": "每日一站 第2期", "author": "别家公众号",
+                        "source_name": "别家公众号", "date": "2026-11-21"}
+            raise ValueError("正文抓取失败")
+
+        generate.channels.search_topic = fake_search
+        generate.channels.fetch_wechat = fake_fetch
+        res = generate.collect_topic("每日一站", pages=1, title="账号限定单元",
+                                     up="草根的异世界", dry_run=True,
+                                     topic_channels=["wechat"], log=self.logs.append,
+                                     unit_id="acct-test")
+        self.assertTrue(res["ok"])
+        self.assertEqual(res["added"], 1)
+        self.assertIn("跳过 2 条", self.logs_text())
+
+    def test_xhs_ignores_up_with_notice(self):
+        def fake_search(keyword, platform_key, limit=20, log=print, account=None):
+            self.assertEqual(platform_key, "xhs")
+            self.assertIsNone(account)
+            return [{"url": "https://www.xiaohongshu.com/explore/0123456789abcdef01234567",
+                     "title": "每日一站 第1篇"}]
+
+        generate.channels.search_topic = fake_search
+        res = generate.collect_topic("每日一站", up="某个账号", dry_run=True,
+                                     topic_channels=["xhs"], log=self.logs.append,
+                                     unit_id="xhs-acct-test")
+        self.assertTrue(res["ok"])
+        self.assertEqual(res["added"], 1)
+        self.assertIn("小红书不支持按账号限定", self.logs_text())
 
 
 if __name__ == "__main__":

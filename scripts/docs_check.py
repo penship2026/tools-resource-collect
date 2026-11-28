@@ -20,6 +20,8 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 REQUIRED = [
     "README.md",
     "docs/README.md",
+    "docs/start-all.command",
+    "scripts/site_server.py",
     "docs/phase1/DESIGN-TEMPLATES-P1-20261127.md",
     "docs/phase1/SCHEDULE-TEMPLATES-P1-20261127.md",
     "docs/phase1/ACCEPTANCE-TEMPLATES-P1-20261127.md",

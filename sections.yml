@@ -58,3 +58,11 @@ sections:
     order: 7
     enabled: false
     description: "全龄；城市、历史、文化与地理"
+
+  - id: movie-calsses
+    title: "经典电影"
+    age_min_months: null
+    age_max_months: null
+    order: 9
+    enabled: true
+    description: ""

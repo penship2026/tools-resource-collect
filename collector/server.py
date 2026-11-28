@@ -122,6 +122,17 @@ def _job_update(job_id, *, state=None, progress=None, log=None, result=None):
 
 
 
+COLLECT_ASSET_EXACT = {"/assets/style.css", "/assets/theme.js"}
+
+
+def collect_asset_allowed(path):
+    """采集端专用模式仍需放行采集页的主题依赖,否则 CSS token 缺失会表现为样式丢失。"""
+    clean = (path or "").split("?", 1)[0].split("#", 1)[0]
+    if clean in COLLECT_ASSET_EXACT:
+        return True
+    return clean.startswith("/assets/themes/") and clean.endswith(".css")
+
+
 class Handler(http.server.SimpleHTTPRequestHandler):
     # 静态托管白名单:只放行展示页与 assets,其余(源码/文档/备份/.git)一律 404
     STATIC_EXACT = {
@@ -361,7 +372,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         # 采集端专用模式:只放行采集页本身和它依赖的样式表,其他静态文件由展示端 Web 服务器提供
         if API_ONLY:
             tail = path.rstrip("/").split("/")[-1]
-            if tail in ("collect.html", "settings.html", "settings-guide.html", "style.css"):
+            if tail in ("collect.html", "settings.html", "settings-guide.html", "style.css") or collect_asset_allowed(path):
                 return super().do_GET()
             self._json({
                 "ok": False,

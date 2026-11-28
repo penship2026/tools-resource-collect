@@ -31,6 +31,7 @@
 ```text
 docs/
 ├── README.md                          # 本索引与整理说明
+├── start-all.command                  # macOS 一键启动三服务
 ├── phase1/                            # 页面版式模板一期
 │   ├── DESIGN-TEMPLATES-P1-20261127.md
 │   ├── SCHEDULE-TEMPLATES-P1-20261127.md
@@ -167,9 +168,43 @@ docs/
 
 ---
 
-## 九、本次校验
+## 九、一键启动三服务
+
+macOS 下双击 `docs/start-all.command`，或在项目根执行：
+
+```bash
+./docs/start-all.command
+```
+
+会同时启动：
+
+| 服务 | 默认地址 | 作用 |
+|---|---|---|
+| 网站服务 | `http://127.0.0.1:8000/` | 静态展示站本地预览 |
+| 采集服务 | `http://127.0.0.1:8765/collect.html` | 采集 API、采集页、设置页（`--api-only`） |
+| 设计服务 | `http://127.0.0.1:8787/` | 模板 IDE、评审页、设计管理处 |
+
+常用参数：
+
+```bash
+./docs/start-all.command --no-open   # 不自动开浏览器
+./docs/start-all.command --check     # 只做启动自检，就绪后自动停止
+```
+
+端口冲突时可用环境变量覆盖：
+
+```bash
+WEB_PORT=8010 DESIGN_PORT=8797 COLLECT_PORT=8775 ./docs/start-all.command
+```
+
+脚本默认只绑定 `127.0.0.1`，不暴露到局域网；日志写到 `${TMPDIR:-/tmp}/jiye-studio/`。按 `Ctrl+C` 或关闭终端会停止全部服务。网站服务通过 `scripts/site_server.py` 对页面与数据统一加 `no-store`，采集完成后刷新首页即可看到新单元，不会被浏览器旧缓存挡住。
+
+---
+
+## 十、本次校验
 
 - `python3 scripts/docs_check.py`：通过
 - `python3 -m unittest tests.test_server tests.test_pages tests.test_studio`：通过（文档移动不影响业务代码）
+- `./docs/start-all.command --check`：三服务均能就绪并自动停止
 - 仓库内 `docs/<旧文件名>` 引用：已全部替换为新路径
 - 原目录完整备份：`/tmp/tools-resource-collect-docs-backup-20261128`（仅本机临时备份，不提交）

@@ -422,11 +422,15 @@ def _parse_search_page(platform_key, parser, page):
     return out
 
 
-def search_topic(keyword, platform_key, limit=20, log=print):
+def search_topic(keyword, platform_key, limit=20, log=print, account=None):
     """
     按关键词检索某图文渠道的候选内容,返回 [{"url","title","engine"}]。
     只找链接;公众号正文请用 fetch_wechat 再抓,小红书以搜索标题为准。
     搜索引擎会间歇性风控,按顺序尝试多个引擎,全部失败才抛 PlatformError。
+
+    account: 指定账号名。只有公众号可用——把账号名拼进检索式缩小候选范围;
+    小红书没有公开的账号维度(账号主页无笔记正文、未登录读不到昵称),传入会被忽略。
+    注意这只是「提高候选命中率」,账号是否真的匹配要在拿回内容后再核对。
     """
     cfg = _SEARCH_SITES.get(platform_key)
     if not cfg:
@@ -434,10 +438,17 @@ def search_topic(keyword, platform_key, limit=20, log=print):
     keyword = (keyword or "").strip()
     if not keyword:
         raise PlatformError("单元主题关键词不能为空")
+    account = (account or "").strip()
+    if account and platform_key != "wechat":
+        log("  %s没有账号维度,指定账号「%s」不参与检索" % (platform_name(platform_key), account))
+        account = ""
 
     errors = []
     for engine in _SEARCH_ENGINES[platform_key]:
-        url = engine["query"] % urllib.parse.quote("%s %s" % (cfg["site"], keyword))
+        terms = [cfg["site"], keyword]
+        if account:
+            terms.insert(1, account)
+        url = engine["query"] % urllib.parse.quote(" ".join(terms))
         try:
             _, page = _get(url, headers={
                 "User-Agent": engine["ua"], "Accept-Language": "zh-CN,zh;q=0.9",
@@ -455,6 +466,8 @@ def search_topic(keyword, platform_key, limit=20, log=print):
 
         # 按标题与关键词的重合度排序,减少搜索引擎的噪声结果
         tokens = [t for t in re.split(r"[\s|｜/、,，:：\-—_()（）\[\]【】#]+", keyword) if len(t) >= 2]
+        if account:
+            tokens.append(account)
         def score(hit):
             title = hit.get("title", "").lower()
             return sum(1 for t in tokens if t.lower() in title) + (1 if keyword.lower() in title else 0)

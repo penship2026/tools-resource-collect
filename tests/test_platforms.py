@@ -4,6 +4,7 @@
 import os
 import sys
 import unittest
+import urllib.parse
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "collector"))
@@ -48,6 +49,45 @@ class XhsStateTest(unittest.TestCase):
         self.assertEqual(note["noteId"], "65f0a1b2")
         self.assertEqual(note["title"], "测试笔记")
         self.assertEqual(platforms._xhs_cover(note), "https://sns-img.example.com/x.jpg")
+
+
+class SearchTopicAccountTest(unittest.TestCase):
+    """账号限定:公众号把账号名拼进检索式;小红书没有账号维度,传入即忽略。"""
+
+    def _run_search(self, platform_key, account):
+        calls = []
+        real_get = platforms._get
+        real_parse = platforms._parse_search_page
+
+        def fake_get(url, headers=None, timeout=None):
+            calls.append(url)
+            return "", "<html></html>"
+
+        def fake_parse(key, parser, page):
+            return [{"url": "https://mp.weixin.qq.com/s/abc", "title": "每日一站 第1期"}]
+
+        try:
+            platforms._get = fake_get
+            platforms._parse_search_page = fake_parse
+            hits = platforms.search_topic("每日一站", platform_key, limit=20,
+                                          log=lambda *a: None, account=account)
+        finally:
+            platforms._get = real_get
+            platforms._parse_search_page = real_parse
+        return hits, calls
+
+    def test_wechat_account_goes_into_query(self):
+        hits, calls = self._run_search("wechat", "草根的异世界")
+        self.assertEqual(len(hits), 1)
+        self.assertTrue(calls)
+        self.assertIn(urllib.parse.quote("草根的异世界"), calls[0])
+        self.assertIn(urllib.parse.quote("每日一站"), calls[0])
+
+    def test_xhs_account_is_ignored(self):
+        hits, calls = self._run_search("xhs", "某个账号")
+        self.assertEqual(len(hits), 1)
+        self.assertTrue(calls)
+        self.assertNotIn(urllib.parse.quote("某个账号"), calls[0])
 
 
 class UrlHelpersTest(unittest.TestCase):

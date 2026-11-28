@@ -8,13 +8,13 @@ display:
     - standard
     - news
     - magazine
-  max_layouts: 20
   visible_themes:
     - tech
     - default
     - dark
     - campus
     - classical
+  max_layouts: 20
   max_themes: 6
 
 editorial:

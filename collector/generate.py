@@ -37,7 +37,7 @@ series.html / single.html),由人工单独维护布局样式,通过 ?id= 读取�
   --id ID          指定主题单元 id;命中已有主题单元则只更新它,不新建
   --pages N        搜索翻页数,默认 30(每页 20 条)
   --title T        单元主题,默认等于关键词
-  --up NAME        限定 UP 主名称,结果更精确
+  --up NAME        限定 UP 主 / 公众号账号名称(B站精确聚类;公众号逐条核对昵称;小红书不支持)
   --slug NAME      同 --id,兼容旧参数
   --slogan TEXT    副标题
   --dry-run        只预览不写文件
@@ -235,6 +235,26 @@ def keyword_match(text, must_keywords, any_keywords=None):
     return True
 
 
+def account_match(got, want):
+    """判断抓到的账号名是否就是用户指定的账号。
+
+    平台给的昵称常带后缀(「XX的公众号」「XX官方号」)或有全半角/空格差异,
+    所以按归一化后的相等 / 前缀后缀 / 包含来判断;过短的字符串不做包含匹配,
+    避免「XX」这种短名把别的账号也算进来。
+    """
+    got_n = normalize_match_text(got)
+    want_n = normalize_match_text(want)
+    if not got_n or not want_n:
+        return False
+    if got_n == want_n:
+        return True
+    if len(want_n) >= 2 and (got_n.startswith(want_n) or got_n.endswith(want_n)):
+        return True
+    if len(want_n) >= 2 and len(got_n) >= 4 and (want_n in got_n or got_n in want_n):
+        return True
+    return False
+
+
 def item_match_text(item):
     """候选条目的可匹配文本：标题 + 简介 + 分P标题。"""
     parts = []
@@ -331,7 +351,7 @@ def normalize(video, keyword=""):
     try:
         date = datetime.datetime.fromtimestamp(pub).strftime("%Y.%m.%d")
     except Exception:
-        date = "—"
+        date = ""
     # 干净的播放地址:B站官方 BV 播放页,不带任何追踪参数
     bv = video.get("bvid", "")
     # 简介:优先 description,其次 desc
@@ -429,10 +449,10 @@ def platform_key(value):
 
 
 def normalize_date(text):
-    """把各种日期写法统一成 yyyy.mm.dd,无法识别时原样返回"""
+    """把各种日期写法统一成 yyyy.mm.dd;无法识别时留空,由展示层显示占位符。"""
     m = re.match(r"(\d{4})[-./年](\d{1,2})[-./月](\d{1,2})", (text or "").strip())
     if not m:
-        return (text or "").strip() or "—"
+        return ""
     return "%s.%s.%s" % (m.group(1), m.group(2).zfill(2), m.group(3).zfill(2))
 
 
@@ -1760,9 +1780,18 @@ def collect_topic(keyword, pages=30, title=None, up=None, slug=None,
         if pkey not in selected:
             continue
         label = channels.platform_name(pkey)
-        log("正在检索%s单元主题内容(搜索引擎找候选链接)..." % label)
+        # 账号限定:公众号可以用「指定账号」收紧检索并逐条核对;小红书没有账号维度,
+        # 只能明确告知用户不支持,仍按关键词采集,避免静默假装已限定。
+        account = (up or "").strip() if pkey == "wechat" else ""
+        if up and pkey == "xhs":
+            log("小红书不支持按账号限定,已忽略「%s」;仍按关键词采集,"
+                "如需只收指定账号的笔记请用「按链接采集」逐条补录" % up)
+        limit = 30 if account else 12
+        log("正在检索%s单元主题内容(搜索引擎找候选链接)%s..." % (
+            label, "，限定账号「%s」" % account if account else ""))
         try:
-            hits = channels.search_topic(keyword, pkey, limit=12, log=log)
+            hits = channels.search_topic(keyword, pkey, limit=limit, log=log,
+                                         account=account or None)
         except Exception as exc:
             reason = "%s搜索失败: %s" % (label, exc)
             log(reason)
@@ -1771,6 +1800,7 @@ def collect_topic(keyword, pages=30, title=None, up=None, slug=None,
         result["fetched"] += len(hits)
         picked = []
         matched_raw = 0
+        skipped_account = 0
         for hit in hits:
             raw = {
                 "platform": pkey, "kind": channels.platform_kind(pkey),
@@ -1786,6 +1816,17 @@ def collect_topic(keyword, pages=30, title=None, up=None, slug=None,
                 ids = re.findall(r"/(?:explore|discovery/item)/([0-9a-zA-Z]{16,})", hit.get("url", ""))
                 if ids:
                     raw["key"] = "xhs:" + ids[0]
+            # 指定了公众号账号时,逐条核对正文里的公众号名;核对不了的一律丢弃
+            if account:
+                got = (raw.get("source_name") or raw.get("author") or "").strip()
+                if not got:
+                    skipped_account += 1
+                    log("  无法确认账号,已跳过(正文未抓到): %s" % hit.get("url", "")[:60])
+                    continue
+                if not account_match(got, account):
+                    skipped_account += 1
+                    log("  非指定账号(实为「%s」),已跳过: %s" % (got, hit.get("url", "")[:60]))
+                    continue
             # 图文渠道同样执行 must/any；正文抓不到时只剩标题，日志标记 title_only
             if not keyword_match((raw.get("title") or "") + "\n" + (raw.get("desc") or ""),
                                  must, any_list):
@@ -1796,9 +1837,16 @@ def collect_topic(keyword, pages=30, title=None, up=None, slug=None,
                 picked.append(item)
         log("  %s命中 %d 条，must/any 通过 %d 条，成功入库候选 %d 条" % (
             label, len(hits), matched_raw, len(picked)))
+        if account and skipped_account:
+            log("  按指定账号「%s」过滤,跳过 %d 条(非该账号或无法确认账号)" % (
+                account, skipped_account))
+        err = "" if picked else "命中的链接均无法解析或未通过关键词过滤,可改用「按链接采集」手工补录"
+        if account and not picked:
+            err += (";指定账号「%s」无可用结果,多为搜索引擎未收录该账号的相关文章,"
+                    "可改用「按链接采集」贴文章链接,或留空账号重采后再人工筛选" % account)
         reports.append({
             "channel": pkey, "name": label, "found": len(picked),
-            "error": "" if picked else "命中的链接均无法解析或未通过关键词过滤,可改用「按链接采集」手工补录",
+            "account": account, "skipped_account": skipped_account, "error": err,
         })
         incoming.extend(picked)
 
@@ -2040,7 +2088,7 @@ def bili_season_records(x):
             try:
                 date = datetime.datetime.fromtimestamp(pub).strftime("%Y.%m.%d")
             except Exception:
-                date = "—"
+                date = ""
             author = ((arc.get("author") or {}).get("name")
                       or (x.get("owner") or {}).get("name") or "")
             pages = e.get("pages") or []
@@ -2705,6 +2753,12 @@ def normalize_dataset(log=print, dry_run=False):
         if "page" in data:
             data.pop("page")
             dirty = True
+        videos = data.get("videos")
+        if isinstance(videos, list):
+            for item in videos:
+                if isinstance(item, dict) and str(item.get("date") or "") == "—":
+                    item["date"] = ""
+                    dirty = True
         src = data.get("source")
         if isinstance(src, dict) and "platform" in src:
             key = platform_key(src.get("platform"))
@@ -2734,7 +2788,7 @@ def build_parser():
     parser.add_argument("keyword", nargs="?", default=None, help="搜索单元主题关键词(或 --url 时的链接/BV号)")
     parser.add_argument("--pages", type=int, default=30, help="搜索翻页数,默认30(每页20条)")
     parser.add_argument("--title", default=None, help="单元主题")
-    parser.add_argument("--up", default=None, help="限定UP主名称")
+    parser.add_argument("--up", default=None, help="限定UP主/公众号账号名称(B站与公众号支持,小红书不支持)")
     parser.add_argument("--id", dest="unit_id", default=None, help="主题单元 id;命中已有主题单元则只更新它")
     parser.add_argument("--slug", default=None, help="同 --id,兼容旧参数")
     parser.add_argument("--slogan", default=None, help="副标题")

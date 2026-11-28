@@ -233,9 +233,9 @@ window.COLLECTION_DATA["topic-35bc9a90"] = {
       "total": 13
     }
   ],
-  "updated": "2026-11-27",
+  "updated": "2026-11-28",
   "latest": "2025.04.01",
   "created": "2026-11-27",
   "enabled": true,
-  "section": "ai"
+  "section": "k12"
 };

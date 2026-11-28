@@ -41,7 +41,7 @@ window.COLLECTION_DATA["topic-e5b5c763"] = {
   "platforms": [
     "bilibili"
   ],
-  "updated": "2026-11-27",
+  "updated": "2026-11-28",
   "latest": "2024.03.14",
   "created": "2026-11-26",
   "enabled": true

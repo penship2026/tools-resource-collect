@@ -23,7 +23,7 @@ window.SECTIONS = [
     "description": "6–18 岁学科、启蒙与学习方法",
     "order": 3,
     "enabled": true,
-    "count": 4
+    "count": 13
   },
   {
     "id": "ai",
@@ -31,7 +31,7 @@ window.SECTIONS = [
     "description": "全龄；大模型、Agent、AI 开发与 AI 应用",
     "order": 4,
     "enabled": true,
-    "count": 6
+    "count": 5
   },
   {
     "id": "tech",
@@ -55,6 +55,14 @@ window.SECTIONS = [
     "description": "全龄；城市、历史、文化与地理",
     "order": 7,
     "enabled": false,
+    "count": 1
+  },
+  {
+    "id": "movie-calsses",
+    "title": "经典电影",
+    "description": "",
+    "order": 9,
+    "enabled": true,
     "count": 1
   }
 ];

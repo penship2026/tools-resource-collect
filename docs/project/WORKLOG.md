@@ -834,3 +834,19 @@ Chrome 无头截图三页面全部正常:首页卡片标签独立行两行截断
 - `tech` 与 `anime` 的 `--brand / --bg` 对比度为 2.50 / 2.86，低于 AI 模板 G4 的 3.0；克隆后预览会标红，需先调深品牌色再批准，这是内置主题历史状态。
 - A5 试点期放开版式套数：`site.yml` 与 `assets/site.js` 的 `display.max_layouts` 从 5 调到 20；主题仍为 8，3 套内置 + 3 个 AI 版式不再受 5 套限制。
 - 验收：9 份内置 Spec 校验通过；版式/主题克隆测试通过；`collector/generate.py --verify` 通过。
+
+## 四十一、按单元主题采集的账号限定拆到渠道(2026-11-28)
+
+- 问题:表单「指定 UP 主」在只勾公众号 / 小红书时被静默忽略——`collect_topic` 只在 B站 分支消费 `up`，图文渠道循环从未读过它，用户以为限定了账号，实际收的是全网关键词结果，来源名还会被首条内容带偏。
+- 公众号改为真限定:新增 `platforms.search_topic(account=...)`，账号名拼进检索式（`site:mp.weixin.qq.com 账号 关键词`）并把候选上限从 12 提到 30；正文抓回后用新增的 `generate.account_match()` 逐条核对公众号昵称（归一化后相等/前后缀/包含，短名不做包含），非该账号或正文抓取失败无法确认的一律丢弃，日志输出跳过条数；全部被过滤时提示改走「按链接采集」。
+- 小红书明确不支持:后端收到账号只打一条「小红书不支持按账号限定，已忽略」的日志，仍按关键词采集；表单字段改为「指定账号 / UP 主」，提示文案按当前勾选渠道动态说明生效范围（只勾小红书且填了账号时标红），避免再出现静默忽略。
+- 文档:README 采集规则补「指定账号」与「小红书不支持」两条，CLI 帮助与 `--up` 说明同步；新增 `--channels wechat --up 公众号名` 示例。
+- 验收:新增 5 例回归（`SearchTopicAccountTest` 2 例、`CollectTopicAccountTest` 3 例）全部通过；`tests/test_platforms.py` + `tests/test_generate.py` 53 例通过；全量 179 例中仅 1 例失败 1 例报错，均为本机已配置模型 Key / 工作台冒烟依赖真实模型，与本次改动无关。
+
+## 四十二、采集页主题资源与本地首页缓存(2026-11-28)
+
+- 采集页丢样式:采集端 `--api-only` 只放行 `style.css`，`theme.js` 与 `assets/themes/*.css` 被 404；布局在 `style.css`，颜色/边框/圆角/阴影 token 在主题 CSS，所以表现为“部分样式丢失”、主题切换失效。改为放行 `theme.js` 与主题 CSS，其他静态数据继续不开放；采集页资源统一走根路径 `/assets/`，`/collect.html` 与 `/collector/collect.html` 两个入口都能加载。
+- 首页不更新:网站服务原来用 `python3 -m http.server`，不发送 `Cache-Control`；浏览器启发式缓存住 `assets/data/index.js`，采集完成后首页仍读旧索引。新增 `scripts/site_server.py`，页面与数据统一 `no-store`，`docs/start-all.command` 改用该服务。
+- 数据校验:无发布日期曾被写成 `—`，`--verify` 会判日期格式异常，导致 CI / Pages 发布失败。无日期改为空字符串，展示层继续显示占位；`--normalize` 同时清理存量 `—`。
+- 采集反馈:采集成功后状态栏提示“首页数据已更新，刷新首页即可查看”。
+- 验收:新开首页可见「小学阅读书单」；`generate.py --verify` 0 问题；采集/页面/工作台/生成器/平台共 111 例通过；`docs/start-all.command --check` 三服务就绪。

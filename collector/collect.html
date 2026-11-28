@@ -4,10 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>采集入口 · 集页</title>
-  <link rel="stylesheet" href="assets/style.css">
+  <link rel="stylesheet" href="/assets/style.css">
   <!-- 主题:阻塞脚本在 <head> 里同步注入主题 CSS,避免首屏闪一下 -->
-  <script src="assets/theme.js"></script>
-  <noscript><link rel="stylesheet" href="assets/themes/default.css"></noscript>
+  <script src="/assets/theme.js"></script>
+  <noscript><link rel="stylesheet" href="/assets/themes/default.css"></noscript>
   <style>
     .layout { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 28px; align-items: start; }
     @media (max-width: 860px) { .layout { grid-template-columns: 1fr; } }
@@ -41,6 +41,7 @@
     }
     .manual-block h4 { font-size: 12px; font-weight: 600; color: var(--text-sub); margin-bottom: 12px; }
     .field .tip { font-size: 12px; color: var(--text-mute); margin-top: 5px; }
+    .field .tip.warn { color: #c0392b; }
     .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     .check { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-sub); }
     /* 按单元主题采集的渠道多选 */
@@ -295,9 +296,9 @@
               <!-- 主题单元 ID 只在「重新采集」时由已有主题单元列表带入,新建时留空 -->
               <input type="hidden" id="slug">
               <div class="field hidden" id="field-up">
-                <label for="up">指定 UP 主(可选)</label>
-                <input type="text" id="up" placeholder="例如:草根的异世界">
-                <div class="tip">指定后只采该作者,结果更纯粹。</div>
+                <label for="up">指定账号 / UP 主(可选)</label>
+                <input type="text" id="up" placeholder="例如:草根的异世界,或某公众号名">
+                <div class="tip" id="up-tip"></div>
               </div>
               <div class="field hidden" id="field-pages">
                 <label for="pages">搜索页数</label>
@@ -572,6 +573,7 @@
       $('batch_links').required = m === 'batch';
       $('submit').textContent = submitLabel();
       updateTitleField();
+      syncUpTip();
       if (!keep) {
         statusBox.textContent = '';
         logBox.textContent = '';
@@ -587,6 +589,8 @@
     });
     $('target-topic').addEventListener('change', () => syncTargetTopic(true));
     $('section-id').addEventListener('change', onSectionChange);
+    $('up').addEventListener('input', syncUpTip);
+    document.querySelectorAll('#channel-picks input').forEach(cb => cb.addEventListener('change', syncUpTip));
 
     // 用相对路径调用接口,兼容站点部署在子目录下(根路径下也正常)
     const API_COLLECT = 'api/collect';
@@ -636,9 +640,36 @@
       document.querySelectorAll('#channel-picks input').forEach(i => {
         i.checked = list.indexOf(i.value) >= 0;
       });
+      syncUpTip();
     }
     function channelNames(values) {
       return (values || []).map(v => CHANNEL_NAMES[v] || v).join(' / ');
+    }
+    // 指定账号只对部分渠道有效:按当前勾选的渠道说明生效范围,避免误以为公众号/小红书也生效
+    function syncUpTip() {
+      const el = $('up-tip');
+      if (!el) return;
+      const up = ($('up').value || '').trim();
+      const cs = selectedChannels();
+      const onBili = cs.indexOf('bilibili') >= 0;
+      const onWx = cs.indexOf('wechat') >= 0;
+      const onXhs = cs.indexOf('xhs') >= 0;
+      let text = '';
+      let warn = false;
+      if (!up) {
+        text = 'B站:限定 UP 主;公众号:限定公众号名(依赖搜索引擎收录,可能漏采);小红书:不支持按账号限定。';
+      } else if (!cs.length) {
+        text = '请先勾选采集渠道:B站、公众号支持按账号限定,小红书不支持。';
+      } else {
+        const parts = [];
+        if (onBili) parts.push('B站按该 UP 主限定');
+        if (onWx) parts.push('公众号按该账号逐条核对公众号名,收录不到会漏采');
+        if (onXhs) parts.push('小红书不支持按账号限定,本次忽略该账号、仍按关键词采集');
+        text = '「' + up + '」:' + parts.join('；') + '。';
+        warn = onXhs && !onBili && !onWx;
+      }
+      el.textContent = text;
+      el.classList.toggle('warn', warn);
     }
     // 采集时间统一成 yyyy.mm.dd HH:MM,与全站日期格式一致
     function fmtStamp(s) { return (s || '').replace(/^(\d{4})-(\d{2})-(\d{2})/, '$1.$2.$3'); }
@@ -1186,6 +1217,9 @@
           $('r-total').textContent = d.total;
           reportBox.classList.add('show');
           if (!d.dry_run) {
+            if (payload.merge_mode !== 'remove') {
+              statusBox.textContent += ' 首页数据已更新，刷新首页即可查看。';
+            }
             // 重新采集完成后回到新建状态,避免误以为还能继续改同一单元
             if (recollectId) exitRecollect();
             loadTopics();

@@ -1,6 +1,6 @@
 # 二期排期与进度 · AI 设计与展示管理
 
-> 版本 v1.10 · 2026-11-28 · 分支 `feat/templates-p2-20261127`
+> 版本 v1.11 · 2026-11-28 · 分支 `feat/templates-p2-20261127`
 > 依据：`docs/DESIGN-TEMPLATES-P2-20261127.md` v1.4、`docs/REVIEW-TEMPLATES-P2-20261127.md`
 > 口径：工程 15–19 人日，另计 3–4 人日评审/验收；每轮提交同步更新本表进度列；AI 只是增强，无 AI 基线必须全绿
 
@@ -77,6 +77,7 @@ env -u AI_BASE_URL -u AI_API_KEY -u AI_MODEL python3 -m unittest discover -s tes
 | 2026-11-28 | A5 | 3 套 AI 版式 + 3 套 AI 主题候选生成完成，15 张截图与 G1–G6 全部通过；`7efbff4` 已推送 | 六套候选各 15 shots 通过；未批准、`published.json` 仍为空 | 待人工确认后批准上架 |
 | 2026-11-28 | A4.7 | IDE 工作台：左模板树/工具、中 `spec.json` 编辑+预览、右 AI 对话+模型切换；三栏拖宽、左右互换；`serve --host` 局域网 | Python 全量 161 例通过；Chrome 实测候选加载、主题/版式切换、草稿预览、真实 AI 改 Spec；`/` 与 `/ide` 200 | 提交 `07c1ae6`，已推送；`/review` 保留旧评审页；8787 已用 `0.0.0.0` 重启 |
 | 2026-11-28 | A4.7+ | IDE 补页面文件：四页 2×2 选择、HTML/CSS 双标签、页面保存备份、页面 AI、`/api/pages` 与 `/repo` 白名单 | Python 全量 164 例通过；四页预览 200；Chrome 实测首页/集合页/详情页加载与切换；真实 AI 改页面 CSS/HTML 成功；`.env` 与 docs 被 404 | 提交 `8df66ce`，已推送；页面 AI 未限制 `max_tokens`，大文件需继续观察截断 |
+| 2026-11-28 | A4.7+ 资源三 Tab | 左栏「页面文件 / 版式 / 主题」同组三 Tab；`/api/designs` 合并内置、已上架与 AI 草稿，版式 6 套、主题 10 套全量列出；内置只读真实预览，草稿仍可编辑 | Python 全量 165 例通过；`node --check` 通过；Chrome 实测计数 4/6/10、版式 6 行、主题 10 行、`standard/dark` 只读预览、`news-grid-compact` 改字符后保存启用 | 代码提交 `2a4fbc7`，文档随后提交；推送因 GitHub 443 超时待重试；内置项需在管理处克隆后才可编辑 |
 
 ---
 

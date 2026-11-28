@@ -1,11 +1,13 @@
 # 二期详细设计 · AI 模板与主题工坊
 
-> 版本 v1.10 · 2026-11-28 · 状态：A4 实现完成，待验收；A5 六套候选已生成并通过闸门；IDE 工作台新增页面文件编辑
+> 版本 v1.11 · 2026-11-28 · 状态：A4 实现完成，待验收；A5 六套候选已生成并通过闸门；IDE 工作台左侧改为资源三 Tab，列出全量设计
 > 对应方案：`docs/PLAN-TEMPLATES-20261127.md`（D70–D73、D92–D98）
 > 评审记录：`docs/REVIEW-TEMPLATES-P2-20261127.md`
 > 前置：一期 3 套版式、布局 token 白名单、`templates.js` 注册表已就绪；截图脚本与基线由 A0 新建，不再假设已存在
 > 核心定位：**AI 是可选增强，不是运行时依赖**——生成在离线/本机完成，线上仍是零构建纯静态
 
+> **v1.11 修订**：工作台左栏从「页面文件 + 模板树」改为同一组三个 Tab——「页面文件」「版式」「主题」；版式/主题列出全量设计（内置、已上架、AI 草稿），不再只列 AI 候选。新增 `GET /api/designs` 合并注册表与草稿；内置项只读预览真实站点，AI 草稿仍可编辑、保存新版本。首屏计数为 4 / 6 / 10。
+>
 > **v1.10 修订**：IDE 工作台补上「页面文件」模式，可编辑首页 `index.html`、集合页 `series.html`、列表页 `list.html`、详情页 `single.html` 及各自 `assets/pages/*.css`；页面 HTML/CSS 均可手改、备份后保存、AI 改文件；模板候选 Spec 模式保留。新增 `/repo` 白名单，局域网只暴露站点文件与候选草稿，不暴露 `.env`、`tools/` 与文档。
 >
 > **v1.9 修订**：工作台从「候选评审卡片」升级为 IDE 形态：左侧模板树与工具、中间可编辑 `spec.json` + 实时预览、右侧 AI 对话改 Spec 并可切换模型；三栏可拖宽、左右可互换，`serve --host 0.0.0.0` 支持局域网。旧评审页保留在 `/review`。
@@ -464,11 +466,14 @@ docs/templates/<key>.json       Spec 原文件（可复现）
 
 ```text
 ┌ 顶栏：项目 / 当前模板 / 模型 / 评审页 / 管理处 / 站点 ┐
-│ 左：页面文件 2×2 + 模板树、搜索、新建、跑闸门 │ 中：HTML/CSS 编辑 + 预览 │ 右：AI 对话 + 模型 │
+│ 左：资源三 Tab（页面文件 / 版式 / 主题）、搜索、新建、跑闸门 │ 中：HTML/CSS 编辑 + 预览 │ 右：AI 对话 + 模型 │
 └ 状态栏：当前文件 / 文件状态 / 模型 / 保存状态 ┘
 ```
 
-- 左栏：顶部「页面文件」固定四页——首页 `index.html`、集合页 `series.html`、列表页 `list.html`、详情页 `single.html`，每页绑定 `assets/pages/*.css`；下方才是模板候选，按版式/主题分组。页面与候选互斥选中，互切时若有未保存改动会二次确认。
+- 左栏：同一组三个 Tab——「页面文件」「版式」「主题」，计数实时显示 `4 / 6 / 10`。页面 Tab 固定四页——首页 `index.html`、集合页 `series.html`、列表页 `list.html`、详情页 `single.html`，每页绑定 `assets/pages/*.css`；版式/主题 Tab 列出**全量设计**（内置、已上架、AI 草稿），来自 `GET /api/designs`，不再只列 AI 候选。页面、版式、主题互斥选中，互切时若有未保存改动会二次确认。
+- 全量设计：`GET /api/designs` 把 `registry.items()` 的注册表设计与 `candidates()` 的草稿按 `kind+key` 合并。每行显示来源标签「内置 / AI 草稿 / 已发布 / 已归档」与状态「展示中 / 未上架 / 锁定 / N 个候选」。当前版式 6 套（内置 `standard/news/magazine` + 草稿 `news-grid-compact/news-a5-2/a5-portal-mixed`），主题 10 套（内置 `default/dark/tech/campus/classical/anime` + 草稿 `campus-v2/qing-lv-academy/midnight-ink/warm-paper-a5-4`）。
+- 内置只读：点击内置项进入 `mode=design`，加载 API 返回的内置 Spec 与真实 CSS，编辑器只读，保存按钮显示「只读模板」；预览嵌 `/repo/index.html` 并注入 `#theme-css`、`#layout-css`、`data-theme`、`data-layout` 应用选中设计。内置项保存与 AI 改 Spec 均提示「先在管理处克隆后再改」，避免绕过批准直接改线上模板。AI 草稿仍走 `mode=template`，可编辑 Spec、保存 `candidate-N-eN`、跑 G1–G6、AI 改 Spec。
+- 预览工具条：主题/版式下拉从 `state.designs` 全量生成，内置与草稿同源；预览宽度按桌面/平板/手机三档。
 - 中栏：`源码 / 分屏 / 预览` 三态。页面模式下列表直接载入真实页面文件，HTML 与 CSS 都可编辑；保存走 `POST /api/page/save`，白名单外的路径拒绝，写前备份到 `backups/pages/<时间戳>/`，再原子替换。模板模式保留 `spec.json` 编辑，保存走 `POST /api/spec/save` 写 `candidate-N-eN`；`styles.css` 仍是只读编译产物。
 - 页面预览：直接嵌 `/repo/index.html`、`/repo/series.html?id=<首个单元>`、`/repo/list.html?id=<首个单元>`、`/repo/single.html?id=<首个单元>`；预览始终读已保存版本，保存成功后自动刷新；页面模式没有“未保存草稿预览”，按钮改为「刷新预览」并提示。
 - 右栏：对话输入改文件要求。页面模式走 `POST /api/page-edit`，模型只返回完整 HTML/CSS 正文，用户点「应用到编辑器」后才进源码，仍需手动「保存文件」；模板模式走 `POST /api/ai-edit` 返回完整新 Spec，仍需手动「保存新版本」。模型下拉来自 `/api/models`，可切 `.env` 当前模型、OpenRouter 预设、本机 Ollama；自定义模型只存浏览器 `localStorage`，随单次请求发给本机服务。
@@ -486,7 +491,8 @@ docs/templates/<key>.json       Spec 原文件（可复现）
 | `GET /api/pages` | 页面文件清单与预览地址 |
 | `POST /api/page/save` | 备份并保存页面 HTML/CSS |
 | `POST /api/page-edit` | AI 改页面 HTML/CSS，不落盘 |
-| `GET /api/candidates` | 候选列表与预览路径 |
+| `GET /api/designs` | 全量版式/主题（内置 + 已发布 + AI 草稿） |
+| `GET /api/candidates` | 仅 AI 草稿候选列表（保留兼容） |
 | `POST /api/spec/save` | 保存手改版本 |
 | `POST /api/preview-draft` | 未保存 Spec 草稿预览 |
 | `POST /api/preview` | 跑 15 张截图与 G1–G6 |
@@ -497,7 +503,7 @@ docs/templates/<key>.json       Spec 原文件（可复现）
 
 - Mac 局域网 `192.168.0.100`；启动：`python3 tools/ai-template/cli.py serve --host 0.0.0.0 --port 8787`。
 - 工作台：`http://192.168.0.100:8787/`；二期站点：`http://192.168.0.100:8899/`。
-- 验收项：首页/集合页/列表页/详情页四页加载与 HTML/CSS 切换、页面保存与备份、页面 AI 应用、候选加载、源码编辑、JSON 校验、草稿预览、保存新版本、AI 改 Spec 应用、模型切换、三栏拖宽/互换、手机宽度下不横向溢出。
+- 验收项：资源三 Tab 计数 `4 / 6 / 10` 与互斥显示；首页/集合页/列表页/详情页四页加载与 HTML/CSS 切换、页面保存与备份、页面 AI 应用；版式 6 行、主题 10 行全量列出；内置 `standard/dark` 只读且预览正确应用；AI 草稿 `news-grid-compact` 可编辑、改字符后保存按钮启用；候选加载、源码编辑、JSON 校验、草稿预览、保存新版本、AI 改 Spec 应用、模型切换、三栏拖宽/互换、手机宽度下不横向溢出。
 - 已知边界：管理处与写接口无登录鉴权，只应在可信局域网使用；AI 结果和候选仍需人工保存/批准，不自动发布。
 
 ---

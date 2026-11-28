@@ -125,6 +125,81 @@ def candidates(root=ROOT):
     return items
 
 
+def design_catalog(root=ROOT):
+    """左侧「版式 / 主题」全量清单：内置 + 已发布 + AI 草稿，按 key 合并。"""
+    visible = site_store.read_display(root)
+    all_candidates = candidates(root)
+    grouped = {}
+    for item in all_candidates:
+        grouped.setdefault((item.get("kind"), item.get("key")), []).append(item)
+    builtin_dir = Path(root) / "tools" / "ai-template" / "builtin-specs"
+    docs_dir = Path(root) / "docs" / "templates"
+    out = {"layout": [], "theme": []}
+    for kind in ("layout", "theme"):
+        registry_items = registry.items(kind, root)
+        keys = list(registry_items)
+        for (item_kind, key) in grouped:
+            if item_kind == kind and key not in keys:
+                keys.append(key)
+        visible_keys = visible.get("visible_layouts" if kind == "layout" else "visible_themes", [])
+        for key in keys:
+            base = registry_items.get(key, {})
+            cands = grouped.get((kind, key), [])
+            latest = cands[0] if cands else None
+            spec = latest.get("spec") if latest else None
+            spec_source = "draft" if latest else ""
+            if spec is None:
+                candidates_paths = [builtin_dir / kind / ("%s.json" % key),
+                                    docs_dir / ("%s.json" % key)]
+                for path in candidates_paths:
+                    if not path.exists():
+                        continue
+                    try:
+                        data = json.loads(path.read_text(encoding="utf-8"))
+                    except ValueError:
+                        continue
+                    candidate = data.get("spec") if path.parent == docs_dir else data
+                    if isinstance(candidate, dict):
+                        spec = candidate
+                        spec_source = "builtin" if path.parent == builtin_dir / kind else "published"
+                        break
+            file = base.get("file") or ""
+            if kind == "theme" and file and "/" not in file:
+                file = "assets/themes/" + file
+            if latest:
+                css_path = str(Path(latest["path"]).parent / ("%s.css" % key)).replace("\\", "/")
+            else:
+                css_path = file
+            source = base.get("source") or ("builtin" if spec_source == "builtin" else "AI")
+            status = base.get("status") or ("candidate" if latest else "published")
+            if base.get("archived"):
+                status = "archived"
+            item = {
+                "version": 1, "kind": kind, "key": key,
+                "name": (latest or {}).get("name") or base.get("label") or (spec or {}).get("name") or key,
+                "label": base.get("label") or (spec or {}).get("name") or key,
+                "source": source,
+                "status": status,
+                "visible": key in visible_keys,
+                "locked": bool(base.get("locked")),
+                "archived": bool(base.get("archived")),
+                "editable": bool(latest),
+                "candidate": latest.get("candidate", "") if latest else "",
+                "candidates": [c.get("candidate") for c in cands],
+                "spec_path": latest.get("path", "") if latest else "",
+                "path": latest.get("path", "") if latest else "",
+                "preview": latest.get("preview", "") if latest else "/repo/index.html",
+                "css_path": css_path,
+                "spec": spec,
+                "intent": (latest or {}).get("intent") or (spec or {}).get("intent") or base.get("desc", ""),
+                "ok": bool(latest.get("ok", True)) if latest else True,
+                "visual": latest.get("visual", "checked") if latest else "checked",
+                "candidateCount": len(cands),
+            }
+            out[kind].append(item)
+    return {"ok": True, "kinds": out}
+
+
 def _rewrite_file_uris(text, root):
     root_uri = Path(root).resolve().as_uri()
 
@@ -197,6 +272,9 @@ class Handler(BaseHTTPRequestHandler):
             return
         if path == "/api/candidates":
             self._json({"ok": True, "items": candidates(self.root)})
+            return
+        if path == "/api/designs":
+            self._json(design_catalog(self.root))
             return
         if path == "/api/manage":
             self._json(display.manage_payload(self.root))

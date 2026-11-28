@@ -441,6 +441,30 @@ class HttpSmokeTest(unittest.TestCase):
         self.assertTrue(result.get("pushed"))
         self.assertIn("push-a4", display.manage_payload(root=root)["visible"]["visible_themes"])
 
+    def test_designs_include_all_registry_and_drafts(self):
+        tmp, root = make_root()
+        self.addCleanup(tmp.cleanup)
+        add_candidate(root, "all-designs")
+        srv = server.make_server(0, root)
+        thread = threading.Thread(target=srv.serve_forever, daemon=True)
+        thread.start()
+        self.addCleanup(srv.server_close)
+        self.addCleanup(srv.shutdown)
+        base = "http://127.0.0.1:%d" % srv.server_address[1]
+        data = json.loads(urllib.request.urlopen(base + "/api/designs", timeout=3).read().decode("utf-8"))
+        self.assertTrue(data["ok"])
+        layout_keys = [x["key"] for x in data["kinds"]["layout"]]
+        theme_keys = [x["key"] for x in data["kinds"]["theme"]]
+        self.assertEqual(layout_keys[:3], ["standard", "news", "magazine"])
+        self.assertIn("default", theme_keys)
+        self.assertIn("all-designs", theme_keys)
+        builtin = [x for x in data["kinds"]["theme"] if x["key"] == "default"][0]
+        draft = [x for x in data["kinds"]["theme"] if x["key"] == "all-designs"][0]
+        self.assertFalse(builtin["editable"])
+        self.assertEqual(builtin["source"], "builtin")
+        self.assertTrue(draft["editable"])
+        self.assertEqual(draft["status"], "candidate")
+
     def test_candidates_manage_and_display_post(self):
         tmp, root = make_root()
         self.addCleanup(tmp.cleanup)
